@@ -1,5 +1,3 @@
-export type ArchitectureNodeKind = 'client' | 'load-balancer' | 'service';
-
 export interface Exercise {
   id: string;
   title: string;

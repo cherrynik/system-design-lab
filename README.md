@@ -6,7 +6,7 @@ The first vertical slice asks one question: **can a client reach a service throu
 
 ## Repository layout
 
-- `web/` — React canvas and validation results.
+- `web/` — tldraw-based architecture editor and validation results.
 - `api/` — Go HTTP API and deterministic evaluator.
 - `docs/v0.1.md` — exact scope and acceptance criteria.
 
@@ -20,7 +20,7 @@ make dev-api
 make dev-web
 ```
 
-Open `http://localhost:5173`. The API listens on `http://localhost:8080`.
+Open `http://localhost:5173`. The API listens on `http://localhost:8081`.
 
 ## Verify
 

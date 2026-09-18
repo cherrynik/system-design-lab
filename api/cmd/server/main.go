@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"system-design-lab/api/internal/evaluator"
 	"system-design-lab/api/internal/exercises"
@@ -19,8 +20,13 @@ func main() {
 	mux.HandleFunc("GET /api/exercise", getExercise)
 	mux.HandleFunc("POST /api/evaluate", evaluate)
 
+	address := os.Getenv("API_ADDRESS")
+	if address == "" {
+		address = ":8081"
+	}
+
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    address,
 		Handler: withCORS(mux),
 	}
 
