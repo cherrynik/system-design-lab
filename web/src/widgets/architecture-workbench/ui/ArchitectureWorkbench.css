@@ -56,7 +56,8 @@
 }
 
 .canvas-zoom-controls {
-  right: 12px;
+  left: 12px;
+  right: auto;
   bottom: 12px;
   padding: 3px;
 }

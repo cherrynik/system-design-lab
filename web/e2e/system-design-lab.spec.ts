@@ -51,6 +51,27 @@ test('loads the system design workspace with its initial architecture', async ({
   await expect(page.getByRole('button', { name: 'Validate' })).toBeEnabled();
 });
 
+test('keeps canvas controls separate from the tldraw license badge', async ({ page }) => {
+  await openApp(page);
+
+  const expectControlsToBeSeparate = async () => {
+    const zoomControls = page.getByRole('navigation', { name: 'Canvas zoom' });
+    const licenseBadge = page.getByRole('button', { name: 'Get a license for production' });
+    await expect(zoomControls).toBeVisible();
+    await expect(licenseBadge).toBeVisible();
+
+    const zoomBounds = await zoomControls.boundingBox();
+    const licenseBounds = await licenseBadge.boundingBox();
+    expect(zoomBounds).not.toBeNull();
+    expect(licenseBounds).not.toBeNull();
+    expect(zoomBounds!.x + zoomBounds!.width + 8).toBeLessThanOrEqual(licenseBounds!.x);
+  };
+
+  await expectControlsToBeSeparate();
+  await page.getByRole('tab', { name: 'Solutions' }).click();
+  await expectControlsToBeSeparate();
+});
+
 test('collapses the sidebar to a rail and can expand it again', async ({ page }) => {
   await openApp(page);
 
