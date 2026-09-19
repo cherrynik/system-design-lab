@@ -599,3 +599,28 @@
     width: calc(100vw - 24px);
   }
 }
+
+@media (max-height: 640px) and (orientation: landscape) {
+  .requirements-panel__heading {
+    gap: var(--space-1);
+  }
+
+  .requirements-panel__heading > [data-slot='tabs'] {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .sidebar-view-tabs {
+    flex-wrap: nowrap;
+    gap: var(--space-1);
+  }
+
+  .sidebar-view-tabs > [data-slot='tabs-trigger'] {
+    justify-content: center;
+    height: 30px;
+    min-width: 0;
+    padding-block: 0;
+    padding-inline: var(--space-1);
+    white-space: nowrap;
+  }
+}

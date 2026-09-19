@@ -76,11 +76,33 @@ test('short landscape keeps the workspace and validation controls inside the vie
     const shell = document.querySelector('.app-shell')!.getBoundingClientRect();
     const shellStyle = window.getComputedStyle(document.querySelector('.app-shell')!);
     const requirements = document.querySelector('.requirements-panel')!.getBoundingClientRect();
+    const sidebarHeader = document
+      .querySelector('.requirements-panel__heading')!
+      .getBoundingClientRect();
+    const sidebarTabs = Array.from(
+      document.querySelectorAll<HTMLElement>('.sidebar-view-tabs [role="tab"]'),
+    ).map((tab) => {
+      const bounds = tab.getBoundingClientRect();
+      return {
+        top: bounds.top,
+        right: bounds.right,
+        bottom: bounds.bottom,
+        left: bounds.left,
+        justifyContent: window.getComputedStyle(tab).justifyContent,
+      };
+    });
     const workbench = document.querySelector('.workbench')!.getBoundingClientRect();
     const canvas = document.querySelector('.canvas-panel')!.getBoundingClientRect();
     return {
       horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
       shellTop: shell.top + Number.parseFloat(shellStyle.borderTopWidth),
+      sidebarHeader: {
+        top: sidebarHeader.top,
+        right: sidebarHeader.right,
+        bottom: sidebarHeader.bottom,
+        left: sidebarHeader.left,
+      },
+      sidebarTabs,
       requirementsRight: requirements.right,
       workbenchLeft: workbench.left,
       workbenchTop: workbench.top,
@@ -92,6 +114,15 @@ test('short landscape keeps the workspace and validation controls inside the vie
   expect(layout.requirementsRight).toBe(layout.workbenchLeft);
   expect(layout.workbenchTop).toBe(layout.shellTop);
   expect(layout.canvasHeight).toBeGreaterThanOrEqual(150);
+  expect(layout.sidebarTabs).toHaveLength(2);
+  expect(Math.abs(layout.sidebarTabs[0].top - layout.sidebarTabs[1].top)).toBeLessThanOrEqual(1);
+  for (const tab of layout.sidebarTabs) {
+    expect(tab.top).toBeGreaterThanOrEqual(layout.sidebarHeader.top);
+    expect(tab.right).toBeLessThanOrEqual(layout.sidebarHeader.right);
+    expect(tab.bottom).toBeLessThanOrEqual(layout.sidebarHeader.bottom);
+    expect(tab.left).toBeGreaterThanOrEqual(layout.sidebarHeader.left);
+    expect(tab.justifyContent).toBe('center');
+  }
   await expectInsideViewport(page, '.validate-button');
 });
 
