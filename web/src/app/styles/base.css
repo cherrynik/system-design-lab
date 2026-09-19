@@ -27,10 +27,25 @@
     margin: 0;
     min-width: 20rem;
     min-height: 100dvh;
+    overflow: hidden;
     color: var(--text-default);
     background: var(--ink);
     font-size: var(--text-md);
     line-height: var(--leading-copy);
+  }
+
+  #root {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    padding: var(--shell-gutter);
+    background:
+      radial-gradient(
+        circle at 50% -24%,
+        color-mix(in srgb, var(--line-strong) 30%, transparent),
+        transparent 48%
+      ),
+      var(--surface-deep);
   }
 
   button,
@@ -189,6 +204,23 @@
 
   .node-validation-tooltip:is(:hover, :focus-visible)::after {
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 780px) {
+  :root,
+  .dark {
+    --shell-gutter: 0.25rem;
+    --radius-shell: 0.625rem;
+  }
+}
+
+@media (max-width: 340px), (max-height: 320px) {
+  :root,
+  .dark {
+    --shell-gutter: 0rem;
+    --shell-border-width: 0px;
+    --radius-shell: 0rem;
   }
 }
 

@@ -33,11 +33,17 @@ for (const viewport of [
     await openWorkspace(page);
 
     const layout = await page.evaluate(() => {
+      const shell = document.querySelector('.app-shell')!.getBoundingClientRect();
+      const shellStyle = window.getComputedStyle(document.querySelector('.app-shell')!);
       const requirements = document.querySelector('.requirements-panel')!.getBoundingClientRect();
       const workbench = document.querySelector('.workbench')!.getBoundingClientRect();
       const canvas = document.querySelector('.canvas-panel')!.getBoundingClientRect();
       return {
         horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+        shell: {
+          contentLeft: shell.left + Number.parseFloat(shellStyle.borderLeftWidth),
+          contentRight: shell.right - Number.parseFloat(shellStyle.borderRightWidth),
+        },
         requirements: {
           left: requirements.left,
           right: requirements.right,
@@ -49,10 +55,10 @@ for (const viewport of [
     });
 
     expect(layout.horizontalOverflow).toBeLessThanOrEqual(0);
-    expect(layout.requirements.left).toBe(0);
-    expect(layout.requirements.right).toBe(viewport.width);
-    expect(layout.workbench.left).toBe(0);
-    expect(layout.workbench.right).toBe(viewport.width);
+    expect(layout.requirements.left).toBe(layout.shell.contentLeft);
+    expect(layout.requirements.right).toBe(layout.shell.contentRight);
+    expect(layout.workbench.left).toBe(layout.shell.contentLeft);
+    expect(layout.workbench.right).toBe(layout.shell.contentRight);
     expect(layout.workbench.top).toBe(layout.requirements.bottom);
     expect(layout.canvasHeight).toBeGreaterThan(150);
     await expectInsideViewport(page, '.validate-button');
@@ -67,11 +73,14 @@ test('short landscape keeps the workspace and validation controls inside the vie
   await openWorkspace(page);
 
   const layout = await page.evaluate(() => {
+    const shell = document.querySelector('.app-shell')!.getBoundingClientRect();
+    const shellStyle = window.getComputedStyle(document.querySelector('.app-shell')!);
     const requirements = document.querySelector('.requirements-panel')!.getBoundingClientRect();
     const workbench = document.querySelector('.workbench')!.getBoundingClientRect();
     const canvas = document.querySelector('.canvas-panel')!.getBoundingClientRect();
     return {
       horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      shellTop: shell.top + Number.parseFloat(shellStyle.borderTopWidth),
       requirementsRight: requirements.right,
       workbenchLeft: workbench.left,
       workbenchTop: workbench.top,
@@ -81,7 +90,7 @@ test('short landscape keeps the workspace and validation controls inside the vie
 
   expect(layout.horizontalOverflow).toBeLessThanOrEqual(0);
   expect(layout.requirementsRight).toBe(layout.workbenchLeft);
-  expect(layout.workbenchTop).toBe(0);
+  expect(layout.workbenchTop).toBe(layout.shellTop);
   expect(layout.canvasHeight).toBeGreaterThanOrEqual(150);
   await expectInsideViewport(page, '.validate-button');
 });
@@ -118,14 +127,23 @@ test('mobile canvas events do not cover the canvas toolbar', async ({ page }) =>
 });
 
 test('desktop retains the side-by-side workspace', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+  const viewport = { width: 1440, height: 900 };
+  await page.setViewportSize(viewport);
   await openWorkspace(page);
 
   const layout = await page.evaluate(() => {
+    const shell = document.querySelector('.app-shell')!.getBoundingClientRect();
     const requirements = document.querySelector('.requirements-panel')!.getBoundingClientRect();
     const workbench = document.querySelector('.workbench')!.getBoundingClientRect();
     return {
       horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      shell: {
+        top: shell.top,
+        right: shell.right,
+        bottom: shell.bottom,
+        left: shell.left,
+        borderRadius: window.getComputedStyle(document.querySelector('.app-shell')!).borderRadius,
+      },
       requirementsRight: requirements.right,
       workbenchLeft: workbench.left,
       workbenchTop: workbench.top,
@@ -133,7 +151,12 @@ test('desktop retains the side-by-side workspace', async ({ page }) => {
   });
 
   expect(layout.horizontalOverflow).toBeLessThanOrEqual(0);
+  expect(layout.shell.left).toBeGreaterThan(0);
+  expect(layout.shell.top).toBeGreaterThan(0);
+  expect(layout.shell.right).toBeLessThan(viewport.width);
+  expect(layout.shell.bottom).toBeLessThan(viewport.height);
+  expect(layout.shell.borderRadius).toBe('16px');
   expect(layout.requirementsRight).toBe(layout.workbenchLeft);
-  expect(layout.workbenchTop).toBe(0);
+  expect(layout.workbenchTop).toBe(layout.shell.top + 1);
   await expectInsideViewport(page, '.validate-button');
 });

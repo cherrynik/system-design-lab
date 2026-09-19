@@ -23,10 +23,17 @@ export function useTransientWorkspaceUi(): TransientWorkspaceUi {
   useEffect(() => {
     if (!menu || !contextMenuRef.current) return;
     const panel = contextMenuRef.current.getBoundingClientRect();
+    const shell = document.querySelector<HTMLElement>('.app-shell')?.getBoundingClientRect();
+    const bounds = shell ?? {
+      left: 0,
+      top: 0,
+      right: window.innerWidth,
+      bottom: window.innerHeight,
+    };
     const next = clampFloatingPanelPosition(
       menu,
       { width: panel.width, height: panel.height },
-      { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight },
+      bounds,
       { inset: 8 },
     );
     if (next.x !== menu.x || next.y !== menu.y) {

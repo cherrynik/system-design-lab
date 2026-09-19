@@ -60,12 +60,18 @@
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
+  --radius-shell: 1rem;
+
+  --shell-gutter: 0.625rem;
+  --shell-border-width: 1px;
+  --shell-border: color-mix(in srgb, var(--line-strong) 72%, transparent);
 
   --focus-ring: var(--signal);
   --shadow-card: 0 10px 26px rgb(0 0 0 / 0.24);
   --shadow-float: 0 18px 48px rgb(0 0 0 / 0.38);
   --shadow-toast: 0 12px 36px rgb(0 0 0 / 0.38);
   --shadow-overlay: 0 24px 80px rgb(0 0 0 / 0.44);
+  --shadow-shell: 0 24px 72px rgb(0 0 0 / 0.48);
 
   /* Mantine follows the same typography even outside its theme provider. */
   --mantine-font-family: var(--font-ui);
