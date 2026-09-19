@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArchitectureSnapshot } from '../../../entities/architecture';
-import type { ArchitectureAutosaveRepository } from './architectureAutosaveRepository';
+import type { ArchitectureAutosaveRepository } from './architectureAutosaveRepository.types';
 import { useArchitectureAutosave } from './useArchitectureAutosave';
 
 const snapshot = (label: string): ArchitectureSnapshot => ({

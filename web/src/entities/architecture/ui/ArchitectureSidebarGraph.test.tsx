@@ -2,7 +2,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArchitectureNodeConnectionState } from '../model/connections';
-import type { ArchitectureEdge, ArchitectureNode, ArchitectureNodeKind } from '../model/types';
+import type {
+  ArchitectureEdge,
+  ArchitectureNode,
+  ArchitectureNodeKind,
+} from '../model/architecture.types';
 import { ArchitectureSidebarGraph } from './ArchitectureSidebarGraph';
 
 const node = (id: string, kind: ArchitectureNodeKind, label: string): ArchitectureNode => ({

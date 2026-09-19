@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { ArchitectureEdge, ArchitectureNode, ArchitectureNodeKind } from './types';
+import type {
+  ArchitectureEdge,
+  ArchitectureNode,
+  ArchitectureNodeKind,
+} from './architecture.types';
 import { buildSidebarGraphLayout } from './sidebarGraph';
 
 const node = (id: string, kind: ArchitectureNodeKind, isAnchor = false): ArchitectureNode => ({

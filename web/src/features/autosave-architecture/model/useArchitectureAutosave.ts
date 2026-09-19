@@ -1,19 +1,9 @@
 import { useEffect, useMemo } from 'react';
 import type { ArchitectureSnapshot } from '../../../entities/architecture';
-import {
-  createLocalStorageArchitectureAutosaveRepository,
-  type ArchitectureAutosaveRepository,
-} from './architectureAutosaveRepository';
+import { createLocalStorageArchitectureAutosaveRepository } from './architectureAutosaveRepository';
+import type { ArchitectureAutosaveOptions } from './useArchitectureAutosave.types';
 
 export const DEFAULT_ARCHITECTURE_AUTOSAVE_DELAY_MS = 400;
-
-type PageLifecycleTarget = Pick<Window, 'addEventListener' | 'removeEventListener'>;
-
-type ArchitectureAutosaveOptions = {
-  debounceMs?: number;
-  pageLifecycleTarget?: PageLifecycleTarget;
-  repository?: ArchitectureAutosaveRepository;
-};
 
 export function useArchitectureAutosave(
   snapshot: ArchitectureSnapshot,
@@ -29,7 +19,7 @@ export function useArchitectureAutosave(
   );
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof window.setTimeout> | null = window.setTimeout(
+    let timeoutId: number | null = window.setTimeout(
       () => {
         timeoutId = null;
         activeRepository.save(snapshot);

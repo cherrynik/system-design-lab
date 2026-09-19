@@ -1,0 +1,395 @@
+.validation-panel {
+  position: relative;
+  border-top: 1px solid var(--line-subtle);
+}
+
+.validation-terminal {
+  display: grid;
+  grid-template-rows: 48px minmax(0, 1fr);
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--ink) 92%, black);
+}
+
+.validation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 48px;
+  padding: 7px var(--space-4);
+  border-bottom: 1px solid var(--line-subtle);
+  background: var(--surface-panel);
+}
+
+.validation-title,
+.validation-actions {
+  min-width: 0;
+}
+
+.validation-title {
+  color: var(--text-default);
+  font-family: var(--font-code);
+  letter-spacing: 0.01em;
+}
+
+.validation-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.validation-dot--running {
+  background: var(--signal);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--signal) 48%, transparent);
+  animation: terminal-blink 800ms steps(1) infinite;
+}
+
+.validation-dot--ready,
+.validation-dot--success {
+  background: var(--success);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--success) 44%, transparent);
+}
+
+.validation-dot--warning {
+  background: var(--warning);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--warning) 40%, transparent);
+}
+
+.validation-dot--error {
+  background: var(--danger);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.validation-header .clear-terminal-button {
+  color: var(--danger);
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.validation-header .clear-terminal-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 28%, transparent);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+}
+
+.validation-header .clear-terminal-button:disabled {
+  opacity: 0.28;
+}
+
+.validation-header .validate-button {
+  min-height: 32px;
+  color: var(--ink);
+  border: 0;
+  background: var(--success);
+  font-family: var(--font-code);
+  font-size: var(--text-meta);
+  font-weight: 650;
+}
+
+.validation-header .validate-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--success) 88%, white);
+}
+
+.validation-header .validate-button:disabled {
+  opacity: 0.58;
+}
+
+.validate-shortcut {
+  color: color-mix(in srgb, var(--ink) 82%, transparent);
+}
+
+.validate-shortcut [data-slot='kbd'],
+.validate-shortcut kbd {
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 4px;
+  color: inherit;
+  border-color: color-mix(in srgb, var(--ink) 18%, transparent);
+  background: color-mix(in srgb, white 16%, transparent);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  line-height: 18px;
+}
+
+.validation-body,
+.terminal-output {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.validation-body {
+  position: relative;
+  overflow: hidden;
+}
+
+.validation-body > [role='alert'] {
+  position: absolute;
+  z-index: 2;
+  top: var(--space-3);
+  right: var(--space-3);
+  left: var(--space-3);
+}
+
+.terminal-output {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--text-strong) 1.8%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 100% 24px;
+}
+
+.terminal-output :where([data-radix-scroll-area-viewport]) > div {
+  padding: 16px;
+}
+
+.terminal-output--idle {
+  opacity: 0.82;
+}
+
+.terminal-idle-state {
+  padding: 16px;
+}
+
+.terminal-line {
+  display: block;
+  margin: 0 0 7px;
+  color: var(--text-soft);
+  font: 500 var(--text-meta) / 1.6 var(--font-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.terminal-line--command {
+  margin-top: 10px;
+  color: var(--text-strong);
+}
+
+.terminal-line--command:first-child {
+  margin-top: 0;
+}
+
+.terminal-line--success {
+  color: var(--success);
+}
+
+.terminal-line--warning,
+.terminal-summary-warning {
+  color: var(--warning);
+}
+
+.terminal-line--error {
+  color: var(--danger);
+}
+
+.terminal-line--info {
+  color: var(--text-muted);
+}
+
+.terminal-line--muted {
+  color: var(--text-faint);
+}
+
+.terminal-line--pending {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-default);
+}
+
+.terminal-spinner {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--line-strong);
+  border-top-color: var(--success);
+  border-radius: 50%;
+  animation: terminal-spin 700ms linear infinite;
+}
+
+.architecture-commits {
+  position: absolute;
+  z-index: 42;
+  top: 12px;
+  right: 12px;
+}
+
+.architecture-commits .commits-trigger {
+  color: var(--text-muted);
+  border: 1px solid var(--line-subtle);
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.architecture-commits .commits-trigger:hover {
+  color: var(--text-strong);
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+}
+
+.commits-popover {
+  width: min(320px, calc(100vw - 24px));
+  padding: 0;
+  color: var(--text-default);
+  border-color: var(--line-subtle);
+  background: color-mix(in srgb, var(--surface-overlay) 97%, transparent);
+  box-shadow: var(--shadow-overlay);
+  backdrop-filter: blur(20px) saturate(125%);
+}
+
+.commits-popover .commit-current-button {
+  min-height: 24px;
+  font-family: var(--font-code);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.commits-popover .commit-history {
+  max-height: min(320px, calc(100dvh - 132px));
+  overflow-y: auto;
+}
+
+.commits-popover .commit-history-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 7px;
+  min-height: 42px;
+  padding: 4px 5px 4px 8px;
+  border-radius: var(--radius-md);
+}
+
+.commits-popover .commit-history-row:hover {
+  background: color-mix(in srgb, var(--surface-raised) 68%, transparent);
+}
+
+.commit-history-row__hash {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 2px 4px;
+  color: var(--success);
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font: 500 9px / 1 var(--font-code);
+}
+
+.commit-history-row__content {
+  min-width: 0;
+}
+
+.commit-history-row__content .commit-history-row__restore {
+  height: auto;
+  min-height: 32px;
+  padding: 2px 0;
+  color: var(--text-default);
+  background: transparent;
+}
+
+.commit-history-row__content .commit-history-row__restore:hover {
+  background: transparent;
+}
+
+.commit-history-row__content .mantine-Input-input {
+  height: 28px;
+  min-height: 28px;
+  color: var(--text-strong);
+  border-color: var(--line-strong);
+  background: var(--surface-panel);
+  font-size: 10px;
+}
+
+.commit-history-row__actions {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.commit-history-row:is(:hover, :focus-within) .commit-history-row__actions {
+  opacity: 1;
+}
+
+.commit-history-empty {
+  text-align: center;
+  font-size: var(--text-meta);
+}
+
+.canvas-event-toast {
+  position: absolute;
+  z-index: 45;
+  left: 50%;
+  bottom: 14px;
+  width: max-content;
+  max-width: min(420px, calc(100% - 28px));
+  min-height: 38px;
+  color: var(--text-default);
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
+  box-shadow: var(--shadow-toast);
+  transform: translateX(-50%);
+  backdrop-filter: blur(14px);
+  animation: canvas-event-in 140ms ease-out;
+}
+
+.canvas-event-toast .mantine-Notification-body {
+  min-width: 0;
+}
+
+.canvas-event-toast .mantine-Notification-description {
+  overflow: hidden;
+}
+
+.canvas-event-toast .mantine-Text-root {
+  overflow: hidden;
+  color: var(--text-default);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes canvas-event-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 5px);
+  }
+}
+
+@keyframes terminal-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes terminal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (hover: none) {
+  .commit-history-row__actions {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 700px) {
+  .validation-header {
+    padding-inline: var(--space-3);
+  }
+
+  .validation-header .validation-actions {
+    gap: var(--space-1);
+  }
+
+  .validate-shortcut {
+    display: none;
+  }
+
+  .architecture-commits {
+    top: 10px;
+    right: 10px;
+  }
+}

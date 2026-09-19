@@ -1,12 +1,9 @@
 import type { ArchitectureSnapshot } from '../../../entities/architecture';
+import type { ArchitectureHistoryState } from './architectureHistory.types';
 
 const HISTORY_LIMIT = 100;
 
-export type ArchitectureHistoryState = {
-  present: ArchitectureSnapshot;
-  past: ArchitectureSnapshot[];
-  future: ArchitectureSnapshot[];
-};
+export type { ArchitectureHistoryState } from './architectureHistory.types';
 
 const withoutSelection = ({ nodes, edges }: ArchitectureSnapshot) => ({
   nodes: nodes.map(({ selected: _selected, ...node }) => node),

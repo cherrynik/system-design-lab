@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { renderWithPlatform } from '@/shared/testing/renderWithPlatform';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
 
@@ -11,7 +12,7 @@ describe('Tabs', () => {
   it('moves focus and selection with arrow keys', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderWithPlatform(
       <Tabs defaultValue="layers">
         <TabsList aria-label="Component views">
           <TabsTrigger value="layers">Layers</TabsTrigger>

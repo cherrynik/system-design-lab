@@ -1,20 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { FiAlertTriangle, FiArrowRight, FiMoreHorizontal, FiXCircle } from 'react-icons/fi';
+import { FiMoreHorizontal } from 'react-icons/fi';
+import { cn } from '@/shared/lib';
 import { getArchitectureVariant } from '../model/catalog';
-import { getConnectionStateText, type ArchitectureNodeConnectionState } from '../model/connections';
-import type { ArchitectureNodeValidationState } from '../model/nodeValidation';
-import type { ArchitectureNode } from '../model/types';
-
-type Props = {
-  node: ArchitectureNode;
-  fallbackLabel: string;
-  connectionState: ArchitectureNodeConnectionState;
-  validationState?: ArchitectureNodeValidationState;
-  mode?: 'list' | 'graph';
-  onFocus: (nodeId: string) => void;
-  onOpenMenu: (nodeId: string, x: number, y: number) => void;
-  onRename: (nodeId: string, label: string) => void;
-};
+import { ArchitectureLayerName } from './ArchitectureLayerName';
+import type { ArchitectureLayerItemProps } from './ArchitectureLayerItem.types';
+import { ArchitectureValidationBadge } from './ArchitectureValidationBadge';
+import './architecture-sidebar.css';
 
 export function ArchitectureLayerItem({
   node,
@@ -25,7 +16,7 @@ export function ArchitectureLayerItem({
   onFocus,
   onOpenMenu,
   onRename,
-}: Props) {
+}: ArchitectureLayerItemProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(node.data.label);
   const cancelled = useRef(false);
@@ -33,9 +24,10 @@ export function ArchitectureLayerItem({
   const variant = getArchitectureVariant(node.data.kind, node.data.variantId);
   const Icon = variant.icon;
   const label = node.data.label || fallbackLabel;
-  const connectionText = getConnectionStateText(connectionState);
-  const missingText = (direction: 'incoming' | 'outgoing') =>
-    direction === 'incoming' ? 'Choose source' : 'Choose destination';
+  const itemRole = editing ? undefined : 'button';
+  const itemTabIndex = editing ? -1 : 0;
+  const compact = mode === 'graph';
+  const hasValidationIssue = Boolean(validationState && validationState.status !== 'valid');
 
   useEffect(() => {
     if (!editing) return;
@@ -54,9 +46,19 @@ export function ArchitectureLayerItem({
     if (!cancelled.current) onRename(node.id, draft);
   };
 
+  const cancelRename = () => {
+    cancelled.current = true;
+    setDraft(node.data.label);
+    setEditing(false);
+  };
+
   return (
     <div
-      className={`layer-row ${mode === 'graph' ? 'layer-row--graph' : ''} ${node.selected ? 'layer-row--selected' : ''}`}
+      className={cn(
+        'layer-row',
+        mode === 'graph' && 'layer-row--graph',
+        node.selected && 'layer-row--selected',
+      )}
       onContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -64,9 +66,14 @@ export function ArchitectureLayerItem({
       }}
     >
       <div
-        className={`layer-item ${editing ? 'layer-item--editing' : ''} ${validationState && validationState.status !== 'valid' ? 'layer-item--validated' : ''}`}
-        role={editing ? undefined : 'button'}
-        tabIndex={editing ? -1 : 0}
+        className={cn(
+          'layer-item',
+          compact && 'layer-item--graph',
+          editing && 'layer-item--editing',
+          hasValidationIssue && 'layer-item--validated',
+        )}
+        role={itemRole}
+        tabIndex={itemTabIndex}
         onClick={() => {
           if (!editing) onFocus(node.id);
         }}
@@ -79,102 +86,44 @@ export function ArchitectureLayerItem({
           if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             onFocus(node.id);
-          } else if (event.key === 'F2') {
+          }
+          if (event.key === 'F2') {
             event.preventDefault();
             beginRename();
           }
         }}
       >
-        <Icon className={`component-logo component-logo--${node.data.kind}`} />
-        <span>
-          {editing ? (
-            <input
-              ref={inputRef}
-              className="layer-item__name-input"
-              aria-label={`Rename ${label}`}
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onClick={(event) => event.stopPropagation()}
-              onDoubleClick={(event) => event.stopPropagation()}
-              onBlur={finishRename}
-              onKeyDown={(event) => {
-                event.stopPropagation();
-                if (event.key === 'Enter') event.currentTarget.blur();
-                if (event.key === 'Escape') {
-                  cancelled.current = true;
-                  setDraft(node.data.label);
-                  setEditing(false);
-                }
-              }}
-            />
-          ) : (
-            <>
-              <strong>{label}</strong>
-              {mode === 'list' && (
-                <span
-                  className={`layer-item__connections layer-item__connections--${connectionState.state}`}
-                  aria-label={connectionText}
-                >
-                  {connectionState.incoming.map((related) => {
-                    const RelatedIcon = getArchitectureVariant(
-                      related.data.kind,
-                      related.data.variantId,
-                    ).icon;
-                    return (
-                      <span
-                        className="component-link component-link--incoming"
-                        aria-label={`Connected from ${related.data.label}`}
-                        key={`in-${related.id}`}
-                      >
-                        <RelatedIcon />
-                        <b>{related.data.label}</b>
-                        <FiArrowRight />
-                      </span>
-                    );
-                  })}
-                  {connectionState.outgoing.map((related) => {
-                    const RelatedIcon = getArchitectureVariant(
-                      related.data.kind,
-                      related.data.variantId,
-                    ).icon;
-                    return (
-                      <span
-                        className="component-link component-link--outgoing"
-                        aria-label={`Connected to ${related.data.label}`}
-                        key={`out-${related.id}`}
-                      >
-                        <FiArrowRight />
-                        <RelatedIcon />
-                        <b>{related.data.label}</b>
-                      </span>
-                    );
-                  })}
-                  {connectionState.missing.map((direction) => (
-                    <span className="component-link component-link--missing" key={direction}>
-                      <i />
-                      {missingText(direction)}
-                    </span>
-                  ))}
-                </span>
-              )}
-            </>
+        <Icon
+          className={cn(
+            'component-logo component-logo--layer',
+            `component-logo--${node.data.kind}`,
+            compact && 'component-logo--compact',
           )}
+          aria-hidden="true"
+          focusable="false"
+        />
+        <span className="layer-item__content">
+          <ArchitectureLayerName
+            editing={editing}
+            label={label}
+            draft={draft}
+            mode={mode}
+            connectionState={connectionState}
+            inputRef={inputRef}
+            onDraftChange={setDraft}
+            onFinish={finishRename}
+            onCancel={cancelRename}
+          />
         </span>
-        {validationState && validationState.status !== 'valid' && (
-          <span
-            className={`layer-item__validation node-validation-tooltip layer-item__validation--${validationState.status}`}
-            aria-label={`${label}: ${validationState.issues.length} validation ${validationState.issues.length === 1 ? 'issue' : 'issues'}`}
-            data-tooltip={validationState.issues
-              .map(({ message, suggestion }) => `${message}\n${suggestion}`)
-              .join('\n\n')}
-            tabIndex={0}
-          >
-            {validationState.status === 'error' ? <FiXCircle /> : <FiAlertTriangle />}
-          </span>
-        )}
+        <ArchitectureValidationBadge
+          label={label}
+          validationState={validationState}
+          compact={compact}
+        />
       </div>
       <button
-        className="component-menu-trigger"
+        className={cn('component-menu-trigger', compact && 'component-menu-trigger--compact')}
+        data-component-menu-trigger={node.id}
         type="button"
         aria-label={`Open menu for ${label}`}
         onClick={(event) => onOpenMenu(node.id, event.clientX, event.clientY)}

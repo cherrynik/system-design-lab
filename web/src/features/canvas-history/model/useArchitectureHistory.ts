@@ -11,8 +11,14 @@ import {
   replaceArchitecturePresent,
   undoArchitectureHistory,
 } from './architectureHistory';
+import type {
+  ArchitectureSnapshotUpdate,
+  UseArchitectureHistoryResult,
+} from './useArchitectureHistory.types';
 
-export function useArchitectureHistory(initialSnapshot: ArchitectureSnapshot) {
+export function useArchitectureHistory(
+  initialSnapshot: ArchitectureSnapshot,
+): UseArchitectureHistoryResult {
   const [state, setState] = useState(() => createArchitectureHistory(initialSnapshot));
   const pendingCanvas = useRef<Partial<ArchitectureSnapshot>>({});
   const canvasFlushQueued = useRef(false);
@@ -25,14 +31,14 @@ export function useArchitectureHistory(initialSnapshot: ArchitectureSnapshot) {
   }, []);
 
   const applyChange = useCallback(
-    (update: (current: ArchitectureSnapshot) => ArchitectureSnapshot) => {
+    (update: ArchitectureSnapshotUpdate) => {
       updateState((current) => pushArchitectureHistory(current, update(current.present)));
     },
     [updateState],
   );
 
   const replacePresent = useCallback(
-    (update: (current: ArchitectureSnapshot) => ArchitectureSnapshot) => {
+    (update: ArchitectureSnapshotUpdate) => {
       updateState((current) => replaceArchitecturePresent(current, update(current.present)));
     },
     [updateState],

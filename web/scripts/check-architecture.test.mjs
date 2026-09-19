@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { findArchitectureBoundaryViolations } from './check-architecture.mjs';
+import {
+  findArchitectureBoundaryViolations,
+  findSharedUiFacadeViolations,
+  findTypePlacementViolations,
+} from './check-architecture.mjs';
 
 const fixtureRoots = [];
 
@@ -59,5 +63,70 @@ describe('architecture boundary checker', () => {
     });
 
     expect(findArchitectureBoundaryViolations(root)).toEqual([]);
+  });
+});
+
+describe('type placement checker', () => {
+  it('rejects public and private declarations in implementation files', () => {
+    const root = fixture({
+      'entities/architecture/model/catalog.ts':
+        'type ArchitectureVariant = { id: string };\nexport type { ArchitectureVariant };',
+      'features/canvas/model/interaction.ts': 'type PointerDown = { timestamp: number };',
+      'widgets/workbench/ui/Toolbar.tsx':
+        'export interface ToolbarProps { label: string }\nexport function Toolbar() { return null; }',
+      'shared/lib/clamp.ts': 'type ClampOptions = { inset: number };',
+      'pages/lab/model/controller.ts': 'interface ControllerState { ready: boolean }',
+    });
+
+    expect(findTypePlacementViolations(root)).toEqual([
+      expect.stringContaining('catalog.ts:1: move ArchitectureVariant'),
+      expect.stringContaining('interaction.ts:1: move PointerDown'),
+      expect.stringContaining('controller.ts:1: move ControllerState'),
+      expect.stringContaining('clamp.ts:1: move ClampOptions'),
+      expect.stringContaining('Toolbar.tsx:1: move ToolbarProps'),
+    ]);
+  });
+
+  it('accepts adjacent type modules, config types, and declaration augmentation', () => {
+    const root = fixture({
+      'entities/architecture/model/catalog.types.ts':
+        'export type ArchitectureVariant = { id: string };',
+      'features/canvas/model/canvas.config.ts': 'export type CanvasConfig = { grid: number };',
+      'features/canvas/model/shape.ts':
+        "declare module 'canvas' { interface ShapeMap { card: unknown } }\nexport const shape = 'card';",
+    });
+
+    expect(findTypePlacementViolations(root)).toEqual([]);
+  });
+});
+
+describe('shared UI facade checker', () => {
+  it('rejects direct interactive Mantine primitive imports from product layers', () => {
+    const root = fixture({
+      'features/editor/ui/Toolbar.tsx':
+        "import { ActionIcon as MantineAction, Group, Tooltip } from '@mantine/core';\nvoid MantineAction;\nvoid Group;\nvoid Tooltip;",
+      'widgets/runner/ui/Runner.tsx':
+        "import { Button, ScrollArea, Text } from '@mantine/core';\nvoid Button;\nvoid ScrollArea;\nvoid Text;",
+    });
+
+    expect(findSharedUiFacadeViolations(root)).toEqual([
+      expect.stringContaining('Toolbar.tsx:1: import ActionIcon through @/shared/ui'),
+      expect.stringContaining('Toolbar.tsx:1: import Tooltip through @/shared/ui'),
+      expect.stringContaining('Runner.tsx:1: import Button through @/shared/ui'),
+      expect.stringContaining('Runner.tsx:1: import ScrollArea through @/shared/ui'),
+    ]);
+  });
+
+  it('allows Mantine adapters in shared UI and provider configuration', () => {
+    const root = fixture({
+      'shared/ui/button/Button.tsx':
+        "import { Button } from '@mantine/core';\nexport function SharedButton() { return <Button />; }",
+      'shared/config/PlatformProvider.tsx':
+        "import { Tooltip } from '@mantine/core';\nexport function Provider() { return <Tooltip label='help'><button /></Tooltip>; }",
+      'widgets/runner/ui/Runner.tsx':
+        "import { Group, Text } from '@mantine/core';\nvoid Group;\nvoid Text;",
+    });
+
+    expect(findSharedUiFacadeViolations(root)).toEqual([]);
   });
 });

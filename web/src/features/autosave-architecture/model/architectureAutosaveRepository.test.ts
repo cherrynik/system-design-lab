@@ -49,6 +49,11 @@ describe('architecture autosave repository', () => {
     const repository = createLocalStorageArchitectureAutosaveRepository(storage);
 
     expect(repository.load()).toBeNull();
+    storage.setItem(
+      ARCHITECTURE_AUTOSAVE_STORAGE_KEY,
+      JSON.stringify({ nodes: [null], edges: [] }),
+    );
+    expect(repository.load()).toBeNull();
     expect(repository.save(snapshot)).toBe(true);
     expect(repository.load()).toEqual({
       nodes: [{ ...snapshot.nodes[0], selected: false }],

@@ -5,28 +5,14 @@ import {
   type GraphLabel,
   type NodeLabel,
 } from '@dagrejs/dagre';
-import type { ArchitectureEdge, ArchitectureNode } from './types';
+import type { ArchitectureEdge, ArchitectureNode } from './architecture.types';
+import type { SidebarGraphLayout, SidebarGraphNodeLayout } from './sidebarGraph.types';
 
-export type SidebarGraphNodeLayout = {
-  node: ArchitectureNode;
-  lane: number;
-  x: number;
-  y: number;
-};
-
-export type SidebarGraphEdgeLayout = {
-  id: string;
-  source: SidebarGraphNodeLayout;
-  target: SidebarGraphNodeLayout;
-  channelX: number;
-};
-
-export type SidebarGraphLayout = {
-  nodes: SidebarGraphNodeLayout[];
-  edges: SidebarGraphEdgeLayout[];
-  height: number;
-  railWidth: number;
-};
+export type {
+  SidebarGraphEdgeLayout,
+  SidebarGraphLayout,
+  SidebarGraphNodeLayout,
+} from './sidebarGraph.types';
 
 const ROW_HEIGHT = 28;
 const ROW_GAP = 0;

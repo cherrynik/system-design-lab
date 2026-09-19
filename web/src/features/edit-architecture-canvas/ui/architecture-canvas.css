@@ -1,0 +1,443 @@
+.tldraw-engine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  --tl-color-background: var(--surface-canvas-paper);
+  --tl-color-grid: var(--line-focus);
+  --tl-color-selection-stroke: var(--signal);
+  --tl-color-selection-fill: color-mix(in srgb, var(--signal) 12%, transparent);
+  --tl-color-selected: var(--signal);
+  --tl-color-primary: var(--signal);
+}
+.tldraw-engine .tl-theme__dark {
+  --tl-color-background: var(--surface-canvas-paper);
+  --tl-color-grid: var(--line-focus);
+}
+.tldraw-engine .tl-container {
+  width: 100%;
+  height: 100%;
+  background: var(--surface-canvas-paper);
+  font-family: var(--font-ui);
+}
+.tldraw-engine .tl-background {
+  background-color: var(--surface-canvas-paper);
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--grid-dot) 34%, transparent) 0.8px,
+    transparent 0.9px
+  );
+  background-size: 20px 20px;
+}
+.tldraw-architecture-card {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  height: 100%;
+  padding: 17px 20px;
+  color: var(--text-default);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+}
+.tldraw-architecture-card > svg {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+}
+.tldraw-architecture-card > span {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+.tldraw-architecture-card strong {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tldraw-node-name-input {
+  width: 100%;
+  min-width: 0;
+  height: 25px;
+  padding: 1px 5px;
+  color: var(--text-strong);
+  border: 1px solid var(--signal);
+  border-radius: 4px;
+  outline: 0;
+  background: var(--surface-canvas);
+  font:
+    650 14px/1.1 var(--font-ui),
+    sans-serif;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--signal) 12%, transparent);
+  pointer-events: all;
+}
+.tldraw-node-name-input::selection {
+  color: var(--ink);
+  background: var(--signal);
+}
+.tldraw-architecture-card small {
+  color: var(--text-muted);
+  font:
+    10px/1.2 var(--font-code),
+    ui-monospace,
+    monospace;
+}
+.tldraw-architecture-card--validation-warning {
+  border-color: color-mix(in srgb, var(--warning) 50%, var(--line-strong));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--warning) 8%, transparent),
+    var(--shadow-card);
+}
+.tldraw-architecture-card--validation-error {
+  border-color: color-mix(in srgb, var(--danger) 48%, var(--line-strong));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--danger) 9%, transparent),
+    var(--shadow-card);
+}
+.tldraw-architecture-card--selected {
+  border-color: var(--signal);
+  outline: 0;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--signal) 90%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--signal) 8%, transparent),
+    var(--shadow-card);
+}
+.tldraw-node-validation {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: 50%;
+  pointer-events: all;
+}
+.tldraw-node-validation svg {
+  width: 11px;
+  height: 11px;
+}
+.tldraw-node-validation--warning {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 11%, transparent);
+}
+.tldraw-node-validation--error {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 11%, transparent);
+}
+.tldraw-node-hotspot {
+  position: absolute;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+}
+.tldraw-node-hotspot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--text-soft);
+  border-radius: 50%;
+  background: var(--surface-overlay);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--surface-overlay) 90%, transparent);
+  transition:
+    width 0.1s ease,
+    height 0.1s ease,
+    border-color 0.1s ease,
+    background-color 0.1s ease,
+    box-shadow 0.1s ease;
+}
+.tldraw-node-hotspot--top {
+  top: -23px;
+  left: calc(50% - 12px);
+}
+.tldraw-node-hotspot--right {
+  top: calc(50% - 12px);
+  right: -23px;
+}
+.tldraw-node-hotspot--bottom {
+  bottom: -23px;
+  left: calc(50% - 12px);
+}
+.tldraw-node-hotspot--left {
+  top: calc(50% - 12px);
+  left: -23px;
+}
+.tldraw-architecture-card:not(.tldraw-architecture-card--arrow-interaction):hover
+  .tldraw-node-hotspot,
+.tldraw-architecture-card--selected:not(.tldraw-architecture-card--arrow-interaction)
+  .tldraw-node-hotspot,
+.tldraw-architecture-card--binding-target .tldraw-node-hotspot {
+  opacity: 1;
+}
+.tldraw-architecture-card:not(.tldraw-architecture-card--arrow-interaction):hover
+  .tldraw-node-hotspot,
+.tldraw-architecture-card--selected:not(.tldraw-architecture-card--arrow-interaction)
+  .tldraw-node-hotspot {
+  pointer-events: all;
+  cursor: crosshair;
+}
+.tldraw-architecture-card:not(.tldraw-architecture-card--arrow-interaction)
+  .tldraw-node-hotspot:hover::before,
+.tldraw-architecture-card:not(.tldraw-architecture-card--arrow-interaction)
+  .tldraw-node-hotspot:focus-visible::before {
+  width: 11px;
+  height: 11px;
+  border-color: var(--text-default);
+  background: var(--signal);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--signal) 15%, transparent),
+    0 0 9px color-mix(in srgb, var(--signal) 50%, transparent);
+}
+.tldraw-architecture-card--binding-target {
+  border-color: var(--signal);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--signal) 13%, transparent),
+    var(--shadow-card);
+}
+.tldraw-architecture-card--binding-target .tldraw-node-hotspot::before {
+  border-color: color-mix(in srgb, var(--signal) 58%, var(--text-strong));
+  background: var(--signal);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--signal) 14%, transparent),
+    0 0 8px color-mix(in srgb, var(--signal) 40%, transparent);
+}
+.tldraw-engine .tl-watermark_SEE-LICENSE {
+  right: 12px;
+  bottom: 9px;
+}
+.tldraw-engine .tl-watermark_SEE-LICENSE button {
+  min-height: 24px;
+  padding: 4px 8px;
+  color: var(--text-faint);
+  border: 0;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ink) 78%, transparent);
+  font:
+    9px/1.25 var(--font-code),
+    ui-monospace,
+    monospace;
+}
+
+.component-inspector {
+  position: absolute;
+  z-index: 12;
+  width: 270px;
+  padding: 14px;
+  color: var(--text-default);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-sidebar) 97%, transparent);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(14px);
+}
+.component-inspector--above {
+  transform: translate(-50%, -100%);
+}
+.component-inspector--below {
+  transform: translateX(-50%);
+}
+.component-inspector::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--surface-sidebar);
+}
+.component-inspector--above::after {
+  bottom: -6px;
+  transform: translateX(-50%) rotate(45deg);
+}
+.component-inspector--below::after {
+  top: -6px;
+  transform: translateX(-50%) rotate(225deg);
+}
+.component-inspector--flow {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: none;
+}
+.component-inspector--canvas-overlay {
+  pointer-events: all;
+}
+.component-inspector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.component-inspector__header button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--text-muted);
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+.component-inspector__header button:hover {
+  color: var(--text-default);
+  background: var(--surface-raised);
+}
+.component-inspector__identity {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: 11px 0 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-hairline);
+}
+.component-inspector__identity span,
+.inspector-variants button span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.component-inspector__identity strong {
+  font-size: 13px;
+}
+.component-inspector__identity small,
+.inspector-variants small {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+.inspector-label {
+  display: block;
+  margin: 12px 0 7px;
+  color: var(--text-faint);
+  font: 9px var(--font-code);
+  letter-spacing: 0.09em;
+}
+.inspector-variants {
+  display: grid;
+  gap: 4px;
+}
+.inspector-variants button {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px;
+  color: var(--text-soft);
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+.inspector-variants button:hover {
+  background: var(--surface-hover);
+}
+.inspector-variants button.inspector-variant--active {
+  color: var(--text-strong);
+  border-color: var(--line-focus);
+  background: var(--surface-active);
+}
+.inspector-variants button > svg {
+  width: 18px;
+  height: 18px;
+}
+.inspector-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.inspector-capabilities code {
+  padding: 4px 6px;
+  color: color-mix(in srgb, var(--success) 62%, var(--text-default));
+  border: 1px solid color-mix(in srgb, var(--success) 28%, var(--line-subtle));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--success) 10%, var(--surface-deep));
+  font: 9px var(--font-code);
+}
+
+.tldraw-engine,
+.tldraw-engine .tl-theme__dark,
+.tldraw-engine .tl-container {
+  background: var(--surface-canvas-paper);
+  --tl-color-background: var(--surface-canvas-paper);
+}
+.tldraw-architecture-card {
+  background: var(--surface-card);
+}
+.tldraw-architecture-card--selected {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--signal) 92%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--signal) 8%, transparent),
+    var(--shadow-card);
+}
+.tldraw-engine .tl-watermark_SEE-LICENSE {
+  right: 12px !important;
+  bottom: 10px !important;
+  width: 176px !important;
+  max-width: none !important;
+  box-sizing: border-box;
+  background: transparent !important;
+}
+.tldraw-engine .tl-watermark_SEE-LICENSE button {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 24px !important;
+  padding: 4px 8px !important;
+  color: var(--text-muted) !important;
+  border: 1px solid color-mix(in srgb, var(--line-focus) 26%, transparent) !important;
+  border-radius: 5px !important;
+  background: color-mix(in srgb, var(--surface-sidebar) 76%, transparent) !important;
+  font: 500 9px/1.25 var(--font-code) !important;
+  white-space: nowrap;
+}
+.component-inspector {
+  max-width: calc(100% - 24px);
+}
+
+.tldraw-engine,
+.tldraw-engine .tl-theme__dark,
+.tldraw-engine .tl-container {
+  background: var(--surface-canvas-paper);
+  --tl-color-background: var(--surface-canvas-paper);
+}
+.tldraw-architecture-card {
+  background: var(--surface-card);
+}
+.component-inspector {
+  border-color: var(--line-subtle);
+  background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
+  box-shadow:
+    var(--shadow-overlay),
+    0 0 0 1px color-mix(in srgb, var(--text-strong) 2.5%, transparent);
+  backdrop-filter: blur(20px) saturate(125%);
+}
+
+.canvas-story {
+  position: relative;
+  width: min(100%, 1080px);
+  height: min(680px, calc(100vh - 64px));
+  min-height: 420px;
+  overflow: hidden;
+  border: 1px solid var(--line-subtle);
+  border-radius: var(--radius-lg);
+}

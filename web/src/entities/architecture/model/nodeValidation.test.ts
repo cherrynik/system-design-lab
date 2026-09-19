@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { ArchitectureEdge, ArchitectureNode, ArchitectureNodeKind } from './types';
+import type {
+  ArchitectureEdge,
+  ArchitectureNode,
+  ArchitectureNodeKind,
+} from './architecture.types';
 import { getArchitectureNodeValidationIssues, validateArchitectureNodes } from './nodeValidation';
 
 const node = (

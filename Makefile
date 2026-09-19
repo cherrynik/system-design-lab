@@ -1,26 +1,44 @@
-.PHONY: install dev-api dev-web test test-api test-web build build-api build-web
+.PHONY: install dev-api dev-web storybook test test-api test-web check check-api check-web build build-api build-web
+
+GO ?= go
 
 install:
-	cd web && pnpm install
+	pnpm --dir web install
 
 dev-api:
-	cd api && go run ./cmd/server
+	$(GO) -C api run ./cmd/server
 
 dev-web:
-	cd web && pnpm dev
+	pnpm --dir web dev
+
+storybook:
+	pnpm --dir web storybook
 
 test: test-api test-web
 
 test-api:
-	cd api && go test ./...
+	$(GO) -C api test ./...
 
 test-web:
-	cd web && pnpm test
+	pnpm --dir web test:coverage
+
+check: check-api check-web
+
+check-api:
+	$(GO) -C api test -race ./...
+	$(GO) -C api vet ./...
+	$(GO) -C api build ./...
+
+check-web:
+	pnpm --dir web check
+	pnpm --dir web build
+	pnpm --dir web storybook:build
+	pnpm --dir web exec playwright test --workers=1
 
 build: build-api build-web
 
 build-api:
-	cd api && go build ./cmd/server
+	$(GO) -C api build ./cmd/server
 
 build-web:
-	cd web && pnpm build
+	pnpm --dir web build

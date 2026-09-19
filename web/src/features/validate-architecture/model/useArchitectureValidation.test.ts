@@ -6,7 +6,9 @@ import type {
   ArchitectureSnapshot,
   ReferenceSolution,
 } from '@/entities/architecture';
+import { createReferenceSolutionSnapshot } from '@/entities/architecture';
 import type { Exercise, ValidationResult } from '@/entities/exercise';
+import { toArchitecturePayload } from '../api/evaluate-architecture';
 import {
   useArchitectureValidation,
   type ValidateArchitectureArgs,
@@ -240,14 +242,51 @@ describe('useArchitectureValidation', () => {
 
     expect(evaluate).toHaveBeenCalledWith({
       nodes: [
-        { id: 'direct-service-0', kind: 'client' },
-        { id: 'direct-service-1', kind: 'service' },
+        { id: 'direct-service-node-1', kind: 'client' },
+        { id: 'direct-service-node-2', kind: 'service' },
       ],
-      edges: [{ from: 'direct-service-0', to: 'direct-service-1' }],
+      edges: [{ from: 'direct-service-node-1', to: 'direct-service-node-2' }],
     });
     expect(result.current.nodeValidationVisible).toBe(false);
     expect(result.current.terminal.map((line) => line.text)).not.toContain(
       '⚠ Node validation found 1 issue',
+    );
+  });
+
+  it('validates the exact branched snapshot rendered for a custom solution', async () => {
+    const branchedSolution: ReferenceSolution = {
+      id: 'branched-service',
+      name: 'Branched service path',
+      description: 'Routes one load balancer to two services.',
+      nodes: [
+        { kind: 'client', variantId: 'web-browser', label: 'Browser' },
+        { kind: 'load-balancer', variantId: 'nginx', label: 'NGINX' },
+        { kind: 'service', variantId: 'go-http-api', label: 'Orders API' },
+        { kind: 'service', variantId: 'go-http-api', label: 'Catalog API' },
+      ],
+      connections: [
+        { source: 0, target: 1 },
+        { source: 1, target: 2 },
+        { source: 1, target: 3 },
+      ],
+    };
+    const renderedSnapshot = createReferenceSolutionSnapshot(branchedSolution);
+    const evaluate = vi.fn(async () => [validResult]);
+    const { result } = renderHook(() =>
+      useArchitectureValidation({ evaluate, loadExercise: resolvedExercise() }),
+    );
+
+    await act(async () =>
+      result.current.validate({
+        snapshot,
+        view: 'solutions',
+        solution: branchedSolution,
+        nodeValidationIssues: [],
+      }),
+    );
+
+    expect(evaluate).toHaveBeenCalledWith(
+      toArchitecturePayload(renderedSnapshot.nodes, renderedSnapshot.edges),
     );
   });
 
@@ -294,6 +333,35 @@ describe('useArchitectureValidation', () => {
     expect(result.current.terminal).toEqual([]);
     expect(result.current.nodeValidationVisible).toBe(false);
     expect(result.current.lastRunId).toBeNull();
+    expect(result.current.runnerStatus).toBe('idle');
+    expect(result.current.requirementStatus).toBe('Not checked');
+  });
+
+  it('cancels an in-flight run and ignores its stale response when cleared', async () => {
+    const pending = deferred<ValidationResult[]>();
+    const evaluate = vi.fn(() => pending.promise);
+    const { result } = renderHook(() =>
+      useArchitectureValidation({ evaluate, loadExercise: resolvedExercise() }),
+    );
+    let validationRun!: Promise<void>;
+
+    act(() => {
+      validationRun = result.current.validate(canvasArgs);
+    });
+    expect(result.current.running).toBe(true);
+
+    act(() => result.current.clear());
+    expect(result.current.running).toBe(false);
+    expect(result.current.runnerStatus).toBe('idle');
+    expect(result.current.terminal).toEqual([]);
+
+    await act(async () => {
+      pending.resolve([validResult]);
+      await validationRun;
+    });
+
+    expect(result.current.results).toEqual([]);
+    expect(result.current.terminal).toEqual([]);
     expect(result.current.runnerStatus).toBe('idle');
     expect(result.current.requirementStatus).toBe('Not checked');
   });

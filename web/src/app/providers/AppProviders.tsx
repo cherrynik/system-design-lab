@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react';
-import { TooltipProvider } from '@/shared/ui';
+import { PlatformProvider } from '@/shared/config';
 
 export function AppProviders({ children }: PropsWithChildren) {
-  return <TooltipProvider delay={280}>{children}</TooltipProvider>;
+  return <PlatformProvider>{children}</PlatformProvider>;
 }

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  AUTOSAVE_KEY,
   parseArchitectureSnapshot,
   readArchitectureSnapshot,
   readArchitectureVersions,
@@ -89,5 +90,221 @@ describe('architecture persistence parsing', () => {
   it('rejects corrupt and structurally invalid snapshots', () => {
     expect(parseArchitectureSnapshot('{not-json')).toBeNull();
     expect(parseArchitectureSnapshot(JSON.stringify({ nodes: [] }))).toBeNull();
+    expect(parseArchitectureSnapshot(JSON.stringify({ nodes: [null], edges: [] }))).toBeNull();
+    expect(
+      parseArchitectureSnapshot(
+        JSON.stringify({
+          nodes: [
+            {
+              id: 'client',
+              type: 'architecture',
+              position: { x: 10, y: 20 },
+              data: { kind: 'database', variantId: 'abstract', label: 'Database' },
+            },
+          ],
+          edges: [],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it.each([
+    ['a missing id', { type: 'architecture', position: { x: 10, y: 20 }, data: {} }],
+    [
+      'a partial position',
+      {
+        id: 'client',
+        type: 'architecture',
+        position: { x: 10 },
+        data: { kind: 'client', variantId: 'abstract', label: 'Client' },
+      },
+    ],
+    [
+      'non-finite coordinates',
+      {
+        id: 'client',
+        type: 'architecture',
+        position: { x: null, y: 20 },
+        data: { kind: 'client', variantId: 'abstract', label: 'Client' },
+      },
+    ],
+    [
+      'partial node data',
+      {
+        id: 'client',
+        type: 'architecture',
+        position: { x: 10, y: 20 },
+        data: { kind: 'client', label: 'Client' },
+      },
+    ],
+    [
+      'null node data',
+      {
+        id: 'client',
+        type: 'architecture',
+        position: { x: 10, y: 20 },
+        data: null,
+      },
+    ],
+    [
+      'the wrong node type',
+      {
+        id: 'client',
+        type: 'default',
+        position: { x: 10, y: 20 },
+        data: { kind: 'client', variantId: 'abstract', label: 'Client' },
+      },
+    ],
+    [
+      'an invalid anchor flag',
+      {
+        id: 'client',
+        type: 'architecture',
+        position: { x: 10, y: 20 },
+        data: { kind: 'client', variantId: 'abstract', label: 'Client', isAnchor: 'yes' },
+      },
+    ],
+  ])('rejects a node with %s', (_case, node) => {
+    expect(parseArchitectureSnapshot(JSON.stringify({ nodes: [node], edges: [] }))).toBeNull();
+  });
+
+  it.each([
+    ['a null entry', null],
+    ['a missing id', { source: 'client', target: 'service', type: 'architecture' }],
+    ['a missing target', { id: 'request', source: 'client', type: 'architecture' }],
+    [
+      'the wrong type',
+      {
+        id: 'request',
+        source: 'client',
+        target: 'service',
+        type: 'default',
+      },
+    ],
+    [
+      'partial data',
+      {
+        id: 'request',
+        source: 'client',
+        target: 'service',
+        type: 'architecture',
+        data: { sourceAnchor: { side: 'right', offset: 0.5 } },
+      },
+    ],
+    [
+      'null data',
+      {
+        id: 'request',
+        source: 'client',
+        target: 'service',
+        type: 'architecture',
+        data: null,
+      },
+    ],
+    [
+      'an unknown anchor side',
+      {
+        id: 'request',
+        source: 'client',
+        target: 'service',
+        type: 'architecture',
+        data: { protocol: 'HTTPS', sourceAnchor: { side: 'center', offset: 0.5 } },
+      },
+    ],
+    [
+      'an out-of-range anchor offset',
+      {
+        id: 'request',
+        source: 'client',
+        target: 'service',
+        type: 'architecture',
+        data: { protocol: 'HTTPS', targetAnchor: { side: 'left', offset: 1.5 } },
+      },
+    ],
+    [
+      'a partial bend',
+      {
+        id: 'request',
+        source: 'client',
+        target: 'service',
+        type: 'architecture',
+        data: { protocol: 'HTTPS', bend: { along: 0.5 } },
+      },
+    ],
+  ])('rejects an edge with %s', (_case, edge) => {
+    expect(parseArchitectureSnapshot(JSON.stringify({ nodes: [], edges: [edge] }))).toBeNull();
+  });
+
+  it('accepts and normalizes a complete snapshot with free-end anchors', () => {
+    const snapshot = {
+      nodes: [
+        {
+          id: 'client',
+          type: 'architecture',
+          position: { x: 10, y: 20 },
+          data: { kind: 'client', variantId: 'abstract', label: 'Client' },
+          selected: true,
+        },
+        {
+          id: 'anchor-request-end',
+          type: 'architecture',
+          position: { x: 320, y: 180 },
+          data: { kind: 'service', variantId: 'anchor', label: '', isAnchor: true },
+        },
+      ],
+      edges: [
+        {
+          id: 'request',
+          source: 'client',
+          target: 'anchor-request-end',
+          type: 'architecture',
+          label: '',
+          selected: true,
+          data: {
+            protocol: '',
+            bend: { along: 0.45, normal: 24 },
+            sourceAnchor: { side: 'right', offset: 0.5 },
+          },
+        },
+      ],
+    };
+
+    expect(parseArchitectureSnapshot(JSON.stringify(snapshot))).toEqual({
+      nodes: snapshot.nodes.map((node) => ({ ...node, selected: false })),
+      edges: snapshot.edges.map((edge) => ({ ...edge, selected: false })),
+    });
+  });
+
+  it('falls back to the initial architecture when the saved snapshot is malformed', () => {
+    localStorage.setItem('system-design-lab:react-flow-migrated', '1');
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ nodes: [null], edges: [] }));
+
+    const snapshot = readArchitectureSnapshot();
+
+    expect(snapshot.nodes).toHaveLength(2);
+    expect(snapshot.nodes.map((node) => node.data.label)).toEqual(['Client', 'Service']);
+    expect(snapshot.edges).toEqual([]);
+  });
+
+  it('rejects duplicate node and edge ids', () => {
+    const node = {
+      id: 'duplicate',
+      type: 'architecture',
+      position: { x: 10, y: 20 },
+      data: { kind: 'client', variantId: 'abstract', label: 'Client' },
+    };
+    const edge = {
+      id: 'duplicate',
+      source: 'client',
+      target: 'service',
+      type: 'architecture',
+    };
+
+    expect(
+      parseArchitectureSnapshot(JSON.stringify({ nodes: [node, node], edges: [] })),
+    ).toBeNull();
+    expect(
+      parseArchitectureSnapshot(JSON.stringify({ nodes: [], edges: [edge, edge] })),
+    ).toBeNull();
   });
 });

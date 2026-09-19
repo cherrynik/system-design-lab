@@ -1,12 +1,17 @@
-import type { ArchitectureEdge, ArchitectureNode, ArchitectureNodeKind } from './types';
+import type {
+  ArchitectureEdge,
+  ArchitectureNode,
+  ArchitectureNodeKind,
+} from './architecture.types';
+import type {
+  ArchitectureConnectionDirection,
+  ArchitectureNodeConnectionState,
+} from './connections.types';
 
-export type ArchitectureConnectionDirection = 'incoming' | 'outgoing';
-export type ArchitectureNodeConnectionState = {
-  state: 'ready' | 'incomplete' | 'isolated';
-  incoming: ArchitectureNode[];
-  outgoing: ArchitectureNode[];
-  missing: ArchitectureConnectionDirection[];
-};
+export type {
+  ArchitectureConnectionDirection,
+  ArchitectureNodeConnectionState,
+} from './connections.types';
 
 const requiredDirections: Record<ArchitectureNodeKind, ArchitectureConnectionDirection[]> = {
   client: ['outgoing'],

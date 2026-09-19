@@ -1,6 +1,8 @@
 .DS_Store
 node_modules/
 dist/
+storybook-static/
+web/storybook-static/
 coverage/
 *.tsbuildinfo
 web/vite.config.js

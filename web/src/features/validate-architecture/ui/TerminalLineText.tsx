@@ -1,9 +1,6 @@
-type Props = {
-  text: string;
-  warningCount?: number;
-};
+import type { TerminalLineTextProps } from './TerminalLineText.types';
 
-export function TerminalLineText({ text, warningCount = 0 }: Props) {
+export function TerminalLineText({ text, warningCount = 0 }: TerminalLineTextProps) {
   if (warningCount < 1) return <>{text}</>;
   const warningText = `${warningCount} warning${warningCount === 1 ? '' : 's'}`;
   if (!text.endsWith(warningText)) return <>{text}</>;

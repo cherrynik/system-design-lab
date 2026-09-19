@@ -13,6 +13,24 @@ const layerRank = new Map([
   ['app', 5],
 ]);
 
+const typePlacementLayers = new Set(layerRank.keys());
+const sharedUiFacadePrimitives = new Set([
+  'ActionIcon',
+  'Badge',
+  'Button',
+  'Kbd',
+  'Popover',
+  'ScrollArea',
+  'TextInput',
+  'Tooltip',
+]);
+const typePlacementFileExemptions = [
+  /\.d\.ts$/,
+  /\.config\.(?:ts|tsx)$/,
+  /(?:^|\/)index\.(?:ts|tsx)$/,
+  /\.(?:stories|test|spec)\.(?:ts|tsx)$/,
+];
+
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const absolutePath = path.join(directory, entry.name);
@@ -138,8 +156,97 @@ export function findArchitectureBoundaryViolations(root = path.resolve('src')) {
   return violations;
 }
 
+function isTypeDeclaration(statement) {
+  return ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement);
+}
+
+function isTypePlacementExempt(relativePath) {
+  return (
+    relativePath.endsWith('.types.ts') ||
+    relativePath.endsWith('.types.tsx') ||
+    typePlacementFileExemptions.some((pattern) => pattern.test(relativePath))
+  );
+}
+
+export function findTypePlacementViolations(root = path.resolve('src')) {
+  const sourceRoot = path.resolve(root);
+  const violations = [];
+
+  for (const filePath of walk(sourceRoot)) {
+    const source = describeFile(sourceRoot, filePath);
+    if (!source.layer || !typePlacementLayers.has(source.layer)) continue;
+    if (isTypePlacementExempt(source.relativePath)) continue;
+
+    const sourceText = fs.readFileSync(filePath, 'utf8');
+    const sourceFile = ts.createSourceFile(
+      filePath,
+      sourceText,
+      ts.ScriptTarget.Latest,
+      true,
+      filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+    // Only top-level declarations are inspected. Interfaces inside `declare module`
+    // blocks are declaration augmentation and intentionally remain beside the runtime adapter.
+    for (const statement of sourceFile.statements) {
+      if (!isTypeDeclaration(statement)) continue;
+      const line = sourceFile.getLineAndCharacterOfPosition(statement.getStart()).line + 1;
+      violations.push(
+        `${source.relativePath}:${line}: move ${statement.name.text} to an adjacent *.types.ts file`,
+      );
+    }
+  }
+
+  return violations;
+}
+
+function mayImportInteractiveMantinePrimitives(source) {
+  return source.layer === 'shared' && (source.slice === 'ui' || source.slice === 'config');
+}
+
+export function findSharedUiFacadeViolations(root = path.resolve('src')) {
+  const sourceRoot = path.resolve(root);
+  const violations = [];
+
+  for (const filePath of walk(sourceRoot)) {
+    const source = describeFile(sourceRoot, filePath);
+    if (!source.layer || mayImportInteractiveMantinePrimitives(source)) continue;
+
+    const sourceText = fs.readFileSync(filePath, 'utf8');
+    const sourceFile = ts.createSourceFile(
+      filePath,
+      sourceText,
+      ts.ScriptTarget.Latest,
+      true,
+      filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+
+    for (const statement of sourceFile.statements) {
+      if (!ts.isImportDeclaration(statement)) continue;
+      if (!ts.isStringLiteral(statement.moduleSpecifier)) continue;
+      if (statement.moduleSpecifier.text !== '@mantine/core') continue;
+      const namedBindings = statement.importClause?.namedBindings;
+      if (!namedBindings || !ts.isNamedImports(namedBindings)) continue;
+
+      for (const element of namedBindings.elements) {
+        const importedName = element.propertyName?.text ?? element.name.text;
+        if (!sharedUiFacadePrimitives.has(importedName)) continue;
+        const line = sourceFile.getLineAndCharacterOfPosition(element.getStart()).line + 1;
+        violations.push(
+          `${source.relativePath}:${line}: import ${importedName} through @/shared/ui`,
+        );
+      }
+    }
+  }
+
+  return violations;
+}
+
 if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
-  const violations = findArchitectureBoundaryViolations();
+  const violations = [
+    ...findArchitectureBoundaryViolations(),
+    ...findTypePlacementViolations(),
+    ...findSharedUiFacadeViolations(),
+  ];
   if (violations.length) {
     console.error('Architecture boundary violations:\n');
     for (const violation of violations) console.error(`- ${violation}`);

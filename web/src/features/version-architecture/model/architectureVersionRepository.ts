@@ -5,11 +5,9 @@ import {
 } from '../../../entities/architecture';
 import { ARCHITECTURE_VERSIONS_STORAGE_KEY } from '../../../shared/config';
 import type { KeyValueStorage } from '../../../shared/lib';
+import type { ArchitectureVersionRepository } from './architectureVersionRepository.types';
 
-export interface ArchitectureVersionRepository {
-  load(): ArchitectureVersion[];
-  save(versions: ArchitectureVersion[]): boolean;
-}
+export type { ArchitectureVersionRepository } from './architectureVersionRepository.types';
 
 function normalizeVersion(version: ArchitectureVersion): ArchitectureVersion {
   return {

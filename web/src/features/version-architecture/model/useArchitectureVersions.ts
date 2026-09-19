@@ -4,19 +4,14 @@ import {
   type ArchitectureSnapshot,
   type ArchitectureVersion,
 } from '../../../entities/architecture';
-import {
-  createLocalStorageArchitectureVersionRepository,
-  type ArchitectureVersionRepository,
-} from './architectureVersionRepository';
+import { createLocalStorageArchitectureVersionRepository } from './architectureVersionRepository';
+import type {
+  ArchitectureVersionsOptions,
+  UseArchitectureVersionsResult,
+} from './useArchitectureVersions.types';
 
 const defaultIdFactory = () => crypto.randomUUID();
 const defaultNow = () => new Date();
-
-type ArchitectureVersionsOptions = {
-  idFactory?: () => string;
-  now?: () => Date;
-  repository?: ArchitectureVersionRepository;
-};
 
 function cloneSnapshot(snapshot: ArchitectureSnapshot): ArchitectureSnapshot {
   return {
@@ -45,7 +40,7 @@ export function useArchitectureVersions({
   idFactory = defaultIdFactory,
   now = defaultNow,
   repository,
-}: ArchitectureVersionsOptions = {}) {
+}: ArchitectureVersionsOptions = {}): UseArchitectureVersionsResult {
   const activeRepository = useMemo(
     () => repository ?? createLocalStorageArchitectureVersionRepository(window.localStorage),
     [repository],

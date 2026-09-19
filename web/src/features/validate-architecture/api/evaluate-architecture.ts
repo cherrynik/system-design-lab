@@ -1,10 +1,8 @@
 import type { ArchitectureNodeKind } from '../../../entities/architecture';
 import type { ValidationResult } from '../../../entities/exercise';
+import type { ArchitecturePayload } from './evaluate-architecture.types';
 
-export interface ArchitecturePayload {
-  nodes: { id: string; kind: ArchitectureNodeKind }[];
-  edges: { from: string; to: string }[];
-}
+export type { ArchitecturePayload } from './evaluate-architecture.types';
 
 export function toArchitecturePayload(
   sourceNodes: readonly { id: string; data: { kind: ArchitectureNodeKind; isAnchor?: boolean } }[],

@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArchitectureSnapshot, ArchitectureVersion } from '../../../entities/architecture';
-import type { ArchitectureVersionRepository } from './architectureVersionRepository';
+import type { ArchitectureVersionRepository } from './architectureVersionRepository.types';
 import { useArchitectureVersions } from './useArchitectureVersions';
 
 const snapshot: ArchitectureSnapshot = {

@@ -6,28 +6,17 @@ import {
   ARCHITECTURE_VERSIONS_STORAGE_KEY,
 } from '../../../shared/config';
 import type {
+  ArchitectureEdge,
   ArchitectureNode,
   ArchitectureNodeKind,
   ArchitectureSnapshot,
   ArchitectureVersion,
-} from './types';
+  EdgeAnchor,
+} from './architecture.types';
+import type { LegacyCanvasElement } from './persistence.types';
 
 export const AUTOSAVE_KEY = ARCHITECTURE_AUTOSAVE_STORAGE_KEY;
 export const VERSIONS_KEY = ARCHITECTURE_VERSIONS_STORAGE_KEY;
-
-type LegacyCanvasElement = {
-  id: string;
-  isDeleted?: boolean;
-  type?: string;
-  x: number;
-  y: number;
-  customData?: {
-    componentKind?: ArchitectureNodeKind;
-    componentVariant?: string;
-  };
-  startBinding?: { elementId?: string };
-  endBinding?: { elementId?: string };
-};
 
 export const makeArchitectureNode = (
   kind: ArchitectureNodeKind,
@@ -55,10 +44,93 @@ export const normalizeArchitectureSnapshot = <T extends ArchitectureSnapshot>(va
   edges: value.edges.map((edge) => ({ ...edge, type: 'architecture', selected: false })),
 });
 
+const architectureNodeKinds = new Set<ArchitectureNodeKind>(['client', 'load-balancer', 'service']);
+const edgeAnchorSides = new Set<EdgeAnchor['side']>(['top', 'right', 'bottom', 'left']);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isOptionalBoolean(value: unknown): value is boolean | undefined {
+  return value === undefined || typeof value === 'boolean';
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isEdgeAnchor(value: unknown): value is EdgeAnchor {
+  if (!isRecord(value)) return false;
+  const { side, offset } = value;
+  return (
+    typeof side === 'string' &&
+    edgeAnchorSides.has(side as EdgeAnchor['side']) &&
+    isFiniteNumber(offset) &&
+    offset >= 0 &&
+    offset <= 1
+  );
+}
+
+function isArchitectureNode(value: unknown): value is ArchitectureNode {
+  if (!isRecord(value) || !isRecord(value.position) || !isRecord(value.data)) return false;
+  const { id, type, position, data, selected } = value;
+  return (
+    isNonEmptyString(id) &&
+    type === 'architecture' &&
+    isFiniteNumber(position.x) &&
+    isFiniteNumber(position.y) &&
+    typeof data.kind === 'string' &&
+    architectureNodeKinds.has(data.kind as ArchitectureNodeKind) &&
+    isNonEmptyString(data.variantId) &&
+    typeof data.label === 'string' &&
+    isOptionalBoolean(data.isAnchor) &&
+    isOptionalBoolean(selected)
+  );
+}
+
+function isArchitectureEdgeData(value: unknown): value is NonNullable<ArchitectureEdge['data']> {
+  if (!isRecord(value) || typeof value.protocol !== 'string') return false;
+  if (value.bend !== undefined) {
+    if (
+      !isRecord(value.bend) ||
+      !isFiniteNumber(value.bend.along) ||
+      !isFiniteNumber(value.bend.normal)
+    ) {
+      return false;
+    }
+  }
+  if (value.sourceAnchor !== undefined && !isEdgeAnchor(value.sourceAnchor)) return false;
+  if (value.targetAnchor !== undefined && !isEdgeAnchor(value.targetAnchor)) return false;
+  return true;
+}
+
+function isArchitectureEdge(value: unknown): value is ArchitectureEdge {
+  if (!isRecord(value)) return false;
+  const { id, source, target, type, data, label, selected } = value;
+  return (
+    isNonEmptyString(id) &&
+    isNonEmptyString(source) &&
+    isNonEmptyString(target) &&
+    type === 'architecture' &&
+    (data === undefined || isArchitectureEdgeData(data)) &&
+    (label === undefined || typeof label === 'string') &&
+    isOptionalBoolean(selected)
+  );
+}
+
+function hasUniqueIds(values: readonly { id: string }[]): boolean {
+  return new Set(values.map(({ id }) => id)).size === values.length;
+}
+
 function isArchitectureSnapshot(value: unknown): value is ArchitectureSnapshot {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<ArchitectureSnapshot>;
-  return Array.isArray(candidate.nodes) && Array.isArray(candidate.edges);
+  if (!isRecord(value) || !Array.isArray(value.nodes) || !Array.isArray(value.edges)) return false;
+  if (!value.nodes.every(isArchitectureNode) || !value.edges.every(isArchitectureEdge))
+    return false;
+  return hasUniqueIds(value.nodes) && hasUniqueIds(value.edges);
 }
 
 export function parseArchitectureSnapshot(serialized: string | null): ArchitectureSnapshot | null {

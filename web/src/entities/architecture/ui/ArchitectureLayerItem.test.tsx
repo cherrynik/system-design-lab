@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ArchitectureNode } from '../model/types';
+import type { ArchitectureNode } from '../model/architecture.types';
 import { ArchitectureLayerItem } from './ArchitectureLayerItem';
 import type { ArchitectureNodeConnectionState } from '../model/connections';
 import type { ArchitectureNodeValidationState } from '../model/nodeValidation';
@@ -134,7 +134,7 @@ describe('ArchitectureLayerItem', () => {
       />,
     );
 
-    const warning = screen.getByLabelText('Service: 1 validation issue');
+    const warning = screen.getByLabelText(/^Service: 1 validation issue\./);
     expect(warning.getAttribute('data-tooltip')).toContain('Service has no incoming connection.');
     expect(warning.getAttribute('data-tooltip')).toContain('Connect a request source to Service.');
   });

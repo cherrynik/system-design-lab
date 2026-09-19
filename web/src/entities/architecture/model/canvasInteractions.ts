@@ -1,14 +1,6 @@
 const architectureCardShapeType = 'architecture-card';
 const doubleClickWindowMs = 400;
-
-type ArchitectureCanvasShape = {
-  type: string;
-};
-
-type CardPointerDown = {
-  shapeId: string;
-  timestamp: number;
-};
+import type { ArchitectureCanvasShape, CardPointerDown } from './canvasInteractions.types';
 
 export function isSupportedArchitectureCanvasShape(shape: ArchitectureCanvasShape) {
   return shape.type === architectureCardShapeType || shape.type === 'arrow';

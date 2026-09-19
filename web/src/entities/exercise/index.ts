@@ -1,1 +1,1 @@
-export type { Exercise, ValidationResult } from './model/types';
+export type { Exercise, ValidationResult } from './model/exercise.types';

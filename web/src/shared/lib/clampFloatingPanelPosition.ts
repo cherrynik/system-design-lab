@@ -1,23 +1,9 @@
-export type FloatingPanelPoint = {
-  x: number;
-  y: number;
-};
-
-export type FloatingPanelSize = {
-  width: number;
-  height: number;
-};
-
-export type FloatingPanelBounds = {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-};
-
-export type ClampFloatingPanelOptions = {
-  inset?: number;
-};
+import type {
+  ClampFloatingPanelOptions,
+  FloatingPanelBounds,
+  FloatingPanelPoint,
+  FloatingPanelSize,
+} from './clampFloatingPanelPosition.types';
 
 const clamp = (value: number, minimum: number, maximum: number) =>
   Math.min(Math.max(value, minimum), maximum);

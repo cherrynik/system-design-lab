@@ -2,23 +2,17 @@ import { FaChrome } from 'react-icons/fa';
 import { FiGitBranch, FiMonitor, FiServer } from 'react-icons/fi';
 import type { IconType } from 'react-icons';
 import { SiGo, SiNginx } from 'react-icons/si';
-import type { ArchitectureNodeKind } from './types';
+import type { ArchitectureNodeKind } from './architecture.types';
+import type { ArchitectureMeta, ArchitectureVariant } from './catalog.types';
 
-export const architectureMeta: Record<ArchitectureNodeKind, { group: string; role: string }> = {
+export type { ArchitectureMeta, ArchitectureVariant } from './catalog.types';
+
+export const architectureMeta: ArchitectureMeta = {
   client: { group: 'Clients', role: 'Request Source' },
   'load-balancer': { group: 'Balancers', role: 'Traffic Router' },
   service: { group: 'Servers', role: 'Request Handler' },
 };
 
-export type ArchitectureVariant = {
-  id: string;
-  label: string;
-  description: string;
-  type: string;
-  capabilities: string[];
-  icon: IconType;
-  concrete: boolean;
-};
 export const architectureVariants: Record<ArchitectureNodeKind, ArchitectureVariant[]> = {
   client: [
     {

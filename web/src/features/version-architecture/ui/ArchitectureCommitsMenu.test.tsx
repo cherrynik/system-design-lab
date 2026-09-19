@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ArchitectureVersion } from '../../../entities/architecture';
+import { renderWithPlatform } from '@/shared/testing/renderWithPlatform';
 import { ArchitectureCommitsMenu } from './ArchitectureCommitsMenu';
 
 const version: ArchitectureVersion = {
@@ -16,9 +17,28 @@ const version: ArchitectureVersion = {
 afterEach(cleanup);
 
 describe('ArchitectureCommitsMenu', () => {
+  it('requests opening through the shared popover trigger', () => {
+    const onOpenChange = vi.fn();
+    renderWithPlatform(
+      <ArchitectureCommitsMenu
+        versions={[version]}
+        open={false}
+        onOpenChange={onOpenChange}
+        onCommit={vi.fn()}
+        onRestore={vi.fn()}
+        onRename={vi.fn()}
+        onDeleteLatest={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Architecture commits' }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(true);
+  });
+
   it('shows short commit hashes and renames a commit inline', () => {
     const onRename = vi.fn();
-    render(
+    renderWithPlatform(
       <ArchitectureCommitsMenu
         versions={[version]}
         open
@@ -30,11 +50,14 @@ describe('ArchitectureCommitsMenu', () => {
       />,
     );
 
-    expect(screen.getByText('1234567')).toBeTruthy();
+    const commitHash = screen.getByText('1234567');
+    expect(commitHash.tagName).toBe('CODE');
+    expect(commitHash.getAttribute('tabindex')).toBeNull();
     expect(screen.getByRole('button', { name: 'Commit' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Rename Initial architecture' }));
     const input = screen.getByRole('textbox', { name: 'Rename Initial architecture' });
+    expect(input.getAttribute('data-slot')).toBe('input');
     fireEvent.change(input, { target: { value: 'Load balancer path' } });
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Finish renaming Initial architecture' }),
@@ -48,7 +71,7 @@ describe('ArchitectureCommitsMenu', () => {
   it('cancels an inline rename with Escape', () => {
     const onRename = vi.fn();
     const onOpenChange = vi.fn();
-    render(
+    renderWithPlatform(
       <ArchitectureCommitsMenu
         versions={[version]}
         open
@@ -90,7 +113,7 @@ describe('ArchitectureCommitsMenu', () => {
       );
     }
 
-    render(<ControlledCommitsMenu />);
+    renderWithPlatform(<ControlledCommitsMenu />);
 
     const trigger = screen.getByRole('button', { name: 'Architecture commits' });
     screen.getByRole('button', { name: 'Commit' }).focus();
@@ -100,8 +123,8 @@ describe('ArchitectureCommitsMenu', () => {
     await vi.waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  it('moves focus into the open commits dialog', async () => {
-    render(
+  it('exposes an accessible open commits dialog', () => {
+    renderWithPlatform(
       <ArchitectureCommitsMenu
         versions={[version]}
         open
@@ -113,17 +136,15 @@ describe('ArchitectureCommitsMenu', () => {
       />,
     );
 
-    await vi.waitFor(() =>
-      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Commit' })),
-    );
-    expect(
-      screen.getByRole('button', { name: 'Architecture commits' }).getAttribute('aria-haspopup'),
-    ).toBe('dialog');
+    expect(screen.getByRole('button', { name: 'Commit', hidden: true })).toBeTruthy();
+    const trigger = screen.getByRole('button', { name: 'Architecture commits' });
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
   });
 
   it('keeps restore and pencil rename as separate actions', () => {
     const onRestore = vi.fn();
-    render(
+    renderWithPlatform(
       <ArchitectureCommitsMenu
         versions={[version]}
         open
@@ -148,7 +169,7 @@ describe('ArchitectureCommitsMenu', () => {
   it('only exposes deletion for the latest commit', () => {
     const onDeleteLatest = vi.fn();
     const older = { ...version, id: 'older-commit', name: 'Older commit' };
-    render(
+    renderWithPlatform(
       <ArchitectureCommitsMenu
         versions={[version, older]}
         open

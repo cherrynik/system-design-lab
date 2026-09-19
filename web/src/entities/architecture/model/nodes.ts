@@ -1,4 +1,4 @@
-import type { ArchitectureNode } from './types';
+import type { ArchitectureNode } from './architecture.types';
 
 export const normalizeComponentLabel = (label: string) => label.trim();
 

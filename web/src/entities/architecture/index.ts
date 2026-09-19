@@ -17,7 +17,7 @@ export { getArchitectureNodeConnectionStates, getConnectionStateText } from './m
 export type {
   ArchitectureConnectionDirection,
   ArchitectureNodeConnectionState,
-} from './model/connections';
+} from './model/connections.types';
 export {
   getArchitectureNodeValidationIssues,
   validateArchitectureNodes,
@@ -26,7 +26,7 @@ export type {
   ArchitectureNodeValidationIssue,
   ArchitectureNodeValidationSeverity,
   ArchitectureNodeValidationState,
-} from './model/nodeValidation';
+} from './model/nodeValidation.types';
 export { buildSidebarGraphLayout, sidebarGraphRowHeight } from './model/sidebarGraph';
 export {
   AUTOSAVE_KEY,
@@ -48,8 +48,19 @@ export type {
   ArchitectureSnapshot,
   ArchitectureVersion,
   EdgeAnchor,
-} from './model/types';
-export { referenceSolutions } from './model/referenceSolutions';
-export type { ReferenceSolution } from './model/referenceSolutions';
+} from './model/architecture.types';
+export { createReferenceSolutionSnapshot, referenceSolutions } from './model/referenceSolutions';
+export type {
+  ReferenceSolution,
+  ReferenceSolutionConnection,
+} from './model/referenceSolutions.types';
 export { ArchitectureLayerItem } from './ui/ArchitectureLayerItem';
+export type {
+  ArchitectureLayerItemMode,
+  ArchitectureLayerItemProps,
+} from './ui/ArchitectureLayerItem.types';
 export { ArchitectureSidebarGraph } from './ui/ArchitectureSidebarGraph';
+export type {
+  ArchitectureSidebarGraphProps,
+  ArchitectureSidebarView,
+} from './ui/ArchitectureSidebarGraph.types';

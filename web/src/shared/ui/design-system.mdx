@@ -1,0 +1,46 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Design system/Foundations" />
+
+# System Design Lab interface system
+
+The interface behaves like an engineering workbench: dense enough for architecture work, quiet enough that topology and validation remain the focus. Mantine owns primitive behavior, accessibility, focus management, overlays, and interaction state. Product components compose those primitives through the public `shared/ui` API.
+
+## Rules
+
+1. **Every visible element starts here.** A reusable UI component is added to Storybook before product code imports it.
+2. **One component, one file.** Props and shared types live in adjacent `*.types.ts` files. Compound families share one folder and one public index.
+3. **No conditional expressions in JSX.** Derive state before the return or use explicit branches so each state is readable and testable.
+4. **Structure communicates state.** Borders separate editable regions, color communicates validation or destructive actions, and spacing follows information hierarchy.
+5. **Platform behavior comes from Mantine.** Do not rebuild keyboard navigation, portals, focus traps, scroll areas, menus, or overlays in product features.
+
+## Provider boundary
+
+`PlatformProvider` is the single runtime boundary for Mantine and the shared `platformTheme`. The application `AppProviders` and Storybook preview both render it once at the root. Product features consume `shared/ui` and must not create feature-local `MantineProvider` instances or theme objects.
+
+## Spatial scale
+
+The base rhythm is 4px. Compact controls use 4–8px internal gaps; related blocks use 12–16px; separate workbench regions use 24–32px. Avoid adding empty space to make a sparse component look important.
+
+## Surface hierarchy
+
+- **Canvas:** architecture topology on the lowest-contrast technical grid.
+- **Panel:** requirements and validation on a stable dark surface with a single boundary.
+- **Floating:** menus, inspectors, and commits on an elevated, focus-managed surface.
+- **Selection:** the current node or edge, communicated with a cyan or teal focus signal.
+
+## Typography
+
+Geist is the interface face. Sentence case is the default. Monospace is reserved for paths, protocols, capabilities, IDs, hashes, and shortcuts. Labels describe an action or state; they do not decorate a section.
+
+## Validation colors
+
+- **Neutral:** idle or not evaluated
+- **Cyan:** work in progress or informational state
+- **Teal:** valid, connected, or completed
+- **Amber:** usable result with a warning
+- **Red:** destructive action or failed validation
+
+## Definition of done
+
+A component is ready when its story covers meaningful states, keyboard focus is visible, accessible names exist for icon-only actions, compact and constrained layouts remain legible, and `pnpm storybook:check`, `pnpm storybook:test`, and `pnpm storybook:build` pass. Product slices import interactive primitives from `shared/ui`; the architecture guard rejects direct Mantine primitive imports outside that boundary.

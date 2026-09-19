@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CheckIcon } from 'lucide-react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { renderWithPlatform } from '@/shared/testing/renderWithPlatform';
 
 import { Button, IconButton } from './button';
 
@@ -13,7 +14,7 @@ describe('Button', () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
 
-    render(<Button onClick={onClick}>Validate</Button>);
+    renderWithPlatform(<Button onClick={onClick}>Validate</Button>);
 
     const button = screen.getByRole('button', { name: 'Validate' });
     expect(button.getAttribute('data-slot')).toBe('button');
@@ -26,7 +27,7 @@ describe('Button', () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
 
-    render(
+    renderWithPlatform(
       <Button disabled onClick={onClick}>
         Commit
       </Button>,
@@ -37,7 +38,7 @@ describe('Button', () => {
   });
 
   it('requires an accessible label for icon-only actions', () => {
-    render(
+    renderWithPlatform(
       <IconButton label="Accept changes">
         <CheckIcon />
       </IconButton>,

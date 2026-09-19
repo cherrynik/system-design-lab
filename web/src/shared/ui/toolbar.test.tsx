@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { renderWithPlatform } from '@/shared/testing/renderWithPlatform';
 
 import { Toolbar, ToolbarButton } from './toolbar';
 
@@ -11,7 +12,7 @@ describe('Toolbar', () => {
   it('uses arrow keys to move focus and wraps at the end', async () => {
     const user = userEvent.setup();
 
-    render(
+    renderWithPlatform(
       <Toolbar aria-label="Canvas tools">
         <ToolbarButton>Pan</ToolbarButton>
         <ToolbarButton>Select</ToolbarButton>

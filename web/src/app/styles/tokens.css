@@ -1,0 +1,95 @@
+:root,
+.dark {
+  color-scheme: dark;
+
+  /* Product palette: diagram paper, equipment panels, and live signal states. */
+  --ink: #08111f;
+  --surface-deep: #090f1b;
+  --surface-sidebar: #0a101d;
+  --surface-panel: #0d1828;
+  --surface-control: #101827;
+  --surface-hover: #111a2a;
+  --surface-active: #152036;
+  --surface-raised: #132238;
+  --surface-overlay: #101d30;
+  --surface-canvas: #0b1626;
+  --surface-canvas-paper: #121d30;
+  --surface-card: #17253b;
+  --line-hairline: #202a3f;
+  --line-subtle: #20334d;
+  --line-control: #2a3650;
+  --line-strong: #36516f;
+  --line-focus: #536c91;
+  --grid-dot: #6887b0;
+  --signal: #68d5ff;
+  --component-client: #64a6ff;
+  --component-load-balancer: #45d89a;
+  --component-service: #32c9ec;
+  --success: #72dfb2;
+  --warning: #efc96d;
+  --danger: #ff7d8f;
+  --text-strong: #edf4fc;
+  --text-default: #cbd7e7;
+  --text-soft: #a8b5c8;
+  --text-muted: #91a0b5;
+  --text-faint: #788aa3;
+
+  --font-ui: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-code: 'JetBrains Mono Variable', 'SFMono-Regular', 'Cascadia Code', monospace;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-md: 0.8125rem;
+  --text-lg: 0.9375rem;
+  --text-xl: 1.125rem;
+  --text-title: var(--text-xl);
+  --text-body: var(--text-md);
+  --text-control: var(--text-sm);
+  --text-meta: var(--text-xs);
+  --leading-tight: 1.25;
+  --leading-copy: 1.55;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  --focus-ring: var(--signal);
+  --shadow-card: 0 10px 26px rgb(0 0 0 / 0.24);
+  --shadow-float: 0 18px 48px rgb(0 0 0 / 0.38);
+  --shadow-toast: 0 12px 36px rgb(0 0 0 / 0.38);
+  --shadow-overlay: 0 24px 80px rgb(0 0 0 / 0.44);
+
+  /* Mantine follows the same typography even outside its theme provider. */
+  --mantine-font-family: var(--font-ui);
+  --mantine-font-family-headings: var(--font-ui);
+  --mantine-font-family-monospace: var(--font-code);
+}
+
+:root.dark[data-mantine-color-scheme='dark'] {
+  --mantine-color-body: var(--ink);
+  --mantine-color-error: var(--danger);
+  --mantine-color-text: var(--text-default);
+  --mantine-color-dimmed: var(--text-muted);
+  --mantine-color-default: var(--surface-raised);
+  --mantine-color-default-hover: color-mix(in srgb, var(--surface-raised) 76%, var(--line-strong));
+  --mantine-color-default-color: var(--text-default);
+  --mantine-color-default-border: var(--line-subtle);
+  --mantine-color-dark-0: var(--text-strong);
+  --mantine-color-dark-1: var(--text-default);
+  --mantine-color-dark-2: var(--text-soft);
+  --mantine-color-dark-3: var(--text-muted);
+  --mantine-color-dark-4: var(--text-faint);
+  --mantine-color-dark-5: var(--line-strong);
+  --mantine-color-dark-6: var(--line-subtle);
+  --mantine-color-dark-7: var(--surface-raised);
+  --mantine-color-dark-8: var(--surface-panel);
+  --mantine-color-dark-9: var(--ink);
+}

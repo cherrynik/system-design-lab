@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ArchitectureNode } from './types';
+import type { ArchitectureNode } from './architecture.types';
 import { normalizeComponentLabel, renameArchitectureNode } from './nodes';
 
 const component = (id: string, label: string): ArchitectureNode => ({

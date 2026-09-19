@@ -2,7 +2,6 @@ import {
   migrateLegacyArchitectureCanvas,
   normalizeArchitectureSnapshot,
   parseArchitectureSnapshot,
-  type ArchitectureSnapshot,
 } from '../../../entities/architecture';
 import {
   ARCHITECTURE_AUTOSAVE_STORAGE_KEY,
@@ -10,11 +9,9 @@ import {
   ARCHITECTURE_STORAGE_MIGRATION_KEY,
 } from '../../../shared/config';
 import type { KeyValueStorage } from '../../../shared/lib';
+import type { ArchitectureAutosaveRepository } from './architectureAutosaveRepository.types';
 
-export interface ArchitectureAutosaveRepository {
-  load(): ArchitectureSnapshot | null;
-  save(snapshot: ArchitectureSnapshot): boolean;
-}
+export type { ArchitectureAutosaveRepository } from './architectureAutosaveRepository.types';
 
 export function createLocalStorageArchitectureAutosaveRepository(
   storage: KeyValueStorage,

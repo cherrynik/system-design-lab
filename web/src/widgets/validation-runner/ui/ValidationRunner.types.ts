@@ -1,0 +1,30 @@
+import type { RefObject } from 'react';
+import type { ValidationTerminalLine } from '@/features/validate-architecture';
+
+export type ValidationRunnerStatus = 'idle' | 'running' | 'ready' | 'warning' | 'error';
+
+export type ValidationRunnerProps = {
+  error: string | null;
+  lines: ValidationTerminalLine[];
+  running: boolean;
+  status: ValidationRunnerStatus;
+  usesCommandKey: boolean;
+  outputRef: RefObject<HTMLDivElement | null>;
+  onClear: () => void;
+  onValidate: () => void;
+};
+
+export type ValidationRunnerHeaderProps = Pick<
+  ValidationRunnerProps,
+  'lines' | 'onClear' | 'onValidate' | 'running' | 'status' | 'usesCommandKey'
+>;
+
+export type ValidationRunnerOutputProps = Pick<
+  ValidationRunnerProps,
+  'error' | 'lines' | 'outputRef'
+>;
+
+export type ValidationTerminalRowProps = {
+  line: ValidationTerminalLine;
+  index: number;
+};

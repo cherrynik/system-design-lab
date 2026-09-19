@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { renderWithPlatform } from '@/shared/testing/renderWithPlatform';
 import { CanvasEventToast } from './CanvasEventToast';
 
 afterEach(cleanup);
@@ -8,7 +9,7 @@ afterEach(cleanup);
 describe('CanvasEventToast', () => {
   it('announces an event and runs its action', () => {
     const onAction = vi.fn();
-    render(
+    renderWithPlatform(
       <CanvasEventToast
         message={'Deleted “API”'}
         tone="danger"
@@ -18,7 +19,9 @@ describe('CanvasEventToast', () => {
     );
 
     expect(screen.getByRole('status').textContent).toContain('Deleted “API”');
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    const action = screen.getByRole('button', { name: 'Undo' });
+    expect(action.getAttribute('data-slot')).toBe('button');
+    fireEvent.click(action);
     expect(onAction).toHaveBeenCalledOnce();
   });
 });

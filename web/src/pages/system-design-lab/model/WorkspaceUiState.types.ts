@@ -1,0 +1,30 @@
+import type { Dispatch, SetStateAction } from 'react';
+import type { ArchitectureNodeKind } from '@/entities/architecture';
+import type { CanvasTool, WorkspaceView } from '@/widgets/architecture-workbench';
+
+export type WorkspaceUiState = {
+  workspaceView: WorkspaceView;
+  setWorkspaceView: Dispatch<SetStateAction<WorkspaceView>>;
+  selectedSolutionId: string;
+  setSelectedSolutionId: Dispatch<SetStateAction<string>>;
+  requirementsCollapsed: boolean;
+  setRequirementsCollapsed: Dispatch<SetStateAction<boolean>>;
+  requirementsExpanded: boolean;
+  setRequirementsExpanded: Dispatch<SetStateAction<boolean>>;
+  layersExpanded: boolean;
+  setLayersExpanded: Dispatch<SetStateAction<boolean>>;
+  registryOpen: boolean;
+  query: string;
+  setQuery: Dispatch<SetStateAction<string>>;
+  group: ArchitectureNodeKind | null;
+  setGroup: Dispatch<SetStateAction<ArchitectureNodeKind | null>>;
+  groupQuery: string;
+  setGroupQuery: Dispatch<SetStateAction<string>>;
+  versionsOpen: boolean;
+  setVersionsOpen: Dispatch<SetStateAction<boolean>>;
+  tool: CanvasTool;
+  setTool: Dispatch<SetStateAction<CanvasTool>>;
+  openRegistry: () => void;
+  setRegistryOpen: Dispatch<SetStateAction<boolean>>;
+  handleRegistryOpenChange: (open: boolean) => void;
+};

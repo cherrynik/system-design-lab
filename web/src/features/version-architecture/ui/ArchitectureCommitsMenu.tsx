@@ -1,28 +1,20 @@
-import { useRef, useState } from 'react';
-import { Check, GitBranch, Pencil, Trash2 } from 'lucide-react';
-import type { ArchitectureVersion } from '../../../entities/architecture';
+import { useEffect, useRef, useState } from 'react';
+import { Divider, Group, Indicator, Stack, Text } from '@mantine/core';
+import { GitBranch } from 'lucide-react';
+import type { ArchitectureVersion } from '@/entities/architecture';
 import {
   Button,
   IconButton,
-  Input,
   Popover,
   PopoverContent,
-  PopoverTitle,
   PopoverTrigger,
-} from '../../../shared/ui';
-
-type Props = {
-  versions: ArchitectureVersion[];
-  dirty?: boolean;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onCommit: () => void;
-  onRestore: (version: ArchitectureVersion) => void;
-  onRename: (versionId: string, name: string) => void;
-  onDeleteLatest: () => void;
-};
-
-const shortHash = (id: string) => id.replaceAll('-', '').slice(0, 7);
+  ScrollArea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/shared/ui';
+import { ArchitectureCommitRow } from './ArchitectureCommitRow';
+import type { ArchitectureCommitsMenuProps } from './ArchitectureCommitsMenu.types';
 
 export function ArchitectureCommitsMenu({
   versions,
@@ -33,11 +25,33 @@ export function ArchitectureCommitsMenu({
   onRestore,
   onRename,
   onDeleteLatest,
-}: Props) {
+}: ArchitectureCommitsMenuProps) {
   const commitButtonRef = useRef<HTMLButtonElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const renameCancelledRef = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const triggerLabel = dirty
+    ? 'Architecture commits — uncommitted changes'
+    : 'Architecture commits';
+  const hasVersions = versions.length > 0;
+  const triggerVariant = open ? 'secondary' : 'ghost';
+
+  useEffect(() => {
+    if (open) commitButtonRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || editingId) return;
+      event.preventDefault();
+      onOpenChange(false);
+      window.setTimeout(() => triggerButtonRef.current?.focus(), 0);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [editingId, onOpenChange, open, triggerLabel]);
 
   const beginRename = (version: ArchitectureVersion) => {
     renameCancelledRef.current = false;
@@ -53,112 +67,98 @@ export function ArchitectureCommitsMenu({
     setEditingId(null);
   };
 
+  const cancelRename = () => {
+    renameCancelledRef.current = true;
+  };
+
   return (
     <div className="architecture-commits">
-      <Popover open={open} onOpenChange={onOpenChange}>
-        <PopoverTrigger
-          render={
-            <IconButton
-              label={dirty ? 'Architecture commits — uncommitted changes' : 'Architecture commits'}
-              className={`commits-trigger ${open ? 'commits-trigger--active' : ''}`}
-              variant="outline"
-              size="icon"
-            />
-          }
-        >
-          <GitBranch />
-          {dirty && <span className="commits-trigger__dirty" aria-hidden="true" />}
+      <Popover open={open} onOpenChange={onOpenChange} shadow="xl" closeOnEscape={false}>
+        <PopoverTrigger>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <IconButton
+                  label={triggerLabel}
+                  ref={triggerButtonRef}
+                  aria-haspopup="dialog"
+                  aria-expanded={open}
+                  className="commits-trigger"
+                  variant={triggerVariant}
+                  color="gray"
+                  size="icon"
+                  onClick={() => onOpenChange(!open)}
+                />
+              }
+            >
+              <Indicator color="yellow" size={7} disabled={!dirty} offset={5} inline>
+                <GitBranch size={17} />
+              </Indicator>
+            </TooltipTrigger>
+            <TooltipContent>{triggerLabel}</TooltipContent>
+          </Tooltip>
         </PopoverTrigger>
+
         <PopoverContent
           className="commits-popover"
           role="dialog"
-          aria-label="Architecture commits"
+          aria-label="COMMITS"
           side="bottom"
           align="end"
           sideOffset={8}
-          initialFocus={commitButtonRef}
         >
-          <header>
-            <span className="commits-popover__title">
-              <GitBranch />
-              <PopoverTitle className="panel-id">COMMITS</PopoverTitle>
-            </span>
+          <Group justify="space-between" gap="md" p="sm">
+            <Group gap={7}>
+              <GitBranch size={15} />
+              <Text component="h2" size="xs" fw={650}>
+                Commits
+              </Text>
+            </Group>
             <Button
               ref={commitButtonRef}
+              autoFocus
               className="commit-current-button"
               size="xs"
+              variant="secondary"
+              color="teal"
               onClick={onCommit}
             >
               Commit
             </Button>
-          </header>
-          {versions.length ? (
-            <div className="commit-history">
-              {versions.map((version, index) => {
-                const isEditing = editingId === version.id;
-                const isLatest = index === 0;
-                return (
-                  <div className="commit-history-row" key={version.id}>
-                    <code>{shortHash(version.id)}</code>
-                    {isEditing ? (
-                      <Input
-                        autoFocus
-                        value={draft}
-                        aria-label={`Rename ${version.name}`}
-                        onChange={(event) => setDraft(event.target.value)}
-                        onBlur={finishRename}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') event.currentTarget.blur();
-                          if (event.key === 'Escape') {
-                            event.stopPropagation();
-                            renameCancelledRef.current = true;
-                            event.currentTarget.blur();
-                          }
-                        }}
-                      />
-                    ) : (
-                      <Button
-                        className="commit-history-row__restore"
-                        variant="ghost"
-                        onClick={() => onRestore(version)}
-                      >
-                        <strong>{version.name}</strong>
-                        <small>{new Date(version.createdAt).toLocaleString()}</small>
-                      </Button>
-                    )}
-                    <span className="commit-history-row__actions">
-                      <IconButton
-                        label={
-                          isEditing ? `Finish renaming ${version.name}` : `Rename ${version.name}`
-                        }
-                        className={`commit-history-row__rename ${isEditing ? 'commit-history-row__rename--done' : ''}`}
-                        title={isEditing ? 'Done' : 'Rename commit'}
-                        variant="ghost"
-                        size="icon-xs"
-                        onPointerDown={isEditing ? (event) => event.preventDefault() : undefined}
-                        onClick={() => (isEditing ? finishRename() : beginRename(version))}
-                      >
-                        {isEditing ? <Check /> : <Pencil />}
-                      </IconButton>
-                      {isLatest && !isEditing && (
-                        <IconButton
-                          label={`Delete latest commit ${version.name}`}
-                          className="commit-history-row__delete"
-                          title="Delete latest commit"
-                          variant="destructive"
-                          size="icon-xs"
-                          onClick={onDeleteLatest}
-                        >
-                          <Trash2 />
-                        </IconButton>
-                      )}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="commit-history-empty">No commits yet.</p>
+          </Group>
+
+          <Divider />
+
+          {hasVersions && (
+            <ScrollArea autosize mah={320} type="auto">
+              <Stack className="commit-history" gap={2} p="xs">
+                {versions.map((version, index) => {
+                  const isEditing = editingId === version.id;
+                  const isLatest = index === 0;
+                  return (
+                    <ArchitectureCommitRow
+                      key={version.id}
+                      version={version}
+                      editing={isEditing}
+                      latest={isLatest}
+                      draft={draft}
+                      onDraftChange={setDraft}
+                      onBeginRename={beginRename}
+                      onFinishRename={finishRename}
+                      onCancelRename={cancelRename}
+                      onRestore={onRestore}
+                      onDeleteLatest={onDeleteLatest}
+                    />
+                  );
+                })}
+              </Stack>
+            </ScrollArea>
+          )}
+
+          {!hasVersions && (
+            <Text className="commit-history-empty" size="sm" c="dimmed" p="md">
+              No commits yet.
+            </Text>
           )}
         </PopoverContent>
       </Popover>
