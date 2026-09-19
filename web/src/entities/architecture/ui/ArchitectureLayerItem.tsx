@@ -59,15 +59,24 @@ export function ArchitectureLayerItem({ node, fallbackLabel, connectionState, va
     >
       <div
         className={`layer-item ${editing ? 'layer-item--editing' : ''} ${validationState && validationState.status !== 'valid' ? 'layer-item--validated' : ''}`}
-        role="button"
-        tabIndex={0}
-        onClick={() => onFocus(node.id)}
+        role={editing ? undefined : 'button'}
+        tabIndex={editing ? -1 : 0}
+        onClick={() => {
+          if (!editing) onFocus(node.id);
+        }}
         onDoubleClick={(event) => {
           event.stopPropagation();
           beginRename();
         }}
         onKeyDown={(event) => {
-          if (!editing && (event.key === 'Enter' || event.key === 'F2')) beginRename();
+          if (editing) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            onFocus(node.id);
+          } else if (event.key === 'F2') {
+            event.preventDefault();
+            beginRename();
+          }
         }}
       >
         <Icon className={`component-logo component-logo--${node.data.kind}`} />
@@ -118,6 +127,7 @@ export function ArchitectureLayerItem({ node, fallbackLabel, connectionState, va
       </div>
       <button
         className="component-menu-trigger"
+        type="button"
         aria-label={`Open menu for ${label}`}
         onClick={(event) => onOpenMenu(node.id, event.clientX, event.clientY)}
       >

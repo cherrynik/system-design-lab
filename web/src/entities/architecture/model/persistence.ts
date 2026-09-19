@@ -1,4 +1,3 @@
-import { MarkerType } from '@xyflow/react';
 import { getArchitectureVariant, getConnectionProtocol } from './catalog';
 import type { ArchitectureNode, ArchitectureNodeKind, ArchitectureSnapshot, ArchitectureVersion } from './types';
 
@@ -7,7 +6,6 @@ export const VERSIONS_KEY = 'system-design-lab:flow-versions';
 const MIGRATION_KEY = 'system-design-lab:react-flow-migrated';
 
 export const makeArchitectureNode = (kind: ArchitectureNodeKind, variantId: string, x: number, y: number, label?: string): ArchitectureNode => ({ id: `${kind}-${crypto.randomUUID()}`, type: 'architecture', position: { x, y }, data: { kind, variantId, label: label ?? getArchitectureVariant(kind, variantId).label } });
-export const makeFreeAnchorNode = (x: number, y: number): ArchitectureNode => ({ id: `anchor-${crypto.randomUUID()}`, type: 'architecture', position: { x, y }, data: { kind: 'client', variantId: 'abstract', label: '', isAnchor: true }, draggable: false, selectable: false });
 
 const initial: ArchitectureSnapshot = { nodes: [makeArchitectureNode('client', 'abstract', 80, 180, 'Client'), makeArchitectureNode('service', 'abstract', 560, 180, 'Service')], edges: [] };
 const normalizeSnapshot = <T extends ArchitectureSnapshot>(value: T): T => ({ ...value, nodes: value.nodes.map((node) => ({ ...node, selected: false })), edges: value.edges.map((edge) => ({ ...edge, type: 'architecture', selected: false })) });
@@ -26,7 +24,7 @@ export function readArchitectureSnapshot(): ArchitectureSnapshot {
         const source = element.startBinding?.elementId; const target = element.endBinding?.elementId;
         if (!source || !target || !ids.has(source) || !ids.has(target)) return [];
         const label = getConnectionProtocol(nodes.find((node) => node.id === source)!.data.kind);
-        return [{ id: element.id, source, target, type: 'architecture', data: { protocol: label }, label, markerEnd: { type: MarkerType.ArrowClosed, color: '#91a4c0' }, style: { stroke: '#91a4c0', strokeWidth: 1.5 }, reconnectable: true }];
+        return [{ id: element.id, source, target, type: 'architecture' as const, data: { protocol: label }, label }];
       });
       localStorage.setItem(MIGRATION_KEY, '1');
       if (nodes.length) return { nodes, edges };

@@ -39,6 +39,9 @@ describe('ArchitectureSidebarGraph', () => {
       onRename={vi.fn()}
     />);
 
+    const sectionToggle = screen.getByRole('button', { name: 'Components, 3 components' });
+    expect(sectionToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(sectionToggle.getAttribute('aria-controls')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Clients 1/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Balancers 1/i })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Servers 1/i })).toBeTruthy();
@@ -68,6 +71,38 @@ describe('ArchitectureSidebarGraph', () => {
 
     expect(screen.queryByLabelText('Components grouped by layer')).toBeNull();
     expect(screen.getByLabelText('Component topology')).toBeTruthy();
+  });
+
+  it('uses roving tab focus and arrow keys for the view switcher', () => {
+    render(<ArchitectureSidebarGraph
+      nodes={nodes}
+      edges={edges}
+      connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
+      expanded
+      onToggleExpanded={vi.fn()}
+      onAddComponent={vi.fn()}
+      onFocus={vi.fn()}
+      onOpenMenu={vi.fn()}
+      onRename={vi.fn()}
+    />);
+
+    const layers = screen.getByRole('tab', { name: 'Layers' });
+    const graph = screen.getByRole('tab', { name: 'Graph' });
+    expect(layers.getAttribute('aria-selected')).toBe('true');
+    expect(layers.tabIndex).toBe(0);
+    expect(graph.tabIndex).toBe(-1);
+
+    layers.focus();
+    fireEvent.keyDown(layers, { key: 'ArrowRight' });
+
+    expect(graph.getAttribute('aria-selected')).toBe('true');
+    expect(graph.tabIndex).toBe(0);
+    expect(document.activeElement).toBe(graph);
+    expect(screen.getByRole('tabpanel', { name: 'Graph' })).toBeTruthy();
+
+    fireEvent.keyDown(graph, { key: 'Home' });
+    expect(document.activeElement).toBe(layers);
+    expect(screen.getByRole('tabpanel', { name: 'Layers' })).toBeTruthy();
   });
 
   it('collapses and expands every layer at once', () => {

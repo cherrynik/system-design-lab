@@ -42,10 +42,11 @@ describe('ArchitectureCommitsMenu', () => {
 
   it('cancels an inline rename with Escape', () => {
     const onRename = vi.fn();
+    const onOpenChange = vi.fn();
     render(<ArchitectureCommitsMenu
       versions={[version]}
       open
-      onOpenChange={vi.fn()}
+      onOpenChange={onOpenChange}
       onCommit={vi.fn()}
       onRestore={vi.fn()}
       onRename={onRename}
@@ -58,6 +59,64 @@ describe('ArchitectureCommitsMenu', () => {
     fireEvent.keyDown(input, { key: 'Escape' });
 
     expect(onRename).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('closes on Escape and restores focus to the trigger', async () => {
+    const onOpenChange = vi.fn();
+    render(<ArchitectureCommitsMenu
+      versions={[version]}
+      open
+      onOpenChange={onOpenChange}
+      onCommit={vi.fn()}
+      onRestore={vi.fn()}
+      onRename={vi.fn()}
+      onDeleteLatest={vi.fn()}
+    />);
+
+    const trigger = screen.getByRole('button', { name: 'Architecture commits' });
+    screen.getByRole('button', { name: 'Commit' }).focus();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  it('moves focus into the open commits dialog', () => {
+    render(<ArchitectureCommitsMenu
+      versions={[version]}
+      open
+      onOpenChange={vi.fn()}
+      onCommit={vi.fn()}
+      onRestore={vi.fn()}
+      onRename={vi.fn()}
+      onDeleteLatest={vi.fn()}
+    />);
+
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Commit' }));
+    expect(screen.getByRole('button', { name: 'Architecture commits' }).getAttribute('aria-haspopup')).toBe('dialog');
+  });
+
+  it('keeps restore and pencil rename as separate actions', () => {
+    const onRestore = vi.fn();
+    render(<ArchitectureCommitsMenu
+      versions={[version]}
+      open
+      onOpenChange={vi.fn()}
+      onCommit={vi.fn()}
+      onRestore={onRestore}
+      onRename={vi.fn()}
+      onDeleteLatest={vi.fn()}
+    />);
+
+    const restore = screen.getByText('Initial architecture').closest('button')!;
+    fireEvent.doubleClick(restore);
+    expect(screen.queryByRole('textbox', { name: 'Rename Initial architecture' })).toBeNull();
+
+    fireEvent.click(restore);
+    expect(onRestore).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Rename Initial architecture' }));
+    expect(screen.getByRole('textbox', { name: 'Rename Initial architecture' })).toBeTruthy();
   });
 
   it('only exposes deletion for the latest commit', () => {

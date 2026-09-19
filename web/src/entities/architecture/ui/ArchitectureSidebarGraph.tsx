@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { FiChevronDown, FiChevronRight, FiChevronsDown, FiChevronsRight, FiChevronsUp, FiGitBranch, FiList, FiPlus } from 'react-icons/fi';
 import { architectureMeta } from '../model/catalog';
 import type { ArchitectureNodeConnectionState } from '../model/connections';
@@ -42,6 +42,8 @@ export function ArchitectureSidebarGraph({ nodes, edges, connectionStates, valid
   const layout = useMemo(() => buildSidebarGraphLayout(nodes, edges), [nodes, edges]);
   const [collapsed, setCollapsed] = useState<Set<ArchitectureNodeKind>>(() => new Set());
   const [view, setView] = useState<'layers' | 'graph'>('layers');
+  const viewId = useId();
+  const viewTabRefs = useRef<Record<'layers' | 'graph', HTMLButtonElement | null>>({ layers: null, graph: null });
   const groups = useMemo(() => groupOrder.flatMap((kind) => {
     const items = layout.nodes.filter(({ node }) => node.data.kind === kind);
     return items.length ? [{ kind, title: architectureMeta[kind].group, items }] : [];
@@ -72,23 +74,44 @@ export function ArchitectureSidebarGraph({ nodes, edges, connectionStates, valid
     setCollapsed(allGroupsExpanded ? new Set(groups.map(({ kind }) => kind)) : new Set());
   };
 
+  const selectViewFromKeyboard = (event: KeyboardEvent<HTMLButtonElement>, currentView: 'layers' | 'graph') => {
+    let nextView: 'layers' | 'graph' | null = null;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextView = currentView === 'layers' ? 'graph' : 'layers';
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextView = currentView === 'graph' ? 'layers' : 'graph';
+    if (event.key === 'Home') nextView = 'layers';
+    if (event.key === 'End') nextView = 'graph';
+    if (!nextView) return;
+    event.preventDefault();
+    setView(nextView);
+    viewTabRefs.current[nextView]?.focus();
+  };
+
   return <>
     <div className="components-section-header">
-      <button className="sidebar-section-toggle" onClick={onToggleExpanded}>
+      <button
+        className="sidebar-section-toggle"
+        type="button"
+        aria-label={`Components, ${nodes.filter((node) => !node.data.isAnchor).length} components`}
+        aria-expanded={expanded}
+        aria-controls={`${viewId}-${view}-panel`}
+        onClick={onToggleExpanded}
+      >
         <span className="panel-id">COMPONENTS</span>
         <span className="section-count">{nodes.filter((node) => !node.data.isAnchor).length}</span>
         <span className="section-toggle-icon" aria-hidden="true">{expanded ? <FiChevronDown /> : <FiChevronsRight />}</span>
       </button>
-      <div className="sidebar-component-view-switcher" role="tablist" aria-label="Component view">
-        <button type="button" role="tab" aria-selected={view === 'layers'} className={view === 'layers' ? 'active' : ''} onClick={() => setView('layers')}><FiList /> Layers</button>
-        <button type="button" role="tab" aria-selected={view === 'graph'} className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')}><FiGitBranch /> Graph</button>
+      <div className="sidebar-component-view-switcher">
+        <div role="tablist" aria-label="Component view" aria-orientation="horizontal" style={{ display: 'flex', gap: 2 }}>
+          <button id={`${viewId}-layers-tab`} ref={(element) => { viewTabRefs.current.layers = element; }} type="button" role="tab" aria-selected={view === 'layers'} aria-controls={`${viewId}-layers-panel`} tabIndex={view === 'layers' ? 0 : -1} className={view === 'layers' ? 'active' : ''} onClick={() => setView('layers')} onKeyDown={(event) => selectViewFromKeyboard(event, 'layers')}><FiList /> Layers</button>
+          <button id={`${viewId}-graph-tab`} ref={(element) => { viewTabRefs.current.graph = element; }} type="button" role="tab" aria-selected={view === 'graph'} aria-controls={`${viewId}-graph-panel`} tabIndex={view === 'graph' ? 0 : -1} className={view === 'graph' ? 'active' : ''} onClick={() => setView('graph')} onKeyDown={(event) => selectViewFromKeyboard(event, 'graph')}><FiGitBranch /> Graph</button>
+        </div>
         {view === 'layers' && <button className="sidebar-component-view-switcher__all" type="button" onClick={toggleAllGroups} aria-label={allGroupsExpanded ? 'Collapse all groups' : 'Expand all groups'} title={allGroupsExpanded ? 'Collapse all groups' : 'Expand all groups'}>
           {allGroupsExpanded ? <FiChevronsUp /> : <FiChevronsDown />}
         </button>}
       </div>
-      <button className="add-component-button" onClick={onAddComponent} aria-label="Add component" title="Add component"><FiPlus /></button>
+      <button className="add-component-button" type="button" onClick={onAddComponent} aria-label="Add component" title="Add component"><FiPlus /></button>
     </div>
-    {expanded && (view === 'layers' ? <div className="sidebar-component-tree" aria-label="Components grouped by layer">
+    {expanded && (view === 'layers' ? <div id={`${viewId}-layers-panel`} className="sidebar-component-tree" role="tabpanel" aria-labelledby={`${viewId}-layers-tab`} aria-label="Components grouped by layer">
       {groups.map(({ kind, title, items }) => {
       const isCollapsed = collapsed.has(kind);
       return <section className="sidebar-component-tree__group" key={kind}>
@@ -113,7 +136,7 @@ export function ArchitectureSidebarGraph({ nodes, edges, connectionStates, valid
         </div>}
       </section>;
       })}
-    </div> : <div className="sidebar-topology-graph" aria-label="Component topology">
+    </div> : <div id={`${viewId}-graph-panel`} className="sidebar-topology-graph" role="tabpanel" aria-labelledby={`${viewId}-graph-tab`} aria-label="Component topology">
       <div className="sidebar-topology-graph__content" style={{ height: layout.height }}>
         <svg className="sidebar-topology-graph__edges" viewBox={`0 0 ${layout.railWidth} ${layout.height}`} preserveAspectRatio="none" style={{ width: layout.railWidth }} aria-hidden="true">
           {layout.edges.map(({ id, source, target, channelX }) => {

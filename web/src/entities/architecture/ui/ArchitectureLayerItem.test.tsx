@@ -57,6 +57,20 @@ describe('ArchitectureLayerItem', () => {
     expect(onOpenMenu).toHaveBeenCalledWith('service-1', 24, 42);
   });
 
+  it('focuses with Enter or Space and reserves F2 for rename', () => {
+    const { onFocus } = setup();
+    const item = screen.getByText('Service').closest('[role="button"]')!;
+
+    fireEvent.keyDown(item, { key: 'Enter' });
+    fireEvent.keyDown(item, { key: ' ' });
+
+    expect(onFocus).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('textbox', { name: 'Rename Service' })).toBeNull();
+
+    fireEvent.keyDown(item, { key: 'F2' });
+    expect(screen.getByRole('textbox', { name: 'Rename Service' })).toBeTruthy();
+  });
+
   it('opens the component menu on right click without the browser menu', () => {
     const { onOpenMenu } = setup();
     const item = screen.getByText('Service').closest('.layer-row')!;

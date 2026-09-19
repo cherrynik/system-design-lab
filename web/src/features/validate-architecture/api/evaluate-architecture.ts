@@ -1,5 +1,5 @@
-import type { ArchitectureNodeKind } from '../../../entities/architecture/model/types';
-import type { ValidationResult } from '../../../shared/types/exercise';
+import type { ArchitectureNodeKind } from '../../../entities/architecture';
+import type { ValidationResult } from '../../../shared/types';
 
 export interface ArchitecturePayload {
   nodes: { id: string; kind: ArchitectureNodeKind }[];

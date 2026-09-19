@@ -17,18 +17,35 @@ const shortHash = (id: string) => id.replaceAll('-', '').slice(0, 7);
 
 export function ArchitectureCommitsMenu({ versions, dirty = false, open, onOpenChange, onCommit, onRestore, onRename, onDeleteLatest }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const commitButtonRef = useRef<HTMLButtonElement>(null);
   const renameCancelledRef = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+
+  useEffect(() => {
+    if (open) commitButtonRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const closeOnOutsidePointer = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) onOpenChange(false);
     };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || editingId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      onOpenChange(false);
+      window.requestAnimationFrame(() => triggerRef.current?.focus());
+    };
     document.addEventListener('pointerdown', closeOnOutsidePointer);
-    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer);
-  }, [open, onOpenChange]);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [editingId, open, onOpenChange]);
 
   const beginRename = (version: ArchitectureVersion) => {
     renameCancelledRef.current = false;
@@ -46,10 +63,12 @@ export function ArchitectureCommitsMenu({ versions, dirty = false, open, onOpenC
 
   return <div className="architecture-commits" ref={rootRef}>
     <button
+      ref={triggerRef}
       className={`commits-trigger ${open ? 'commits-trigger--active' : ''}`}
       type="button"
       aria-label={dirty ? 'Architecture commits — uncommitted changes' : 'Architecture commits'}
       aria-expanded={open}
+      aria-haspopup="dialog"
       title="Architecture commits"
       onClick={() => onOpenChange(!open)}
     >
@@ -59,7 +78,7 @@ export function ArchitectureCommitsMenu({ versions, dirty = false, open, onOpenC
     {open && <div className="commits-popover" role="dialog" aria-label="Architecture commits">
       <header>
         <span className="commits-popover__title"><FiGitBranch /><span className="panel-id">COMMITS</span></span>
-        <button className="commit-current-button" type="button" aria-label="Commit" onClick={onCommit}>Commit</button>
+        <button ref={commitButtonRef} className="commit-current-button" type="button" aria-label="Commit" onClick={onCommit}>Commit</button>
       </header>
       {versions.length ? <div className="commit-history">
         {versions.map((version, index) => {
@@ -76,11 +95,12 @@ export function ArchitectureCommitsMenu({ versions, dirty = false, open, onOpenC
             onKeyDown={(event) => {
               if (event.key === 'Enter') event.currentTarget.blur();
               if (event.key === 'Escape') {
+                event.stopPropagation();
                 renameCancelledRef.current = true;
                 event.currentTarget.blur();
               }
             }}
-          /> : <button className="commit-history-row__restore" type="button" onClick={() => onRestore(version)} onDoubleClick={(event) => { event.stopPropagation(); beginRename(version); }}>
+          /> : <button className="commit-history-row__restore" type="button" onClick={() => onRestore(version)}>
             <strong>{version.name}</strong>
             <small>{new Date(version.createdAt).toLocaleString()}</small>
           </button>}
