@@ -1,131 +1,587 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
-import { FiChevronDown, FiChevronsLeft, FiChevronsRight, FiCrosshair, FiMinus, FiPlus, FiSearch, FiSliders, FiTrash2, FiX } from 'react-icons/fi';
-import { LuHand, LuMousePointer2, LuMoveRight } from 'react-icons/lu';
-import { createShapeId, type Editor } from 'tldraw';
-import { architectureCategoryIcons, architectureMeta, architectureVariants, getArchitectureNodeConnectionStates, getArchitectureNodeValidationIssues, getArchitectureVariant, getConnectionProtocol, renameArchitectureNode, validateArchitectureNodes, AUTOSAVE_KEY, VERSIONS_KEY, makeArchitectureNode, readArchitectureSnapshot, readArchitectureVersions, ArchitectureSidebarGraph, TldrawArchitectureCanvas } from '../../../entities/architecture';
+import type { Editor, TLShapeId } from 'tldraw';
+import {
+  getArchitectureNodeConnectionStates,
+  getArchitectureNodeValidationIssues,
+  getArchitectureVariant,
+  referenceSolutions,
+  renameArchitectureNode,
+  validateArchitectureNodes,
+  createInitialArchitectureSnapshot,
+  makeArchitectureNode,
+} from '../../../entities/architecture';
 import type { ArchitectureNodeKind, ArchitectureVersion } from '../../../entities/architecture';
-import { CanvasEventToast, getArchitectureHistoryShortcut, isEditableShortcutTarget, useArchitectureHistory } from '../../../features/canvas-history';
-import { evaluateArchitecture, TerminalLineText, toArchitecturePayload } from '../../../features/validate-architecture';
-import { ArchitectureCommitsMenu, hasUncommittedArchitectureChanges } from '../../../features/version-architecture';
+import {
+  createLocalStorageArchitectureAutosaveRepository,
+  useArchitectureAutosave,
+} from '../../../features/autosave-architecture';
+import {
+  getArchitectureHistoryShortcut,
+  isEditableShortcutTarget,
+  useArchitectureHistory,
+} from '../../../features/canvas-history';
+import { useArchitectureValidation } from '../../../features/validate-architecture';
+import {
+  hasUncommittedArchitectureChanges,
+  useArchitectureVersions,
+} from '../../../features/version-architecture';
 import { clampFloatingPanelPosition } from '../../../shared/lib';
-import type { Exercise, ValidationResult } from '../../../shared/types';
+import { ArchitectureWorkbench } from '../../../widgets/architecture-workbench';
+import { RequirementSidebar } from '../../../widgets/requirement-sidebar';
+import { ValidationRunner } from '../../../widgets/validation-runner';
 
-type TerminalLine = { kind: 'command'|'info'|'success'|'warning'|'error'|'pending'; text: string; runId?: number; warningCount?: number };
-type CanvasEvent = { message: string; tone?: 'neutral'|'danger'; action?: 'undo'|'redo'; persistent?: boolean };
+type CanvasEvent = {
+  message: string;
+  tone?: 'neutral' | 'danger';
+  action?: 'undo' | 'redo';
+  persistent?: boolean;
+};
 
-const solutions = [
-  { id: 'direct-service', name: 'Direct Client → Service', description: 'The smallest valid request path for this requirement.', nodes: [{ kind: 'client' as const, variantId: 'web-browser', label: 'Web Browser' }, { kind: 'service' as const, variantId: 'go-http-api', label: 'Go HTTP API' }] },
-  { id: 'load-balanced', name: 'Load Balancer Path', description: 'Routes traffic through a dedicated reverse proxy.', nodes: [{ kind: 'client' as const, variantId: 'web-browser', label: 'Web Browser' }, { kind: 'load-balancer' as const, variantId: 'nginx', label: 'NGINX' }, { kind: 'service' as const, variantId: 'go-http-api', label: 'Go HTTP API' }] },
-];
+const toCanvasShapeId = (id: string) => `shape:${id}` as TLShapeId;
+
 export function SystemDesignLabPage() {
-  const start = useMemo(readArchitectureSnapshot, []); const { nodes, edges, snapshot: architectureSnapshot, canUndo, canRedo, applyChange, replacePresent, syncCanvasNodes, syncCanvasEdges, undo, redo } = useArchitectureHistory(start);
-  const [exercise,setExercise]=useState<Exercise|null>(null); const [results,setResults]=useState<ValidationResult[]>([]); const [error,setError]=useState<string|null>(null); const [validating,setValidating]=useState(false); const [terminal,setTerminal]=useState<TerminalLine[]>([]);
-  const [nodeValidationVisible,setNodeValidationVisible]=useState(false);
-  const [workspaceView,setWorkspaceView]=useState<'canvas'|'solutions'>('canvas'); const [selectedSolutionId,setSelectedSolutionId]=useState(solutions[0].id);
-  const [requirementsCollapsed,setRequirementsCollapsed]=useState(false); const [requirementsExpanded,setRequirementsExpanded]=useState(true); const [layersExpanded,setLayersExpanded]=useState(true);
-  const [registryOpen,setRegistryOpen]=useState(false); const [query,setQuery]=useState(''); const [group,setGroup]=useState<ArchitectureNodeKind|null>(null); const [groupQuery,setGroupQuery]=useState('');
-  const [inspectorId,setInspectorId]=useState<string|null>(null); const [menu,setMenu]=useState<{id:string;x:number;y:number}|null>(null);
-  const [canvasEvent,setCanvasEvent]=useState<CanvasEvent|null>(null);
-  const [versions,setVersions]=useState<ArchitectureVersion[]>(readArchitectureVersions); const [versionsOpen,setVersionsOpen]=useState(false); const [sidebarWidth,setSidebarWidth]=useState(()=>Math.min(380,Math.max(320,Math.round(window.innerWidth*.3)))); const [runnerHeight,setRunnerHeight]=useState(()=>Math.min(230,Math.max(180,Math.round(window.innerHeight*.28)))); const [resize,setResize]=useState<'sidebar'|'runner'|null>(null);
-  const [tool,setTool]=useState<'hand'|'selection'|'connection'>('selection'); const run=useRef(0); const terminalRef=useRef<HTMLDivElement|null>(null); const searchRef=useRef<HTMLInputElement|null>(null); const registryTriggerRef=useRef<HTMLElement|null>(null); const registryDialogRef=useRef<HTMLDivElement|null>(null); const contextMenuRef=useRef<HTMLDivElement|null>(null); const workspaceRef=useRef<HTMLElement|null>(null); const workbenchRef=useRef<HTMLDivElement|null>(null); const pendingPanelSize=useRef<number|null>(null); const resizeFrame=useRef<number|null>(null); const autosaveTimer=useRef<number|null>(null); const canvasEventTimer=useRef<number|null>(null); const tldrawEditor=useRef<Editor|null>(null);
-  const usesCommand=useMemo(()=>/Macintosh|Mac OS X/.test(navigator.userAgent),[]);
-  const nodeConnectionStates=useMemo(()=>getArchitectureNodeConnectionStates(nodes,edges),[nodes,edges]);
-  const nodeValidationStates=useMemo(()=>validateArchitectureNodes(nodes,edges),[nodes,edges]);
-  const hasUncommittedChanges=useMemo(()=>hasUncommittedArchitectureChanges({nodes,edges},versions[0]),[nodes,edges,versions]);
-  const visibleNodeValidationIssues=useMemo(()=>workspaceView==='canvas'&&nodeValidationVisible?getArchitectureNodeValidationIssues(nodeValidationStates):[],[nodeValidationStates,nodeValidationVisible,workspaceView]);
-  const hasValidationRun=terminal.some(line=>line.runId!==undefined)||results.length>0||Boolean(error);
-  const runnerStatus=validating?'running':!hasValidationRun?'idle':error||results.some(result=>result.status==='failed')||visibleNodeValidationIssues.some(issue=>issue.severity==='error')?'error':visibleNodeValidationIssues.length?'warning':'ready';
-  const requirementStatus=validating?'Checking':!hasValidationRun?'Not checked':runnerStatus==='ready'||runnerStatus==='warning'?'Passed':'Needs work';
-  const snapshot=useCallback(()=>structuredClone(architectureSnapshot),[architectureSnapshot]);
-  const showCanvasEvent=useCallback((event:CanvasEvent)=>{if(canvasEventTimer.current)window.clearTimeout(canvasEventTimer.current);canvasEventTimer.current=null;setCanvasEvent(event);if(!event.persistent)canvasEventTimer.current=window.setTimeout(()=>setCanvasEvent(null),4500)},[]);
-  const undoArchitectureChange=useCallback(()=>{if(!canUndo)return;undo();setMenu(null);setInspectorId(null);showCanvasEvent({message:'Last change undone',action:'redo',persistent:true})},[canUndo,showCanvasEvent,undo]);
-  const redoArchitectureChange=useCallback(()=>{if(!canRedo)return;redo();setMenu(null);setInspectorId(null);showCanvasEvent({message:'Change restored',action:'undo'})},[canRedo,redo,showCanvasEvent]);
-  const updateVariant=useCallback((id:string,variantId:string)=>{applyChange(current=>({...current,nodes:current.nodes.map(n=>n.id===id?{...n,data:{...n.data,variantId}}:n)}));showCanvasEvent({message:'Component type changed',action:'undo'})},[applyChange,showCanvasEvent]);
-  const renameNode=useCallback((id:string,label:string)=>{const next=renameArchitectureNode(nodes,id,label);if(next===nodes)return;applyChange(current=>({...current,nodes:renameArchitectureNode(current.nodes,id,label)}));showCanvasEvent({message:`Renamed to “${label.trim()}”`,action:'undo'})},[applyChange,nodes,showCanvasEvent]);
-  const reportCanvasRename=useCallback((_id:string,label:string)=>{showCanvasEvent({message:`Renamed to “${label}”`,action:'undo'})},[showCanvasEvent]);
-  const openRegistry=useCallback(()=>{registryTriggerRef.current=document.activeElement as HTMLElement|null;setRequirementsCollapsed(false);setRegistryOpen(true)},[]);
+  const autosaveRepository = useMemo(
+    () => createLocalStorageArchitectureAutosaveRepository(window.localStorage),
+    [],
+  );
+  const start = useMemo(
+    () => autosaveRepository.load() ?? createInitialArchitectureSnapshot(),
+    [autosaveRepository],
+  );
+  const {
+    nodes,
+    edges,
+    snapshot: architectureSnapshot,
+    canUndo,
+    canRedo,
+    applyChange,
+    replacePresent,
+    syncCanvasNodes,
+    syncCanvasEdges,
+    undo,
+    redo,
+  } = useArchitectureHistory(start);
+  useArchitectureAutosave(architectureSnapshot, { repository: autosaveRepository });
+  const {
+    versions,
+    latestVersion,
+    commit: commitVersion,
+    rename: renameVersion,
+    deleteLatest: deleteLatestVersion,
+    restore: restoreVersion,
+  } = useArchitectureVersions();
+  const {
+    validationError,
+    exerciseError,
+    terminal,
+    running: validating,
+    nodeValidationVisible,
+    runnerStatus,
+    requirementStatus,
+    validate: runValidation,
+    clear: clearValidation,
+  } = useArchitectureValidation();
+  const [workspaceView, setWorkspaceView] = useState<'canvas' | 'solutions'>('canvas');
+  const [selectedSolutionId, setSelectedSolutionId] = useState(referenceSolutions[0].id);
+  const [requirementsCollapsed, setRequirementsCollapsed] = useState(false);
+  const [requirementsExpanded, setRequirementsExpanded] = useState(true);
+  const [layersExpanded, setLayersExpanded] = useState(true);
+  const [registryOpen, setRegistryOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [group, setGroup] = useState<ArchitectureNodeKind | null>(null);
+  const [groupQuery, setGroupQuery] = useState('');
+  const [inspectorId, setInspectorId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [canvasEvent, setCanvasEvent] = useState<CanvasEvent | null>(null);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() =>
+    Math.min(380, Math.max(320, Math.round(window.innerWidth * 0.3))),
+  );
+  const [runnerHeight, setRunnerHeight] = useState(() =>
+    Math.min(230, Math.max(180, Math.round(window.innerHeight * 0.28))),
+  );
+  const [resize, setResize] = useState<'sidebar' | 'runner' | null>(null);
+  const [tool, setTool] = useState<'hand' | 'selection' | 'connection'>('selection');
+  const terminalRef = useRef<HTMLDivElement | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement | null>(null);
+  const workspaceRef = useRef<HTMLElement | null>(null);
+  const workbenchRef = useRef<HTMLDivElement | null>(null);
+  const pendingPanelSize = useRef<number | null>(null);
+  const resizeFrame = useRef<number | null>(null);
+  const canvasEventTimer = useRef<number | null>(null);
+  const tldrawEditor = useRef<Editor | null>(null);
+  const usesCommand = useMemo(() => /Macintosh|Mac OS X/.test(navigator.userAgent), []);
+  const nodeConnectionStates = useMemo(
+    () => getArchitectureNodeConnectionStates(nodes, edges),
+    [nodes, edges],
+  );
+  const nodeValidationStates = useMemo(
+    () => validateArchitectureNodes(nodes, edges),
+    [nodes, edges],
+  );
+  const nodeValidationIssues = useMemo(
+    () => getArchitectureNodeValidationIssues(nodeValidationStates),
+    [nodeValidationStates],
+  );
+  const hasUncommittedChanges = useMemo(
+    () => hasUncommittedArchitectureChanges({ nodes, edges }, latestVersion),
+    [edges, latestVersion, nodes],
+  );
+  const solution = useMemo(
+    () =>
+      referenceSolutions.find((item) => item.id === selectedSolutionId) ?? referenceSolutions[0],
+    [selectedSolutionId],
+  );
+  const snapshot = useCallback(() => structuredClone(architectureSnapshot), [architectureSnapshot]);
+  const showCanvasEvent = useCallback((event: CanvasEvent) => {
+    if (canvasEventTimer.current) window.clearTimeout(canvasEventTimer.current);
+    canvasEventTimer.current = null;
+    setCanvasEvent(event);
+    if (!event.persistent)
+      canvasEventTimer.current = window.setTimeout(() => setCanvasEvent(null), 4500);
+  }, []);
+  const undoArchitectureChange = useCallback(() => {
+    if (!canUndo) return;
+    undo();
+    setMenu(null);
+    setInspectorId(null);
+    showCanvasEvent({
+      message: 'Last change undone',
+      action: 'redo',
+      persistent: true,
+    });
+  }, [canUndo, showCanvasEvent, undo]);
+  const redoArchitectureChange = useCallback(() => {
+    if (!canRedo) return;
+    redo();
+    setMenu(null);
+    setInspectorId(null);
+    showCanvasEvent({ message: 'Change restored', action: 'undo' });
+  }, [canRedo, redo, showCanvasEvent]);
+  const updateVariant = useCallback(
+    (id: string, variantId: string) => {
+      applyChange((current) => ({
+        ...current,
+        nodes: current.nodes.map((n) =>
+          n.id === id ? { ...n, data: { ...n.data, variantId } } : n,
+        ),
+      }));
+      showCanvasEvent({ message: 'Component type changed', action: 'undo' });
+    },
+    [applyChange, showCanvasEvent],
+  );
+  const renameNode = useCallback(
+    (id: string, label: string) => {
+      const next = renameArchitectureNode(nodes, id, label);
+      if (next === nodes) return;
+      applyChange((current) => ({
+        ...current,
+        nodes: renameArchitectureNode(current.nodes, id, label),
+      }));
+      showCanvasEvent({
+        message: `Renamed to “${label.trim()}”`,
+        action: 'undo',
+      });
+    },
+    [applyChange, nodes, showCanvasEvent],
+  );
+  const reportCanvasRename = useCallback(
+    (_id: string, label: string) => {
+      showCanvasEvent({ message: `Renamed to “${label}”`, action: 'undo' });
+    },
+    [showCanvasEvent],
+  );
+  const openRegistry = useCallback(() => {
+    setRequirementsCollapsed(false);
+    setRegistryOpen(true);
+  }, []);
 
-  useEffect(()=>{fetch('/api/exercise').then(r=>r.json()).then(setExercise).catch((e:Error)=>setError(e.message))},[]);
-  useEffect(()=>()=>{if(canvasEventTimer.current)window.clearTimeout(canvasEventTimer.current)},[]);
-  useEffect(()=>{const referenced=new Set(edges.flatMap(edge=>[edge.source,edge.target]));if(nodes.some(node=>node.data.isAnchor&&!referenced.has(node.id)))replacePresent(current=>({...current,nodes:current.nodes.filter(node=>!node.data.isAnchor||referenced.has(node.id))}))},[edges,nodes,replacePresent]);
-  useEffect(()=>{const save=()=>localStorage.setItem(AUTOSAVE_KEY,JSON.stringify({nodes:nodes.map(node=>({...node,selected:false})),edges:edges.map(edge=>({...edge,selected:false}))}));if(autosaveTimer.current)clearTimeout(autosaveTimer.current);autosaveTimer.current=window.setTimeout(save,400);window.addEventListener('pagehide',save);return()=>{if(autosaveTimer.current)clearTimeout(autosaveTimer.current);window.removeEventListener('pagehide',save)}},[nodes,edges]);
-  useEffect(()=>{terminalRef.current?.scrollTo({top:terminalRef.current.scrollHeight})},[terminal,validating]);
-  useEffect(()=>{if(!menu)return;const close=()=>setMenu(null);window.addEventListener('pointerdown',close);return()=>window.removeEventListener('pointerdown',close)},[menu]);
-  useEffect(()=>{if(!menu||!contextMenuRef.current)return;const panel=contextMenuRef.current.getBoundingClientRect();const next=clampFloatingPanelPosition(menu,{width:panel.width,height:panel.height},{left:0,top:0,right:window.innerWidth,bottom:window.innerHeight},{inset:8});if(next.x!==menu.x||next.y!==menu.y)setMenu(current=>current?{...current,...next}:current);else contextMenuRef.current.querySelector<HTMLButtonElement>('button')?.focus()},[menu]);
-  useEffect(()=>{if(!registryOpen)return;const dialog=registryDialogRef.current;searchRef.current?.focus();const onKeyDown=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();setRegistryOpen(false);return}if(event.key!=='Tab'||!dialog)return;const focusable=[...dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}};document.addEventListener('keydown',onKeyDown);return()=>{document.removeEventListener('keydown',onKeyDown);registryTriggerRef.current?.focus()}},[registryOpen]);
-  useEffect(()=>{if(!resize)return;const move=(event:PointerEvent)=>{pendingPanelSize.current=resize==='sidebar'?Math.min(560,Math.max(300,event.clientX)):Math.min(500,Math.max(170,innerHeight-event.clientY));if(resizeFrame.current)return;resizeFrame.current=requestAnimationFrame(()=>{resizeFrame.current=null;const value=pendingPanelSize.current;if(value===null)return;if(resize==='sidebar')workspaceRef.current?.style.setProperty('--sidebar-width',`${value}px`);else workbenchRef.current?.style.setProperty('--runner-height',`${value}px`)})};const up=()=>{const value=pendingPanelSize.current;if(value!==null){if(resize==='sidebar')setSidebarWidth(value);else setRunnerHeight(value)}pendingPanelSize.current=null;if(resizeFrame.current)cancelAnimationFrame(resizeFrame.current);resizeFrame.current=null;setResize(null)};window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});window.addEventListener('pointercancel',up,{once:true});return()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);window.removeEventListener('pointercancel',up)}},[resize]);
-  useEffect(()=>{const keys=(e:KeyboardEvent)=>{if(isEditableShortcutTarget(e.target))return;const command=e.metaKey||e.ctrlKey;const historyShortcut=getArchitectureHistoryShortcut(e);if(e.key==='Escape'){setTool('selection');setMenu(null);setInspectorId(null);return}if(command&&e.key.toLowerCase()==='k'){e.preventDefault();openRegistry();return}if(command&&e.key==='Enter'){e.preventDefault();void validate();return}if(historyShortcut){e.preventDefault();e.stopPropagation();if(historyShortcut==='redo')redoArchitectureChange();else undoArchitectureChange();return}if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&['1','2','3'].includes(e.key)){e.preventDefault();setTool(e.key==='1'?'hand':e.key==='2'?'selection':'connection')}};window.addEventListener('keydown',keys,true);return()=>window.removeEventListener('keydown',keys,true)},[nodes,edges,workspaceView,selectedSolutionId,validating,openRegistry,redoArchitectureChange,undoArchitectureChange]);
-  const addNode=(kind:ArchitectureNodeKind,variantId='abstract')=>{const kindCount=nodes.filter(n=>!n.data.isAnchor&&n.data.kind===kind).length+1;const total=nodes.filter(n=>!n.data.isAnchor).length;const v=getArchitectureVariant(kind,variantId);const node=makeArchitectureNode(kind,variantId,100+(total%3)*280,140+Math.floor(total/3)*150,kindCount===1?v.label:`${v.label} ${kindCount}`);applyChange(current=>({...current,nodes:[...current.nodes,node]}));setRegistryOpen(false);setGroup(null);showCanvasEvent({message:`Added “${node.data.label}”`,action:'undo'});window.setTimeout(()=>{const editor=tldrawEditor.current;if(!editor)return;const id=createShapeId(node.id),bounds=editor.getShapePageBounds(id);editor.select(id);if(bounds)editor.zoomToBounds(bounds,{animation:{duration:220},inset:140,targetZoom:1})},0)};
-  const deleteNode=(id:string)=>{const label=nodes.find(node=>node.id===id)?.data.label??'Component';applyChange(current=>({...current,nodes:current.nodes.filter(n=>n.id!==id),edges:current.edges.filter(e=>e.source!==id&&e.target!==id)}));setMenu(null);if(inspectorId===id)setInspectorId(null);showCanvasEvent({message:`Deleted “${label}”`,tone:'danger',action:'undo'})};
-  const focusNode=(id:string)=>{replacePresent(current=>({...current,nodes:current.nodes.map(n=>({...n,selected:n.id===id}))}));const editor=tldrawEditor.current;if(editor){const shapeId=createShapeId(id),bounds=editor.getShapePageBounds(shapeId);editor.select(shapeId);if(bounds)editor.zoomToBounds(bounds,{animation:{duration:220},inset:140,targetZoom:1})}};
-  const startResize=(panel:'sidebar'|'runner',event:ReactPointerEvent<HTMLDivElement>)=>{event.preventDefault();window.getSelection()?.removeAllRanges();setResize(panel)};
-  const commitArchitecture=()=>{const v:ArchitectureVersion={id:crypto.randomUUID(),name:`Commit ${versions.length+1}`,createdAt:new Date().toISOString(),...snapshot()};const next=[v,...versions];setVersions(next);localStorage.setItem(VERSIONS_KEY,JSON.stringify(next));setVersionsOpen(true);showCanvasEvent({message:`Committed “${v.name}”`})};
-  const renameArchitectureVersion=(versionId:string,name:string)=>{setVersions(current=>{const next=current.map(version=>version.id===versionId?{...version,name}:version);localStorage.setItem(VERSIONS_KEY,JSON.stringify(next));return next});showCanvasEvent({message:`Renamed commit to “${name}”`})};
-  const deleteLatestArchitectureVersion=()=>{const latest=versions[0];if(!latest)return;const next=versions.slice(1);setVersions(next);localStorage.setItem(VERSIONS_KEY,JSON.stringify(next));showCanvasEvent({message:`Deleted commit “${latest.name}”`,tone:'danger'})};
-  const restoreArchitectureVersion=(v:ArchitectureVersion)=>{applyChange(()=>({nodes:v.nodes,edges:v.edges}));setVersionsOpen(false);setWorkspaceView('canvas');showCanvasEvent({message:`Restored “${v.name}”`,action:'undo'});window.setTimeout(()=>tldrawEditor.current?.zoomToFit({animation:{duration:220}}),0)};
-  const validate=async()=>{
-    if(validating)return;
-    const solution=solutions.find(s=>s.id===selectedSolutionId)??solutions[0];
-    const architecture=workspaceView==='solutions'
-      ?{nodes:solution.nodes.map((n,i)=>({id:`${solution.id}-${i}`,kind:n.kind})),edges:solution.nodes.slice(1).map((_,i)=>({from:`${solution.id}-${i}`,to:`${solution.id}-${i+1}`}))}
-      :toArchitecturePayload(nodes,edges);
-    const path=workspaceView==='solutions'?`./solutions/${solution.id}`:'./architecture';
-    const nodeIssues=workspaceView==='canvas'?getArchitectureNodeValidationIssues(nodeValidationStates):[];
-    const nodeErrors=nodeIssues.filter(issue=>issue.severity==='error');
-    const nodeWarnings=nodeIssues.filter(issue=>issue.severity==='warning');
-    if(workspaceView==='canvas')setNodeValidationVisible(true);
-    const id=++run.current;
-    setValidating(true);setResults([]);setError(null);
-    setTerminal(t=>[...t,...(t.length?[{kind:'info' as const,text:''}]:[]),{kind:'info',text:`── validation run ${String(id).padStart(2,'0')} ──`,runId:id},{kind:'command',text:`$ archlab validate ${path}`,runId:id},{kind:'pending',text:'contacting validation engine',runId:id}]);
-    try{
-      const r=await evaluateArchitecture(architecture);
-      const lb=architecture.nodes.some(n=>n.kind==='load-balancer');
-      const lines:TerminalLine[]=[
-        {kind:'command',text:`$ archlab build ${path}`},
-        {kind:'success',text:`✓ Parsed topology: ${architecture.nodes.length} component${architecture.nodes.length===1?'':'s'}, ${architecture.edges.length} connection${architecture.edges.length===1?'':'s'}`},
-        {kind:'success',text:'✓ Architecture manifest compiled'},
-        {kind:'command',text:`$ archlab lint ${path} --nodes`},
-      ];
-      if(nodeIssues.length){
-        lines.push({kind:nodeErrors.length?'error':'warning',text:`${nodeErrors.length?'✕':'⚠'} Node validation found ${nodeIssues.length} issue${nodeIssues.length===1?'':'s'}`});
-        for(const issue of nodeIssues)lines.push(
-          {kind:issue.severity,text:`  ${issue.severity==='error'?'✕':'⚠'} [${issue.code}] ${issue.message}`},
-          {kind:'info',text:`      ↳ ${issue.suggestion}`},
-        );
-      }else lines.push({kind:'success',text:'✓ All component connection contracts satisfied'});
-      lines.push({kind:'command',text:'$ archlab deploy --target simulator  # simulated'},{kind:'success',text:'✓ Runtime sandbox ready'});
-      if(!lb)lines.push({kind:'warning',text:'⚠ No load balancer configured (optional)'});
-      lines.push({kind:'command',text:'$ archlab test --requirements  # server'});
-      r.forEach(x=>lines.push({kind:x.status==='passed'?'success':'error',text:`${x.status==='passed'?'✓':'✕'} ${exercise?.requirement.title??x.requirementId}`},{kind:'info',text:`  ${x.message}`}));
-      const serverFailures=r.filter(x=>x.status==='failed').length;
-      const failed=serverFailures+nodeErrors.length;
-      const passed=r.filter(x=>x.status==='passed').length;
-      const warningCount=nodeWarnings.length+(lb?0:1);
-      lines.push({kind:failed?'error':'success',text:failed?`FAIL  ${failed} error${failed===1?'':'s'} · ${passed} passed · ${warningCount} warning${warningCount===1?'':'s'}`:`PASS  ${passed} passed · ${warningCount} warning${warningCount===1?'':'s'}`,warningCount});
-      setTerminal(t=>[...t.filter(x=>!(x.runId===id&&x.kind==='pending')),...lines]);setResults(r);
-    }catch(e){const message=e instanceof Error?e.message:'Validation failed';setError(message);setTerminal(current=>[...current.filter(line=>!(line.runId===id&&line.kind==='pending')),{kind:'error',text:`✕ ${message}`,runId:id}])}finally{if(run.current===id)setValidating(false)}
+  useEffect(
+    () => () => {
+      if (canvasEventTimer.current) window.clearTimeout(canvasEventTimer.current);
+    },
+    [],
+  );
+  useEffect(() => {
+    const referenced = new Set(edges.flatMap((edge) => [edge.source, edge.target]));
+    if (nodes.some((node) => node.data.isAnchor && !referenced.has(node.id)))
+      replacePresent((current) => ({
+        ...current,
+        nodes: current.nodes.filter((node) => !node.data.isAnchor || referenced.has(node.id)),
+      }));
+  }, [edges, nodes, replacePresent]);
+  useEffect(() => {
+    terminalRef.current?.scrollTo({ top: terminalRef.current.scrollHeight });
+  }, [terminal, validating]);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener('pointerdown', close);
+    return () => window.removeEventListener('pointerdown', close);
+  }, [menu]);
+  useEffect(() => {
+    if (!menu || !contextMenuRef.current) return;
+    const panel = contextMenuRef.current.getBoundingClientRect();
+    const next = clampFloatingPanelPosition(
+      menu,
+      { width: panel.width, height: panel.height },
+      { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight },
+      { inset: 8 },
+    );
+    if (next.x !== menu.x || next.y !== menu.y)
+      setMenu((current) => (current ? { ...current, ...next } : current));
+    else contextMenuRef.current.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [menu]);
+  useEffect(() => {
+    if (!resize) return;
+    const move = (event: PointerEvent) => {
+      pendingPanelSize.current =
+        resize === 'sidebar'
+          ? Math.min(560, Math.max(300, event.clientX))
+          : Math.min(500, Math.max(170, innerHeight - event.clientY));
+      if (resizeFrame.current) return;
+      resizeFrame.current = requestAnimationFrame(() => {
+        resizeFrame.current = null;
+        const value = pendingPanelSize.current;
+        if (value === null) return;
+        if (resize === 'sidebar')
+          workspaceRef.current?.style.setProperty('--sidebar-width', `${value}px`);
+        else workbenchRef.current?.style.setProperty('--runner-height', `${value}px`);
+      });
+    };
+    const up = () => {
+      const value = pendingPanelSize.current;
+      if (value !== null) {
+        if (resize === 'sidebar') setSidebarWidth(value);
+        else setRunnerHeight(value);
+      }
+      pendingPanelSize.current = null;
+      if (resizeFrame.current) cancelAnimationFrame(resizeFrame.current);
+      resizeFrame.current = null;
+      setResize(null);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+    window.addEventListener('pointercancel', up, { once: true });
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [resize]);
+  const addNode = (kind: ArchitectureNodeKind, variantId = 'abstract') => {
+    const kindCount = nodes.filter((n) => !n.data.isAnchor && n.data.kind === kind).length + 1;
+    const total = nodes.filter((n) => !n.data.isAnchor).length;
+    const v = getArchitectureVariant(kind, variantId);
+    const node = makeArchitectureNode(
+      kind,
+      variantId,
+      100 + (total % 3) * 280,
+      140 + Math.floor(total / 3) * 150,
+      kindCount === 1 ? v.label : `${v.label} ${kindCount}`,
+    );
+    applyChange((current) => ({ ...current, nodes: [...current.nodes, node] }));
+    setRegistryOpen(false);
+    setGroup(null);
+    showCanvasEvent({ message: `Added “${node.data.label}”`, action: 'undo' });
+    window.setTimeout(() => {
+      const editor = tldrawEditor.current;
+      if (!editor) return;
+      const id = toCanvasShapeId(node.id),
+        bounds = editor.getShapePageBounds(id);
+      editor.select(id);
+      if (bounds)
+        editor.zoomToBounds(bounds, {
+          animation: { duration: 220 },
+          inset: 140,
+          targetZoom: 1,
+        });
+    }, 0);
   };
+  const deleteNode = (id: string) => {
+    const label = nodes.find((node) => node.id === id)?.data.label ?? 'Component';
+    applyChange((current) => ({
+      ...current,
+      nodes: current.nodes.filter((n) => n.id !== id),
+      edges: current.edges.filter((e) => e.source !== id && e.target !== id),
+    }));
+    setMenu(null);
+    if (inspectorId === id) setInspectorId(null);
+    showCanvasEvent({
+      message: `Deleted “${label}”`,
+      tone: 'danger',
+      action: 'undo',
+    });
+  };
+  const focusNode = (id: string) => {
+    replacePresent((current) => ({
+      ...current,
+      nodes: current.nodes.map((n) => ({ ...n, selected: n.id === id })),
+    }));
+    const editor = tldrawEditor.current;
+    if (editor) {
+      const shapeId = toCanvasShapeId(id),
+        bounds = editor.getShapePageBounds(shapeId);
+      editor.select(shapeId);
+      if (bounds)
+        editor.zoomToBounds(bounds, {
+          animation: { duration: 220 },
+          inset: 140,
+          targetZoom: 1,
+        });
+    }
+  };
+  const inspectNode = (id: string) => {
+    tldrawEditor.current?.select(toCanvasShapeId(id));
+    replacePresent((current) => ({
+      ...current,
+      nodes: current.nodes.map((node) => ({
+        ...node,
+        selected: node.id === id,
+      })),
+    }));
+    setInspectorId(id);
+  };
+  const startResize = (panel: 'sidebar' | 'runner', event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    window.getSelection()?.removeAllRanges();
+    setResize(panel);
+  };
+  const commitArchitecture = () => {
+    const version = commitVersion(snapshot());
+    setVersionsOpen(true);
+    showCanvasEvent({ message: `Committed “${version.name}”` });
+  };
+  const renameArchitectureVersion = (versionId: string, name: string) => {
+    if (renameVersion(versionId, name))
+      showCanvasEvent({ message: `Renamed commit to “${name.trim()}”` });
+  };
+  const deleteLatestArchitectureVersion = () => {
+    const latest = deleteLatestVersion();
+    if (!latest) return;
+    showCanvasEvent({
+      message: `Deleted commit “${latest.name}”`,
+      tone: 'danger',
+    });
+  };
+  const restoreArchitectureVersion = (version: ArchitectureVersion) => {
+    const restored = restoreVersion(version.id);
+    if (!restored) return;
+    applyChange(() => restored);
+    setVersionsOpen(false);
+    setWorkspaceView('canvas');
+    showCanvasEvent({ message: `Restored “${version.name}”`, action: 'undo' });
+    window.setTimeout(() => tldrawEditor.current?.zoomToFit({ animation: { duration: 220 } }), 0);
+  };
+  const validate = useCallback(
+    () =>
+      runValidation({
+        snapshot: architectureSnapshot,
+        view: workspaceView,
+        solution,
+        nodeValidationIssues,
+      }),
+    [architectureSnapshot, nodeValidationIssues, runValidation, solution, workspaceView],
+  );
 
-  const searchResults=useMemo(()=>{const q=query.trim().toLowerCase();return q?(Object.keys(architectureVariants) as ArchitectureNodeKind[]).flatMap(k=>architectureVariants[k].filter(v=>`${v.label} ${v.description} ${v.type}`.toLowerCase().includes(q)).map(v=>({kind:k,v}))):[]},[query]);
-  const solution=solutions.find(s=>s.id===selectedSolutionId)??solutions[0];
-  return <main className="app-shell" onContextMenu={event=>event.preventDefault()}><section ref={workspaceRef} className={`workspace ${requirementsCollapsed?'workspace--requirements-collapsed':''} ${resize?'workspace--resizing':''}`} style={{'--sidebar-width':`${sidebarWidth}px`} as CSSProperties}>
-    <aside className={`panel requirements-panel ${requirementsCollapsed?'requirements-panel--collapsed':''}`}><div className="panel-heading">{!requirementsCollapsed&&<nav className="sidebar-view-tabs" aria-label="Task views"><button className={workspaceView==='canvas'?'sidebar-view-tab--active':''} onClick={()=>setWorkspaceView('canvas')}>Description</button><button className={workspaceView==='solutions'?'sidebar-view-tab--active':''} onClick={()=>setWorkspaceView('solutions')}>Solutions</button></nav>}<button className="collapse-button" onClick={()=>setRequirementsCollapsed(v=>!v)} aria-label={requirementsCollapsed?'Expand requirements':'Collapse requirements'}>{requirementsCollapsed?<FiChevronsRight/>:<FiChevronsLeft/>}</button></div>
-    {!requirementsCollapsed&&(workspaceView==='solutions'?<div className="solutions-sidebar"><div><span className="panel-id">REFERENCE SOLUTIONS</span><p>Open a known-good architecture on the canvas and validate it.</p></div><div className="solutions-sidebar__list">{solutions.map(s=><button key={s.id} className={s.id===solution.id?'solution-option--active':''} onClick={()=>setSelectedSolutionId(s.id)}><strong>{s.name}</strong><small>{s.description}</small></button>)}</div></div>:<>
-      <div className="sidebar-section requirements-section"><button className="sidebar-section-toggle" aria-expanded={requirementsExpanded} onClick={()=>setRequirementsExpanded(v=>!v)}><span className="panel-id">REQUIREMENTS</span><span className={`problem-status problem-status--${runnerStatus}`}><i/> {requirementStatus}</span>{requirementsExpanded?<FiChevronDown/>:<FiChevronsRight/>}</button>{requirementsExpanded&&<div className="requirements-content"><h2>Route web traffic to an HTTP API</h2><p className="lead">A browser request must reach an HTTP handler through the architecture you build.</p><h3>Request contract</h3><ul className="requirement-list"><li><strong>Entry point:</strong> Web Browser</li><li><strong>Request:</strong> <code>GET /{'{path}'}</code></li><li><strong>Transport:</strong> <code>HTTPS</code></li><li><strong>Target capability:</strong> <code>http.handle</code></li><li><strong>Assertion:</strong> <code>path.exists</code></li></ul><h3>Acceptance rule</h3><pre className="acceptance-rule"><code><i>path</i>(source: http.request, target: http.handle) == <b>true</b></code></pre></div>}</div>
-      <div className="sidebar-section layers"><ArchitectureSidebarGraph nodes={nodes} edges={edges} connectionStates={nodeConnectionStates} validationStates={nodeValidationVisible?nodeValidationStates:undefined} expanded={layersExpanded} onToggleExpanded={()=>setLayersExpanded(v=>!v)} onAddComponent={openRegistry} onFocus={focusNode} onRename={renameNode} onOpenMenu={(id,x,y)=>setMenu({id,x,y})}/></div>
-      {registryOpen&&<div className="component-spotlight-backdrop" onPointerDown={()=>setRegistryOpen(false)}><div ref={registryDialogRef} className="sidebar-section catalog component-library" role="dialog" aria-modal="true" aria-label="Component library" onPointerDown={e=>e.stopPropagation()}><div className="component-library__header"><div><span className="panel-id">COMPONENT LIBRARY</span><p>Search or browse by category</p></div><button onClick={()=>setRegistryOpen(false)} aria-label="Close component library"><FiX/></button></div><label className="catalog-search"><FiSearch/><input ref={searchRef} aria-label="Search components" placeholder="Search components…" value={query} onChange={e=>setQuery(e.target.value)}/><kbd>{usesCommand?'⌘':'Ctrl'} K</kbd></label>{query.trim()?<div className="component-picker search-results">{searchResults.length?searchResults.map(({kind,v})=>{const I=v.icon;return <button className="component-option" key={`${kind}-${v.id}`} onClick={()=>addNode(kind,v.id)}><I/><span><strong>{v.label}</strong><small>{v.description}</small></span><em>{architectureMeta[kind].group}</em></button>}):<div className="component-library__empty"><FiSearch/><strong>No components found</strong><small>Try another name or browse a category.</small></div>}</div>:<div className="registry-categories">{(Object.keys(architectureVariants) as ArchitectureNodeKind[]).map(k=>{const I=architectureCategoryIcons[k];return <div className={`registry-group ${group===k?'registry-group--active':''}`} key={k}><div className="registry-category"><button className="registry-category-main" onClick={()=>{setGroup(g=>g===k?null:k);setGroupQuery('')}}><I/><span><strong>{architectureMeta[k].group}</strong><small>Browse concrete components</small></span></button><button className="registry-add" onClick={()=>addNode(k)} aria-label={`Quick add ${architectureMeta[k].group}`} title={`Quick add generic ${architectureMeta[k].group.toLowerCase()}`}><FiPlus/></button><button className="registry-expand" onClick={()=>{setGroup(g=>g===k?null:k);setGroupQuery('')}} aria-label={`Browse ${architectureMeta[k].group}`}>{group===k?<FiChevronDown/>:<FiChevronsRight/>}</button></div>{group===k&&<div className="component-picker component-picker--inline"><label className="group-search"><FiSearch/><input aria-label={`Search ${architectureMeta[k].group}`} value={groupQuery} onChange={e=>setGroupQuery(e.target.value)} placeholder={`Search ${architectureMeta[k].group.toLowerCase()}…`}/></label>{architectureVariants[k].filter(v=>v.concrete&&`${v.label} ${v.description}`.toLowerCase().includes(groupQuery.toLowerCase())).map(v=>{const V=v.icon;return <button className="component-option" key={v.id} onClick={()=>addNode(k,v.id)}><V/><span><strong>{v.label}</strong><small>{v.description}</small></span><em>specific</em></button>})}</div>}</div>})}</div>}</div></div>}
-      {menu&&<div ref={contextMenuRef} className="context-menu" role="menu" aria-label="Component actions" style={{left:menu.x,top:menu.y}} onPointerDown={e=>e.stopPropagation()}><button role="menuitem" onClick={()=>{focusNode(menu.id);setMenu(null)}}><FiCrosshair/>Focus on canvas</button><button role="menuitem" onClick={()=>{const editor=tldrawEditor.current;editor?.select(createShapeId(menu.id));replacePresent(current=>({...current,nodes:current.nodes.map(node=>({...node,selected:node.id===menu.id}))}));setInspectorId(menu.id);setMenu(null)}}><FiSliders/>Inspect component</button><button role="menuitem" className="context-menu__danger" onClick={()=>deleteNode(menu.id)}><FiTrash2/>Delete component</button></div>}
-    </>)}</aside>
-    {!requirementsCollapsed&&<div className={`panel-resizer panel-resizer--vertical ${resize==='sidebar'?'panel-resizer--active':''}`} role="separator" tabIndex={0} aria-label="Resize sidebar" aria-orientation="vertical" aria-valuemin={300} aria-valuemax={560} aria-valuenow={sidebarWidth} onPointerDown={event=>startResize('sidebar',event)} onKeyDown={event=>{const next=event.key==='Home'?300:event.key==='End'?560:event.key==='ArrowLeft'?Math.max(300,sidebarWidth-16):event.key==='ArrowRight'?Math.min(560,sidebarWidth+16):null;if(next!==null){event.preventDefault();setSidebarWidth(next)}}}/>}<div ref={workbenchRef} className="workbench" style={{'--runner-height':`${runnerHeight}px`} as CSSProperties}><section className="canvas-panel">
-      {workspaceView==='canvas'&&<ArchitectureCommitsMenu versions={versions} dirty={hasUncommittedChanges} open={versionsOpen} onOpenChange={setVersionsOpen} onCommit={commitArchitecture} onRestore={restoreArchitectureVersion} onRename={renameArchitectureVersion} onDeleteLatest={deleteLatestArchitectureVersion}/>}
-      <div className={`canvas flow-canvas ${workspaceView==='solutions'?'canvas--behind-solutions':''}`} onContextMenu={event=>event.preventDefault()}>
-        <TldrawArchitectureCanvas nodes={nodes} edges={edges} tool={tool} inspectorId={inspectorId} validationStates={nodeValidationVisible?nodeValidationStates:undefined} onNodesChange={syncCanvasNodes} onEdgesChange={syncCanvasEdges} onMountEditor={editor=>{tldrawEditor.current=editor}} onToolChange={setTool} onCloseInspector={()=>setInspectorId(null)} onUpdateVariant={updateVariant} onNodeRenamed={reportCanvasRename}/>
-        <div className="flow-tools" role="toolbar" aria-label="Canvas tools"><button className={tool==='hand'?'active':''} aria-label="Pan canvas (1)" aria-pressed={tool==='hand'} onClick={()=>setTool('hand')} title="Pan canvas — 1"><LuHand/><small>1</small></button><button className={tool==='selection'?'active':''} aria-label="Select (2)" aria-pressed={tool==='selection'} onClick={()=>setTool('selection')} title="Select — 2"><LuMousePointer2/><small>2</small></button><button className={tool==='connection'?'active':''} aria-label="Connect (3)" aria-pressed={tool==='connection'} onClick={()=>setTool('connection')} title="Connect — 3"><LuMoveRight/><small>3</small></button></div>
-        <div className="canvas-zoom-controls" role="group" aria-label="Canvas zoom"><button aria-label="Zoom out" onClick={()=>tldrawEditor.current?.zoomOut(undefined,{animation:{duration:120}})} title="Zoom out"><FiMinus/></button><button aria-label="Fit canvas" onClick={()=>tldrawEditor.current?.zoomToFit({animation:{duration:160}})} title="Fit canvas"><FiCrosshair/></button><button aria-label="Zoom in" onClick={()=>tldrawEditor.current?.zoomIn(undefined,{animation:{duration:120}})} title="Zoom in"><FiPlus/></button></div>
-      </div>
-      {workspaceView==='canvas'&&canvasEvent&&<CanvasEventToast message={canvasEvent.message} tone={canvasEvent.tone} actionLabel={canvasEvent.action==='undo'?'Undo':canvasEvent.action==='redo'?'Redo':undefined} onAction={canvasEvent.action==='undo'?undoArchitectureChange:canvasEvent.action==='redo'?redoArchitectureChange:undefined}/>}
-      {workspaceView==='solutions'&&<div className="solutions-view"><section className="solution-preview"><button className="solution-back-button" onClick={()=>setWorkspaceView('canvas')}><FiChevronsLeft/> Back to My Canvas</button><div className="solution-preview__heading"><span className="panel-id">SOLUTION</span><h2>{solution.name}</h2><p>{solution.description}</p></div><div className="solution-path">{solution.nodes.map((n,i)=>{const v=getArchitectureVariant(n.kind,n.variantId),I=v.icon;return <div className="solution-step" key={`${solution.id}-${n.kind}`}>{i>0&&<span className="solution-connection"><small>{getConnectionProtocol(solution.nodes[i-1].kind)}</small><span className="solution-arrow">→</span></span>}<div className={`solution-node solution-node--${n.kind}`}><I/><span><strong>{n.label}</strong><small>{architectureMeta[n.kind].role}</small></span></div></div>})}</div></section></div>}
-    </section><div className={`panel-resizer panel-resizer--horizontal ${resize==='runner'?'panel-resizer--active':''}`} role="separator" tabIndex={0} aria-label="Resize test runner" aria-orientation="horizontal" aria-valuemin={170} aria-valuemax={500} aria-valuenow={runnerHeight} onPointerDown={event=>startResize('runner',event)} onKeyDown={event=>{const next=event.key==='Home'?170:event.key==='End'?500:event.key==='ArrowDown'?Math.max(170,runnerHeight-16):event.key==='ArrowUp'?Math.min(500,runnerHeight+16):null;if(next!==null){event.preventDefault();setRunnerHeight(next)}}}/><section className="panel validation-panel validation-terminal"><div className="validation-header"><div className="validation-title" aria-live="polite"><span className="panel-id">TEST RUNNER</span><i className={`validation-dot validation-dot--${runnerStatus}`} aria-hidden="true"/><span className="sr-only">{runnerStatus}</span></div><div className="validation-actions"><button className="clear-terminal-button" aria-label="Clear test runner" title="Clear test runner" onClick={()=>{setTerminal([]);setError(null)}} disabled={validating||!terminal.length}><FiTrash2/></button><button className="validate-button" onClick={()=>void validate()} disabled={validating}><span>{validating?'Running…':'▶ Validate'}</span><kbd><span>{usesCommand?'⌘':'Ctrl'}</span><span>↵</span></kbd></button></div></div><div className="validation-body">{error&&<div className="error-card">{error}</div>}<div ref={terminalRef} className={`terminal-output ${!terminal.length?'terminal-output--idle':''}`}>{!terminal.length&&<><p className="terminal-line terminal-line--info">archlab simulator v0.3 · topology loaded</p><p className="terminal-cursor">▋</p></>}{terminal.map((l,i)=><p key={`${i}-${l.text}`} className={`terminal-line terminal-line--${l.kind}`}>{l.kind==='pending'&&<span className="terminal-spinner"/>}<TerminalLineText text={l.text} warningCount={l.warningCount}/></p>)}</div></div></section></div>
-  </section></main>;
+  useEffect(() => {
+    const keys = (e: KeyboardEvent) => {
+      if (isEditableShortcutTarget(e.target)) return;
+      const command = e.metaKey || e.ctrlKey;
+      const historyShortcut = getArchitectureHistoryShortcut(e);
+      if (e.key === 'Escape') {
+        setTool('selection');
+        setMenu(null);
+        setInspectorId(null);
+        return;
+      }
+      if (command && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openRegistry();
+        return;
+      }
+      if (command && e.key === 'Enter') {
+        e.preventDefault();
+        void validate();
+        return;
+      }
+      if (historyShortcut) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (historyShortcut === 'redo') redoArchitectureChange();
+        else undoArchitectureChange();
+        return;
+      }
+      if (
+        workspaceView === 'canvas' &&
+        (e.key === 'Backspace' || e.key === 'Delete') &&
+        tldrawEditor.current?.getSelectedShapeIds().length
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        tldrawEditor.current.deleteShapes(tldrawEditor.current.getSelectedShapeIds());
+        return;
+      }
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && ['1', '2', '3'].includes(e.key)) {
+        e.preventDefault();
+        setTool(e.key === '1' ? 'hand' : e.key === '2' ? 'selection' : 'connection');
+      }
+    };
+    window.addEventListener('keydown', keys, true);
+    return () => window.removeEventListener('keydown', keys, true);
+  }, [openRegistry, redoArchitectureChange, undoArchitectureChange, validate, workspaceView]);
+  return (
+    <main className="app-shell" onContextMenu={(event) => event.preventDefault()}>
+      <section
+        ref={workspaceRef}
+        className={`workspace ${requirementsCollapsed ? 'workspace--requirements-collapsed' : ''} ${resize ? 'workspace--resizing' : ''}`}
+        style={{ '--sidebar-width': `${sidebarWidth}px` } as CSSProperties}
+      >
+        <RequirementSidebar
+          collapsed={requirementsCollapsed}
+          view={workspaceView}
+          solutions={referenceSolutions}
+          selectedSolutionId={selectedSolutionId}
+          requirementsExpanded={requirementsExpanded}
+          layersExpanded={layersExpanded}
+          requirementStatus={requirementStatus}
+          runnerStatus={runnerStatus}
+          nodes={nodes}
+          edges={edges}
+          connectionStates={nodeConnectionStates}
+          validationStates={nodeValidationVisible ? nodeValidationStates : undefined}
+          registryOpen={registryOpen}
+          query={query}
+          group={group}
+          groupQuery={groupQuery}
+          usesCommandKey={usesCommand}
+          menu={menu}
+          contextMenuRef={contextMenuRef}
+          onCollapsedChange={setRequirementsCollapsed}
+          onViewChange={setWorkspaceView}
+          onSolutionChange={setSelectedSolutionId}
+          onRequirementsExpandedChange={setRequirementsExpanded}
+          onLayersExpandedChange={setLayersExpanded}
+          onRegistryOpenChange={(open) => {
+            if (open) openRegistry();
+            else setRegistryOpen(false);
+          }}
+          onQueryChange={setQuery}
+          onGroupChange={setGroup}
+          onGroupQueryChange={setGroupQuery}
+          onMenuChange={setMenu}
+          onAddNode={addNode}
+          onFocusNode={focusNode}
+          onInspectNode={inspectNode}
+          onRenameNode={renameNode}
+          onDeleteNode={deleteNode}
+        />
+
+        {!requirementsCollapsed && (
+          <div
+            className={`panel-resizer panel-resizer--vertical ${resize === 'sidebar' ? 'panel-resizer--active' : ''}`}
+            role="separator"
+            tabIndex={0}
+            aria-label="Resize sidebar"
+            aria-orientation="vertical"
+            aria-valuemin={300}
+            aria-valuemax={560}
+            aria-valuenow={sidebarWidth}
+            onPointerDown={(event) => startResize('sidebar', event)}
+            onKeyDown={(event) => {
+              const next =
+                event.key === 'Home'
+                  ? 300
+                  : event.key === 'End'
+                    ? 560
+                    : event.key === 'ArrowLeft'
+                      ? Math.max(300, sidebarWidth - 16)
+                      : event.key === 'ArrowRight'
+                        ? Math.min(560, sidebarWidth + 16)
+                        : null;
+              if (next !== null) {
+                event.preventDefault();
+                setSidebarWidth(next);
+              }
+            }}
+          />
+        )}
+
+        <div
+          ref={workbenchRef}
+          className="workbench"
+          style={{ '--runner-height': `${runnerHeight}px` } as CSSProperties}
+        >
+          <ArchitectureWorkbench
+            view={workspaceView}
+            solution={solution}
+            nodes={nodes}
+            edges={edges}
+            tool={tool}
+            inspectorId={inspectorId}
+            validationStates={nodeValidationVisible ? nodeValidationStates : undefined}
+            editorRef={tldrawEditor}
+            versions={versions}
+            versionsOpen={versionsOpen}
+            dirty={hasUncommittedChanges}
+            event={canvasEvent}
+            onViewChange={setWorkspaceView}
+            onVersionsOpenChange={setVersionsOpen}
+            onCommit={commitArchitecture}
+            onRestore={restoreArchitectureVersion}
+            onRenameVersion={renameArchitectureVersion}
+            onDeleteLatestVersion={deleteLatestArchitectureVersion}
+            onNodesChange={syncCanvasNodes}
+            onEdgesChange={syncCanvasEdges}
+            onToolChange={setTool}
+            onCloseInspector={() => setInspectorId(null)}
+            onUpdateVariant={updateVariant}
+            onNodeRenamed={reportCanvasRename}
+            onUndo={undoArchitectureChange}
+            onRedo={redoArchitectureChange}
+          />
+
+          <div
+            className={`panel-resizer panel-resizer--horizontal ${resize === 'runner' ? 'panel-resizer--active' : ''}`}
+            role="separator"
+            tabIndex={0}
+            aria-label="Resize test runner"
+            aria-orientation="horizontal"
+            aria-valuemin={170}
+            aria-valuemax={500}
+            aria-valuenow={runnerHeight}
+            onPointerDown={(event) => startResize('runner', event)}
+            onKeyDown={(event) => {
+              const next =
+                event.key === 'Home'
+                  ? 170
+                  : event.key === 'End'
+                    ? 500
+                    : event.key === 'ArrowDown'
+                      ? Math.max(170, runnerHeight - 16)
+                      : event.key === 'ArrowUp'
+                        ? Math.min(500, runnerHeight + 16)
+                        : null;
+              if (next !== null) {
+                event.preventDefault();
+                setRunnerHeight(next);
+              }
+            }}
+          />
+
+          <ValidationRunner
+            error={validationError ?? exerciseError}
+            lines={terminal}
+            running={validating}
+            status={runnerStatus}
+            usesCommandKey={usesCommand}
+            outputRef={terminalRef}
+            onClear={clearValidation}
+            onValidate={() => void validate()}
+          />
+        </div>
+      </section>
+    </main>
+  );
 }

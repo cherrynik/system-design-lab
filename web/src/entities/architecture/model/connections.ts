@@ -31,27 +31,38 @@ export function getArchitectureNodeConnectionStates(
     incoming.set(target.id, [...(incoming.get(target.id) ?? []), source]);
   }
 
-  return new Map(components.map((node) => {
-    const nodeIncoming = incoming.get(node.id) ?? [];
-    const nodeOutgoing = outgoing.get(node.id) ?? [];
-    const missing = requiredDirections[node.data.kind].filter((direction) => direction === 'incoming'
-      ? nodeIncoming.length === 0
-      : nodeOutgoing.length === 0);
-    const connectionCount = nodeIncoming.length + nodeOutgoing.length;
-    return [node.id, {
-      state: missing.length === 0 ? 'ready' : connectionCount === 0 ? 'isolated' : 'incomplete',
-      incoming: nodeIncoming,
-      outgoing: nodeOutgoing,
-      missing,
-    }];
-  }));
+  return new Map(
+    components.map((node) => {
+      const nodeIncoming = incoming.get(node.id) ?? [];
+      const nodeOutgoing = outgoing.get(node.id) ?? [];
+      const missing = requiredDirections[node.data.kind].filter((direction) =>
+        direction === 'incoming' ? nodeIncoming.length === 0 : nodeOutgoing.length === 0,
+      );
+      const connectionCount = nodeIncoming.length + nodeOutgoing.length;
+      return [
+        node.id,
+        {
+          state: missing.length === 0 ? 'ready' : connectionCount === 0 ? 'isolated' : 'incomplete',
+          incoming: nodeIncoming,
+          outgoing: nodeOutgoing,
+          missing,
+        },
+      ];
+    }),
+  );
 }
 
 export function getConnectionStateText(connection: ArchitectureNodeConnectionState): string {
   const parts = [
-    connection.incoming.length ? `← ${connection.incoming.map((node) => node.data.label).join(', ')}` : '',
-    connection.outgoing.length ? `→ ${connection.outgoing.map((node) => node.data.label).join(', ')}` : '',
-    ...connection.missing.map((direction) => direction === 'incoming' ? 'Connect input' : 'Connect output'),
+    connection.incoming.length
+      ? `← ${connection.incoming.map((node) => node.data.label).join(', ')}`
+      : '',
+    connection.outgoing.length
+      ? `→ ${connection.outgoing.map((node) => node.data.label).join(', ')}`
+      : '',
+    ...connection.missing.map((direction) =>
+      direction === 'incoming' ? 'Connect input' : 'Connect output',
+    ),
   ].filter(Boolean);
   return parts.join(' · ');
 }

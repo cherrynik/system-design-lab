@@ -18,26 +18,45 @@ const nodes = [
   node('service', 'service', 'API'),
 ];
 const edges: ArchitectureEdge[] = [
-  { id: 'one', source: 'client', target: 'balancer', type: 'architecture', data: { protocol: 'HTTPS' } },
-  { id: 'two', source: 'balancer', target: 'service', type: 'architecture', data: { protocol: 'HTTP' } },
+  {
+    id: 'one',
+    source: 'client',
+    target: 'balancer',
+    type: 'architecture',
+    data: { protocol: 'HTTPS' },
+  },
+  {
+    id: 'two',
+    source: 'balancer',
+    target: 'service',
+    type: 'architecture',
+    data: { protocol: 'HTTP' },
+  },
 ];
-const ready: ArchitectureNodeConnectionState = { state: 'ready', incoming: [], outgoing: [], missing: [] };
+const ready: ArchitectureNodeConnectionState = {
+  state: 'ready',
+  incoming: [],
+  outgoing: [],
+  missing: [],
+};
 
 afterEach(cleanup);
 
 describe('ArchitectureSidebarGraph', () => {
   it('groups components into collapsible semantic layers', () => {
-    render(<ArchitectureSidebarGraph
-      nodes={nodes}
-      edges={edges}
-      connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
-      expanded
-      onToggleExpanded={vi.fn()}
-      onAddComponent={vi.fn()}
-      onFocus={vi.fn()}
-      onOpenMenu={vi.fn()}
-      onRename={vi.fn()}
-    />);
+    render(
+      <ArchitectureSidebarGraph
+        nodes={nodes}
+        edges={edges}
+        connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
+        expanded
+        onToggleExpanded={vi.fn()}
+        onAddComponent={vi.fn()}
+        onFocus={vi.fn()}
+        onOpenMenu={vi.fn()}
+        onRename={vi.fn()}
+      />,
+    );
 
     const sectionToggle = screen.getByRole('button', { name: 'Components, 3 components' });
     expect(sectionToggle.getAttribute('aria-expanded')).toBe('true');
@@ -54,17 +73,19 @@ describe('ArchitectureSidebarGraph', () => {
   });
 
   it('switches between layer and topology views', () => {
-    render(<ArchitectureSidebarGraph
-      nodes={nodes}
-      edges={edges}
-      connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
-      expanded
-      onToggleExpanded={vi.fn()}
-      onAddComponent={vi.fn()}
-      onFocus={vi.fn()}
-      onOpenMenu={vi.fn()}
-      onRename={vi.fn()}
-    />);
+    render(
+      <ArchitectureSidebarGraph
+        nodes={nodes}
+        edges={edges}
+        connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
+        expanded
+        onToggleExpanded={vi.fn()}
+        onAddComponent={vi.fn()}
+        onFocus={vi.fn()}
+        onOpenMenu={vi.fn()}
+        onRename={vi.fn()}
+      />,
+    );
 
     expect(screen.getByLabelText('Components grouped by layer')).toBeTruthy();
     fireEvent.click(screen.getByRole('tab', { name: 'Graph' }));
@@ -74,17 +95,19 @@ describe('ArchitectureSidebarGraph', () => {
   });
 
   it('uses roving tab focus and arrow keys for the view switcher', () => {
-    render(<ArchitectureSidebarGraph
-      nodes={nodes}
-      edges={edges}
-      connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
-      expanded
-      onToggleExpanded={vi.fn()}
-      onAddComponent={vi.fn()}
-      onFocus={vi.fn()}
-      onOpenMenu={vi.fn()}
-      onRename={vi.fn()}
-    />);
+    render(
+      <ArchitectureSidebarGraph
+        nodes={nodes}
+        edges={edges}
+        connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
+        expanded
+        onToggleExpanded={vi.fn()}
+        onAddComponent={vi.fn()}
+        onFocus={vi.fn()}
+        onOpenMenu={vi.fn()}
+        onRename={vi.fn()}
+      />,
+    );
 
     const layers = screen.getByRole('tab', { name: 'Layers' });
     const graph = screen.getByRole('tab', { name: 'Graph' });
@@ -106,17 +129,19 @@ describe('ArchitectureSidebarGraph', () => {
   });
 
   it('collapses and expands every layer at once', () => {
-    render(<ArchitectureSidebarGraph
-      nodes={nodes}
-      edges={edges}
-      connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
-      expanded
-      onToggleExpanded={vi.fn()}
-      onAddComponent={vi.fn()}
-      onFocus={vi.fn()}
-      onOpenMenu={vi.fn()}
-      onRename={vi.fn()}
-    />);
+    render(
+      <ArchitectureSidebarGraph
+        nodes={nodes}
+        edges={edges}
+        connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
+        expanded
+        onToggleExpanded={vi.fn()}
+        onAddComponent={vi.fn()}
+        onFocus={vi.fn()}
+        onOpenMenu={vi.fn()}
+        onRename={vi.fn()}
+      />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse all groups' }));
     expect(screen.queryByText('Browser')).toBeNull();

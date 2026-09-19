@@ -16,7 +16,16 @@ type Props = {
   onRename: (nodeId: string, label: string) => void;
 };
 
-export function ArchitectureLayerItem({ node, fallbackLabel, connectionState, validationState, mode = 'list', onFocus, onOpenMenu, onRename }: Props) {
+export function ArchitectureLayerItem({
+  node,
+  fallbackLabel,
+  connectionState,
+  validationState,
+  mode = 'list',
+  onFocus,
+  onOpenMenu,
+  onRename,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(node.data.label);
   const cancelled = useRef(false);
@@ -25,11 +34,8 @@ export function ArchitectureLayerItem({ node, fallbackLabel, connectionState, va
   const Icon = variant.icon;
   const label = node.data.label || fallbackLabel;
   const connectionText = getConnectionStateText(connectionState);
-  const missingText = (direction: 'incoming' | 'outgoing') => direction === 'incoming' ? 'Choose source' : 'Choose destination';
-
-  useEffect(() => {
-    if (!editing) setDraft(node.data.label);
-  }, [editing, node.data.label]);
+  const missingText = (direction: 'incoming' | 'outgoing') =>
+    direction === 'incoming' ? 'Choose source' : 'Choose destination';
 
   useEffect(() => {
     if (!editing) return;
@@ -101,29 +107,71 @@ export function ArchitectureLayerItem({ node, fallbackLabel, connectionState, va
                 }
               }}
             />
-          ) : <>
-            <strong>{label}</strong>
-            {mode === 'list'&&<span className={`layer-item__connections layer-item__connections--${connectionState.state}`} aria-label={connectionText}>
-              {connectionState.incoming.map((related) => {
-                const RelatedIcon = getArchitectureVariant(related.data.kind, related.data.variantId).icon;
-                return <span className="component-link component-link--incoming" aria-label={`Connected from ${related.data.label}`} key={`in-${related.id}`}><RelatedIcon/><b>{related.data.label}</b><FiArrowRight/></span>;
-              })}
-              {connectionState.outgoing.map((related) => {
-                const RelatedIcon = getArchitectureVariant(related.data.kind, related.data.variantId).icon;
-                return <span className="component-link component-link--outgoing" aria-label={`Connected to ${related.data.label}`} key={`out-${related.id}`}><FiArrowRight/><RelatedIcon/><b>{related.data.label}</b></span>;
-              })}
-              {connectionState.missing.map((direction) => <span className="component-link component-link--missing" key={direction}><i/>{missingText(direction)}</span>)}
-            </span>}
-          </>}
+          ) : (
+            <>
+              <strong>{label}</strong>
+              {mode === 'list' && (
+                <span
+                  className={`layer-item__connections layer-item__connections--${connectionState.state}`}
+                  aria-label={connectionText}
+                >
+                  {connectionState.incoming.map((related) => {
+                    const RelatedIcon = getArchitectureVariant(
+                      related.data.kind,
+                      related.data.variantId,
+                    ).icon;
+                    return (
+                      <span
+                        className="component-link component-link--incoming"
+                        aria-label={`Connected from ${related.data.label}`}
+                        key={`in-${related.id}`}
+                      >
+                        <RelatedIcon />
+                        <b>{related.data.label}</b>
+                        <FiArrowRight />
+                      </span>
+                    );
+                  })}
+                  {connectionState.outgoing.map((related) => {
+                    const RelatedIcon = getArchitectureVariant(
+                      related.data.kind,
+                      related.data.variantId,
+                    ).icon;
+                    return (
+                      <span
+                        className="component-link component-link--outgoing"
+                        aria-label={`Connected to ${related.data.label}`}
+                        key={`out-${related.id}`}
+                      >
+                        <FiArrowRight />
+                        <RelatedIcon />
+                        <b>{related.data.label}</b>
+                      </span>
+                    );
+                  })}
+                  {connectionState.missing.map((direction) => (
+                    <span className="component-link component-link--missing" key={direction}>
+                      <i />
+                      {missingText(direction)}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </>
+          )}
         </span>
-        {validationState && validationState.status !== 'valid' && <span
-          className={`layer-item__validation node-validation-tooltip layer-item__validation--${validationState.status}`}
-          aria-label={`${label}: ${validationState.issues.length} validation ${validationState.issues.length === 1 ? 'issue' : 'issues'}`}
-          data-tooltip={validationState.issues.map(({ message, suggestion }) => `${message}\n${suggestion}`).join('\n\n')}
-          tabIndex={0}
-        >
-          {validationState.status === 'error' ? <FiXCircle /> : <FiAlertTriangle />}
-        </span>}
+        {validationState && validationState.status !== 'valid' && (
+          <span
+            className={`layer-item__validation node-validation-tooltip layer-item__validation--${validationState.status}`}
+            aria-label={`${label}: ${validationState.issues.length} validation ${validationState.issues.length === 1 ? 'issue' : 'issues'}`}
+            data-tooltip={validationState.issues
+              .map(({ message, suggestion }) => `${message}\n${suggestion}`)
+              .join('\n\n')}
+            tabIndex={0}
+          >
+            {validationState.status === 'error' ? <FiXCircle /> : <FiAlertTriangle />}
+          </span>
+        )}
       </div>
       <button
         className="component-menu-trigger"

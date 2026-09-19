@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import {
   BaseBoxShapeUtil,
@@ -20,15 +28,30 @@ import {
   useValue,
   type Editor,
   type RecordProps,
+  type TLComponents,
   type TLArrowShape,
   type TLShape,
 } from 'tldraw';
 import { FiAlertTriangle, FiX } from 'react-icons/fi';
 import 'tldraw/tldraw.css';
-import { architectureMeta, architectureVariants, getArchitectureVariant, getArrowProtocol } from '../model/catalog';
-import type { ArchitectureNodeValidationState } from '../model/nodeValidation';
-import type { ArchitectureEdge, ArchitectureNode, ArchitectureNodeKind, EdgeAnchor } from '../model/types';
-import { clampFloatingPanelPosition } from '../../../shared/lib';
+import {
+  architectureMeta,
+  architectureVariants,
+  getArchitectureVariant,
+  getArrowProtocol,
+  isArchitectureCardDoubleClick,
+  isBrowserZoomShortcut,
+  isSupportedArchitectureCanvasShape,
+  resolveArchitectureCardLabel,
+} from '@/entities/architecture';
+import type {
+  ArchitectureEdge,
+  ArchitectureNode,
+  ArchitectureNodeKind,
+  ArchitectureNodeValidationState,
+  EdgeAnchor,
+} from '@/entities/architecture';
+import { clampFloatingPanelPosition } from '@/shared/lib';
 
 const CARD_TYPE = 'architecture-card' as const;
 const CARD_WIDTH = 220;
@@ -37,38 +60,7 @@ const INSPECTOR_WIDTH = 270;
 const INSPECTOR_FALLBACK_HEIGHT = 280;
 const INSPECTOR_VIEWPORT_MARGIN = 12;
 const INSPECTOR_GAP = 18;
-const DOUBLE_CLICK_WINDOW_MS = 400;
 type HotspotSide = 'top' | 'right' | 'bottom' | 'left';
-
-export function isSupportedArchitectureCanvasShape(shape: Pick<TLShape, 'type'>) {
-  return shape.type === CARD_TYPE || shape.type === 'arrow';
-}
-
-export function resolveArchitectureCardLabel(currentLabel: string, draft: string, cancelled: boolean) {
-  const nextLabel = draft.trim();
-  return cancelled || !nextLabel ? currentLabel : nextLabel;
-}
-
-export function isBrowserZoomShortcut(event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey'>) {
-  return (event.metaKey || event.ctrlKey) && ['+', '=', '-', '_', '0'].includes(event.key);
-}
-
-type CardPointerDown = { shapeId: string; timestamp: number };
-
-export function isArchitectureCardDoubleClick(previous: CardPointerDown | null, current: CardPointerDown) {
-  return Boolean(
-    previous
-    && previous.shapeId === current.shapeId
-    && current.timestamp >= previous.timestamp
-    && current.timestamp - previous.timestamp <= DOUBLE_CLICK_WINDOW_MS,
-  );
-}
-
-let pendingHotspotStart: {
-  shapeId: ArchitectureCardShape['id'];
-  anchor: { x: number; y: number };
-  existingArrowIds: Set<string>;
-} | null = null;
 
 const hotspotAnchor: Record<HotspotSide, { x: number; y: number }> = {
   top: { x: 0.5, y: 0 },
@@ -103,6 +95,12 @@ declare module 'tldraw' {
 
 type ArchitectureCardShape = TLShape<typeof CARD_TYPE>;
 
+type PendingHotspotStart = {
+  shapeId: ArchitectureCardShape['id'];
+  anchor: { x: number; y: number };
+  existingArrowIds: Set<string>;
+};
+
 function startEditingArchitectureCard(editor: Editor, shape: ArchitectureCardShape) {
   editor.setEditingShape(shape);
   editor.setCurrentTool('select.editing_shape', { target: 'shape', shape });
@@ -113,33 +111,47 @@ type ArchitectureCanvasActions = {
   closeInspector: () => void;
   updateVariant: (nodeId: string, variantId: string) => void;
   nodeRenamed: (nodeId: string, label: string) => void;
+  queueHotspotStart: (pending: PendingHotspotStart) => void;
+  isCurrentHotspotStart: (pending: PendingHotspotStart) => boolean;
+  clearHotspotStart: (pending: PendingHotspotStart) => void;
 };
 
-const ArchitectureCanvasActionsContext = createContext<ArchitectureCanvasActions>({
-  inspectorId: null,
-  closeInspector: () => undefined,
-  updateVariant: () => undefined,
-  nodeRenamed: () => undefined,
-});
+const ArchitectureCanvasActionsContext = createContext<ArchitectureCanvasActions | null>(null);
 
-function finalizePendingHotspotStart(editor: Editor, pending: NonNullable<typeof pendingHotspotStart>) {
+function useArchitectureCanvasActions() {
+  const actions = useContext(ArchitectureCanvasActionsContext);
+  if (!actions) throw new Error('Architecture canvas actions are unavailable');
+  return actions;
+}
+
+function finalizePendingHotspotStart(editor: Editor, pending: PendingHotspotStart) {
   const createdArrow = [...editor.getCurrentPageShapes()]
     .reverse()
-    .find((shape): shape is TLArrowShape => shape.type === 'arrow' && !pending.existingArrowIds.has(shape.id));
+    .find(
+      (shape): shape is TLArrowShape =>
+        shape.type === 'arrow' && !pending.existingArrowIds.has(shape.id),
+    );
   if (!createdArrow) return false;
 
-  pendingHotspotStart = null;
   const startBinding = getArrowBindings(editor, createdArrow).start;
-  if (startBinding) editor.updateBinding({
-    ...startBinding,
-    props: { ...startBinding.props, normalizedAnchor: pending.anchor, isPrecise: true },
-  });
-  else editor.createBinding({
-    type: 'arrow',
-    fromId: createdArrow.id,
-    toId: pending.shapeId,
-    props: { terminal: 'start', normalizedAnchor: pending.anchor, isPrecise: true, isExact: false, snap: 'none' },
-  });
+  if (startBinding)
+    editor.updateBinding({
+      ...startBinding,
+      props: { ...startBinding.props, normalizedAnchor: pending.anchor, isPrecise: true },
+    });
+  else
+    editor.createBinding({
+      type: 'arrow',
+      fromId: createdArrow.id,
+      toId: pending.shapeId,
+      props: {
+        terminal: 'start',
+        normalizedAnchor: pending.anchor,
+        isPrecise: true,
+        isExact: false,
+        snap: 'none',
+      },
+    });
   editor.updateShape<TLArrowShape>({
     id: createdArrow.id,
     type: 'arrow',
@@ -173,7 +185,16 @@ class ArchitectureCardShapeUtil extends BaseBoxShapeUtil<ArchitectureCardShape> 
   };
 
   override getDefaultProps(): ArchitectureCardShape['props'] {
-    return { w: CARD_WIDTH, h: CARD_HEIGHT, nodeId: '', label: 'Component', kind: 'service', variantId: 'abstract', validation: 'idle', validationMessage: '' };
+    return {
+      w: CARD_WIDTH,
+      h: CARD_HEIGHT,
+      nodeId: '',
+      label: 'Component',
+      kind: 'service',
+      variantId: 'abstract',
+      validation: 'idle',
+      validationMessage: '',
+    };
   }
 
   override canBind({ bindingType }: { bindingType: string }) {
@@ -185,7 +206,8 @@ class ArchitectureCardShapeUtil extends BaseBoxShapeUtil<ArchitectureCardShape> 
   }
 
   override onDoubleClick(shape: ArchitectureCardShape) {
-    if (this.editor.getEditingShapeId() !== shape.id) startEditingArchitectureCard(this.editor, shape);
+    if (this.editor.getEditingShapeId() !== shape.id)
+      startEditingArchitectureCard(this.editor, shape);
   }
 
   override canResize() {
@@ -221,54 +243,56 @@ class ArchitectureCardShapeUtil extends BaseBoxShapeUtil<ArchitectureCardShape> 
 
 function ArchitectureCardContent({ shape }: { shape: ArchitectureCardShape }) {
   const editor = useEditor();
-  const actions = useContext(ArchitectureCanvasActionsContext);
-  const [draft, setDraft] = useState(shape.props.label);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const renameCancelledRef = useRef(false);
+  const actions = useArchitectureCanvasActions();
   const variant = getArchitectureVariant(shape.props.kind, shape.props.variantId);
   const Icon = variant.icon;
-  const isSelected = useValue('architecture card selected', () => editor.getSelectedShapeIds().includes(shape.id), [editor, shape.id]);
-  const isEditing = useValue('architecture card editing', () => editor.getEditingShapeId() === shape.id, [editor, shape.id]);
-  const isBindingTarget = useValue('architecture card binding target', () => editor.getHintingShapeIds().includes(shape.id), [editor, shape.id]);
-  const isArrowInteraction = useValue('arrow interaction active', () => editor.getCurrentToolId() === 'arrow' || editor.getPath().startsWith('select.dragging_handle'), [editor]);
-
-  useEffect(() => {
-    if (!isEditing) setDraft(shape.props.label);
-  }, [isEditing, shape.props.label]);
-
-  useEffect(() => {
-    if (!isEditing) return;
-    renameCancelledRef.current = false;
-    setDraft(shape.props.label);
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, [isEditing]);
-
-  const finishRename = () => {
-    const label = resolveArchitectureCardLabel(shape.props.label, draft, renameCancelledRef.current);
-    renameCancelledRef.current = false;
-    if (label !== shape.props.label) {
-      actions.nodeRenamed(shape.props.nodeId, label);
-      editor.updateShape<ArchitectureCardShape>({ id: shape.id, type: CARD_TYPE, props: { label } });
-    }
-    if (editor.getEditingShapeId() === shape.id) editor.setEditingShape(null);
-  };
+  const isSelected = useValue(
+    'architecture card selected',
+    () => editor.getSelectedShapeIds().includes(shape.id),
+    [editor, shape.id],
+  );
+  const isEditing = useValue(
+    'architecture card editing',
+    () => editor.getEditingShapeId() === shape.id,
+    [editor, shape.id],
+  );
+  const isBindingTarget = useValue(
+    'architecture card binding target',
+    () => editor.getHintingShapeIds().includes(shape.id),
+    [editor, shape.id],
+  );
+  const isArrowInteraction = useValue(
+    'arrow interaction active',
+    () =>
+      editor.getCurrentToolId() === 'arrow' ||
+      editor.getPath().startsWith('select.dragging_handle'),
+    [editor],
+  );
 
   const beginArrow = (event: ReactPointerEvent<HTMLSpanElement>, side: HotspotSide) => {
     if (event.button !== 0 || isArrowInteraction) return;
     const pending = {
       shapeId: shape.id,
       anchor: hotspotAnchor[side],
-      existingArrowIds: new Set(editor.getCurrentPageShapes().filter(({ type }) => type === 'arrow').map(({ id }) => id)),
+      existingArrowIds: new Set(
+        editor
+          .getCurrentPageShapes()
+          .filter(({ type }) => type === 'arrow')
+          .map(({ id }) => id),
+      ),
     };
-    pendingHotspotStart = pending;
+    actions.queueHotspotStart(pending);
     const finalizeArrow = () => {
       window.removeEventListener('pointerup', finalizeArrow, true);
       window.removeEventListener('pointercancel', finalizeArrow, true);
       window.requestAnimationFrame(() => {
-        if (pendingHotspotStart !== pending || finalizePendingHotspotStart(editor, pending)) return;
+        if (!actions.isCurrentHotspotStart(pending)) return;
+        if (finalizePendingHotspotStart(editor, pending)) {
+          actions.clearHotspotStart(pending);
+          return;
+        }
         window.setTimeout(() => {
-          if (pendingHotspotStart === pending) pendingHotspotStart = null;
+          actions.clearHotspotStart(pending);
         }, 1_200);
       });
     };
@@ -283,85 +307,142 @@ function ArchitectureCardContent({ shape }: { shape: ArchitectureCardShape }) {
     >
       <Icon className={`component-logo component-logo--${shape.props.kind}`} />
       <span>
-        {isEditing ? <input
-          ref={inputRef}
-          className="tldraw-node-name-input"
-          aria-label={`Rename ${shape.props.label}`}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => event.stopPropagation()}
-          onBlur={finishRename}
-          onKeyDownCapture={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Enter') event.currentTarget.blur();
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              renameCancelledRef.current = true;
-              event.currentTarget.blur();
-            }
-          }}
-        /> : <strong>{shape.props.label}</strong>}
+        {isEditing ? (
+          <ArchitectureCardNameInput shape={shape} editor={editor} onRename={actions.nodeRenamed} />
+        ) : (
+          <strong>{shape.props.label}</strong>
+        )}
         <small>{architectureMeta[shape.props.kind].role}</small>
       </span>
-      {shape.props.validation !== 'idle' && shape.props.validation !== 'valid' && <i className={`tldraw-node-validation node-validation-tooltip tldraw-node-validation--${shape.props.validation}`} data-tooltip={shape.props.validationMessage} aria-label="Node validation issue" tabIndex={0}>
-        {shape.props.validation === 'error' ? <FiX /> : <FiAlertTriangle />}
-      </i>}
-      {(['top', 'right', 'bottom', 'left'] as HotspotSide[]).map((side) => <span
-        key={side}
-        className={`tldraw-node-hotspot tldraw-node-hotspot--${side}`}
-        aria-label={`Create connection from ${side} of ${shape.props.label}`}
-        aria-hidden={!isSelected && !isBindingTarget}
-        role="button"
-        onPointerDown={(event) => beginArrow(event, side)}
-      />)}
+      {shape.props.validation !== 'idle' && shape.props.validation !== 'valid' && (
+        <i
+          className={`tldraw-node-validation node-validation-tooltip tldraw-node-validation--${shape.props.validation}`}
+          data-tooltip={shape.props.validationMessage}
+          aria-label="Node validation issue"
+          tabIndex={0}
+        >
+          {shape.props.validation === 'error' ? <FiX /> : <FiAlertTriangle />}
+        </i>
+      )}
+      {(['top', 'right', 'bottom', 'left'] as HotspotSide[]).map((side) => (
+        <span
+          key={side}
+          className={`tldraw-node-hotspot tldraw-node-hotspot--${side}`}
+          aria-label={`Create connection from ${side} of ${shape.props.label}`}
+          aria-hidden={!isSelected && !isBindingTarget}
+          role="button"
+          onPointerDown={(event) => beginArrow(event, side)}
+        />
+      ))}
     </HTMLContainer>
+  );
+}
+
+function ArchitectureCardNameInput({
+  shape,
+  editor,
+  onRename,
+}: {
+  shape: ArchitectureCardShape;
+  editor: Editor;
+  onRename: (nodeId: string, label: string) => void;
+}) {
+  const [draft, setDraft] = useState(shape.props.label);
+  const renameCancelledRef = useRef(false);
+
+  const finishRename = () => {
+    const label = resolveArchitectureCardLabel(
+      shape.props.label,
+      draft,
+      renameCancelledRef.current,
+    );
+    renameCancelledRef.current = false;
+    if (label !== shape.props.label) {
+      onRename(shape.props.nodeId, label);
+      editor.updateShape<ArchitectureCardShape>({
+        id: shape.id,
+        type: CARD_TYPE,
+        props: { label },
+      });
+    }
+    if (editor.getEditingShapeId() === shape.id) editor.setEditingShape(null);
+  };
+
+  return (
+    <input
+      autoFocus
+      className="tldraw-node-name-input"
+      aria-label={`Rename ${shape.props.label}`}
+      value={draft}
+      onFocus={(event) => event.currentTarget.select()}
+      onChange={(event) => setDraft(event.target.value)}
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+      onBlur={finishRename}
+      onKeyDownCapture={(event) => {
+        event.stopPropagation();
+        if (event.key === 'Enter') event.currentTarget.blur();
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          renameCancelledRef.current = true;
+          event.currentTarget.blur();
+        }
+      }}
+    />
   );
 }
 
 function ArchitectureInspectorOverlay() {
   const editor = useEditor();
-  const actions = useContext(ArchitectureCanvasActionsContext);
+  const actions = useArchitectureCanvasActions();
   const inspectorRef = useRef<HTMLElement>(null);
   const [inspectorHeight, setInspectorHeight] = useState(INSPECTOR_FALLBACK_HEIGHT);
-  const state = useValue('architecture inspector overlay', () => {
-    if (!actions.inspectorId) return null;
-    editor.getCamera();
-    const viewport = editor.getViewportScreenBounds();
-    const shape = editor.getShape<ArchitectureCardShape>(shapeIdForNode(actions.inspectorId));
-    const bounds = shape ? editor.getShapePageBounds(shape.id) : undefined;
-    if (!shape || !bounds || shape.type !== CARD_TYPE) return null;
-    const topAnchor = editor.pageToViewport({ x: bounds.midX, y: bounds.minY });
-    const bottomAnchor = editor.pageToViewport({ x: bounds.midX, y: bounds.maxY });
-    const availableAbove = topAnchor.y - INSPECTOR_GAP - INSPECTOR_VIEWPORT_MARGIN;
-    const availableBelow = viewport.h - bottomAnchor.y - INSPECTOR_GAP - INSPECTOR_VIEWPORT_MARGIN;
-    const placement = availableAbove >= inspectorHeight || availableAbove >= availableBelow ? 'above' : 'below';
-    const position = clampFloatingPanelPosition(
-      {
-        x: topAnchor.x - INSPECTOR_WIDTH / 2,
-        y: placement === 'above'
-          ? topAnchor.y - INSPECTOR_GAP - inspectorHeight
-          : bottomAnchor.y + INSPECTOR_GAP,
-      },
-      { width: INSPECTOR_WIDTH, height: inspectorHeight },
-      { left: 0, top: 0, right: viewport.w, bottom: viewport.h },
-      { inset: INSPECTOR_VIEWPORT_MARGIN },
-    );
-    return {
-      shape,
-      x: position.x + INSPECTOR_WIDTH / 2,
-      y: placement === 'above' ? position.y + inspectorHeight : position.y,
-      placement,
-    };
-  }, [editor, actions.inspectorId, inspectorHeight]);
+  const state = useValue(
+    'architecture inspector overlay',
+    () => {
+      if (!actions.inspectorId) return null;
+      editor.getCamera();
+      const viewport = editor.getViewportScreenBounds();
+      const shape = editor.getShape<ArchitectureCardShape>(shapeIdForNode(actions.inspectorId));
+      const bounds = shape ? editor.getShapePageBounds(shape.id) : undefined;
+      if (!shape || !bounds || shape.type !== CARD_TYPE) return null;
+      const topAnchor = editor.pageToViewport({ x: bounds.midX, y: bounds.minY });
+      const bottomAnchor = editor.pageToViewport({ x: bounds.midX, y: bounds.maxY });
+      const availableAbove = topAnchor.y - INSPECTOR_GAP - INSPECTOR_VIEWPORT_MARGIN;
+      const availableBelow =
+        viewport.h - bottomAnchor.y - INSPECTOR_GAP - INSPECTOR_VIEWPORT_MARGIN;
+      const placement =
+        availableAbove >= inspectorHeight || availableAbove >= availableBelow ? 'above' : 'below';
+      const position = clampFloatingPanelPosition(
+        {
+          x: topAnchor.x - INSPECTOR_WIDTH / 2,
+          y:
+            placement === 'above'
+              ? topAnchor.y - INSPECTOR_GAP - inspectorHeight
+              : bottomAnchor.y + INSPECTOR_GAP,
+        },
+        { width: INSPECTOR_WIDTH, height: inspectorHeight },
+        { left: 0, top: 0, right: viewport.w, bottom: viewport.h },
+        { inset: INSPECTOR_VIEWPORT_MARGIN },
+      );
+      return {
+        shape,
+        x: position.x + INSPECTOR_WIDTH / 2,
+        y: placement === 'above' ? position.y + inspectorHeight : position.y,
+        placement,
+      };
+    },
+    [editor, actions.inspectorId, inspectorHeight],
+  );
 
   useLayoutEffect(() => {
     const element = inspectorRef.current;
     if (!element) return;
     const measure = () => {
       const height = element.getBoundingClientRect().height;
-      if (height > 0) setInspectorHeight((current) => Math.abs(current - height) < 0.5 ? current : height);
+      if (height > 0)
+        setInspectorHeight((current) => (Math.abs(current - height) < 0.5 ? current : height));
     };
     measure();
     if (typeof ResizeObserver === 'undefined') return;
@@ -374,42 +455,59 @@ function ArchitectureInspectorOverlay() {
 
   const variant = getArchitectureVariant(state.shape.props.kind, state.shape.props.variantId);
   const Icon = variant.icon;
-  return <aside
-    ref={inspectorRef}
-    className={`component-inspector component-inspector--${state.placement} component-inspector--canvas-overlay`}
-    style={{ left: state.x, top: state.y }}
-  >
-    <div className="component-inspector__header">
-      <span className="panel-id">COMPONENT INSPECTOR</span>
-      <button onClick={actions.closeInspector} aria-label="Close inspector"><FiX /></button>
-    </div>
-    <div className="component-inspector__identity">
-      <Icon className={`component-logo component-logo--${state.shape.props.kind}`} />
-      <span><strong>{variant.label}</strong><small>{architectureMeta[state.shape.props.kind].role}</small></span>
-    </div>
-    <span className="inspector-label">IMPLEMENTATION</span>
-    <div className="inspector-variants">
-      {architectureVariants[state.shape.props.kind].map((candidate) => {
-        const VariantIcon = candidate.icon;
-        return <button
-          key={candidate.id}
-          className={candidate.id === variant.id ? 'inspector-variant--active' : ''}
-          onClick={() => actions.updateVariant(state.shape.props.nodeId, candidate.id)}
-        >
-          <VariantIcon />
-          <span><strong>{candidate.label}</strong><small>{candidate.description}</small></span>
-        </button>;
-      })}
-    </div>
-    <span className="inspector-label">CAPABILITIES</span>
-    <div className="inspector-capabilities">
-      {variant.capabilities.map((capability) => <code key={capability}>{capability}</code>)}
-    </div>
-  </aside>;
+  return (
+    <aside
+      ref={inspectorRef}
+      className={`component-inspector component-inspector--${state.placement} component-inspector--canvas-overlay`}
+      style={{ left: state.x, top: state.y }}
+    >
+      <div className="component-inspector__header">
+        <span className="panel-id">COMPONENT INSPECTOR</span>
+        <button onClick={actions.closeInspector} aria-label="Close inspector">
+          <FiX />
+        </button>
+      </div>
+      <div className="component-inspector__identity">
+        <Icon className={`component-logo component-logo--${state.shape.props.kind}`} />
+        <span>
+          <strong>{variant.label}</strong>
+          <small>{architectureMeta[state.shape.props.kind].role}</small>
+        </span>
+      </div>
+      <span className="inspector-label">IMPLEMENTATION</span>
+      <div className="inspector-variants">
+        {architectureVariants[state.shape.props.kind].map((candidate) => {
+          const VariantIcon = candidate.icon;
+          return (
+            <button
+              key={candidate.id}
+              className={candidate.id === variant.id ? 'inspector-variant--active' : ''}
+              onClick={() => actions.updateVariant(state.shape.props.nodeId, candidate.id)}
+            >
+              <VariantIcon />
+              <span>
+                <strong>{candidate.label}</strong>
+                <small>{candidate.description}</small>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <span className="inspector-label">CAPABILITIES</span>
+      <div className="inspector-capabilities">
+        {variant.capabilities.map((capability) => (
+          <code key={capability}>{capability}</code>
+        ))}
+      </div>
+    </aside>
+  );
 }
 
 const shapeUtils = [ArchitectureCardShapeUtil];
-const tldrawComponents = { InFrontOfTheCanvas: ArchitectureInspectorOverlay };
+const tldrawComponents = {
+  ContextMenu: null,
+  InFrontOfTheCanvas: ArchitectureInspectorOverlay,
+} satisfies TLComponents;
 
 type Props = {
   nodes: ArchitectureNode[];
@@ -428,7 +526,7 @@ type Props = {
 
 const shapeIdForNode = (nodeId: string) => createShapeId(nodeId);
 const shapeIdForEdge = (edgeId: string) => createShapeId(edgeId);
-const recordId = (shapeId: string) => shapeId.startsWith('shape:') ? shapeId.slice(6) : shapeId;
+const recordId = (shapeId: string) => (shapeId.startsWith('shape:') ? shapeId.slice(6) : shapeId);
 
 function normalizedAnchor(anchor?: EdgeAnchor) {
   if (!anchor) return { x: 0.5, y: 0.5 };
@@ -451,14 +549,21 @@ function edgeAnchor(point: { x: number; y: number }): EdgeAnchor {
 
 function architectureContentKey(nodes: ArchitectureNode[], edges: ArchitectureEdge[]) {
   return JSON.stringify({
-    nodes: nodes.map(({ id, position, data }) => ({ id, position, data })).sort((left, right) => left.id.localeCompare(right.id)),
-    edges: edges.map(({ id, source, target, label, data }) => ({ id, source, target, label, data })).sort((left, right) => left.id.localeCompare(right.id)),
+    nodes: nodes
+      .map(({ id, position, data }) => ({ id, position, data }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+    edges: edges
+      .map(({ id, source, target, label, data }) => ({ id, source, target, label, data }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
   });
 }
 
 function renderedEdgesKey(nodes: ArchitectureNode[], edges: ArchitectureEdge[]) {
   const referencedNodeIds = new Set(edges.flatMap(({ source, target }) => [source, target]));
-  return architectureContentKey(nodes.filter(({ id }) => referencedNodeIds.has(id)), edges);
+  return architectureContentKey(
+    nodes.filter(({ id }) => referencedNodeIds.has(id)),
+    edges,
+  );
 }
 
 function componentPoint(node: ArchitectureNode) {
@@ -499,10 +604,32 @@ function createArrow(editor: Editor, edge: ArchitectureEdge, nodes: Architecture
     },
   });
   if (!source.data.isAnchor) {
-    editor.createBinding({ type: 'arrow', fromId: arrowId, toId: shapeIdForNode(source.id), props: { terminal: 'start', normalizedAnchor: normalizedAnchor(edge.data?.sourceAnchor), isPrecise: Boolean(edge.data?.sourceAnchor), isExact: false, snap: 'none' } });
+    editor.createBinding({
+      type: 'arrow',
+      fromId: arrowId,
+      toId: shapeIdForNode(source.id),
+      props: {
+        terminal: 'start',
+        normalizedAnchor: normalizedAnchor(edge.data?.sourceAnchor),
+        isPrecise: Boolean(edge.data?.sourceAnchor),
+        isExact: false,
+        snap: 'none',
+      },
+    });
   }
   if (!target.data.isAnchor) {
-    editor.createBinding({ type: 'arrow', fromId: arrowId, toId: shapeIdForNode(target.id), props: { terminal: 'end', normalizedAnchor: normalizedAnchor(edge.data?.targetAnchor), isPrecise: Boolean(edge.data?.targetAnchor), isExact: false, snap: 'none' } });
+    editor.createBinding({
+      type: 'arrow',
+      fromId: arrowId,
+      toId: shapeIdForNode(target.id),
+      props: {
+        terminal: 'end',
+        normalizedAnchor: normalizedAnchor(edge.data?.targetAnchor),
+        isPrecise: Boolean(edge.data?.targetAnchor),
+        isExact: false,
+        snap: 'none',
+      },
+    });
   }
 }
 
@@ -519,7 +646,13 @@ function reconcileArrowBinding(
     return;
   }
   const toId = shapeIdForNode(node.id);
-  const props = { terminal, normalizedAnchor: normalizedAnchor(anchor), isPrecise: Boolean(anchor), isExact: false, snap: 'none' as const };
+  const props = {
+    terminal,
+    normalizedAnchor: normalizedAnchor(anchor),
+    isPrecise: Boolean(anchor),
+    isExact: false,
+    snap: 'none' as const,
+  };
   if (existing?.toId === toId) editor.updateBinding({ ...existing, props });
   else {
     if (existing) editor.deleteBinding(existing.id);
@@ -566,23 +699,53 @@ function updateArrow(editor: Editor, edge: ArchitectureEdge, nodes: Architecture
   reconcileArrowBinding(editor, arrowId, 'end', target, edge.data?.targetAnchor, bindings.end);
 }
 
-export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, onEdgesChange, onMountEditor, onToolChange, inspectorId = null, onCloseInspector = () => undefined, onUpdateVariant = () => undefined, onNodeRenamed = () => undefined, validationStates }: Props) {
+export function TldrawArchitectureCanvas({
+  nodes,
+  edges,
+  tool,
+  onNodesChange,
+  onEdgesChange,
+  onMountEditor,
+  onToolChange,
+  inspectorId = null,
+  onCloseInspector = () => undefined,
+  onUpdateVariant = () => undefined,
+  onNodeRenamed = () => undefined,
+  validationStates,
+}: Props) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const toolRef = useRef(tool);
+  const pendingHotspotStartRef = useRef<PendingHotspotStart | null>(null);
   const syncFrame = useRef<number | null>(null);
-  const lastCardPointerDown = useRef<{ shapeId: ArchitectureCardShape['id']; timestamp: number } | null>(null);
+  const lastCardPointerDown = useRef<{
+    shapeId: ArchitectureCardShape['id'];
+    timestamp: number;
+  } | null>(null);
   const lastEmittedState = useRef<string | null>(null);
   const lastRenderedEdges = useRef<string | null>(null);
   const canvasHydrated = useRef(false);
   const didInitialFit = useRef(false);
   const lastArrowCount = useRef(0);
-  const canvasActions = useMemo<ArchitectureCanvasActions>(() => ({
-    inspectorId,
-    closeInspector: onCloseInspector,
-    updateVariant: onUpdateVariant,
-    nodeRenamed: onNodeRenamed,
-  }), [inspectorId, onCloseInspector, onUpdateVariant, onNodeRenamed]);
-  toolRef.current = tool;
+  const canvasActions = useMemo<ArchitectureCanvasActions>(
+    () => ({
+      inspectorId,
+      closeInspector: onCloseInspector,
+      updateVariant: onUpdateVariant,
+      nodeRenamed: onNodeRenamed,
+      queueHotspotStart: (pending) => {
+        pendingHotspotStartRef.current = pending;
+      },
+      isCurrentHotspotStart: (pending) => pendingHotspotStartRef.current === pending,
+      clearHotspotStart: (pending) => {
+        if (pendingHotspotStartRef.current === pending) pendingHotspotStartRef.current = null;
+      },
+    }),
+    [inspectorId, onCloseInspector, onUpdateVariant, onNodeRenamed],
+  );
+
+  useLayoutEffect(() => {
+    toolRef.current = tool;
+  }, [tool]);
 
   useEffect(() => {
     const preserveBrowserZoom = (event: KeyboardEvent) => {
@@ -594,16 +757,23 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
 
   useEffect(() => {
     if (!editor) return;
-    editor.setCurrentTool(tool === 'selection' ? 'select' : tool === 'connection' ? 'arrow' : 'hand');
+    editor.setCurrentTool(
+      tool === 'selection' ? 'select' : tool === 'connection' ? 'arrow' : 'hand',
+    );
   }, [editor, tool]);
 
   useEffect(() => {
     if (!editor) return;
     return editor.sideEffects.registerAfterCreateHandler('shape', (shape, source) => {
-      if (source === 'user' && shape.type === 'arrow' && pendingHotspotStart) {
-        const pending = pendingHotspotStart;
+      const pending = pendingHotspotStartRef.current;
+      if (source === 'user' && shape.type === 'arrow' && pending) {
         requestAnimationFrame(() => {
-          if (pendingHotspotStart === pending) finalizePendingHotspotStart(editor, pending);
+          if (
+            pendingHotspotStartRef.current === pending &&
+            finalizePendingHotspotStart(editor, pending)
+          ) {
+            pendingHotspotStartRef.current = null;
+          }
         });
       }
       if (source !== 'user' || isSupportedArchitectureCanvasShape(shape)) return;
@@ -616,7 +786,9 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
     if (!editor) return;
     const componentNodes = nodes.filter((node) => !node.data.isAnchor);
     const desiredNodeIds = new Set(componentNodes.map((node) => shapeIdForNode(node.id)));
-    const currentCards = editor.getCurrentPageShapes().filter((shape): shape is ArchitectureCardShape => shape.type === CARD_TYPE);
+    const currentCards = editor
+      .getCurrentPageShapes()
+      .filter((shape): shape is ArchitectureCardShape => shape.type === CARD_TYPE);
     const currentByNodeId = new Map(currentCards.map((shape) => [shape.props.nodeId, shape]));
     const architectureUpdates: ArchitectureCardShape[] = [];
     const validationUpdates: ArchitectureCardShape[] = [];
@@ -624,32 +796,77 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
       const existing = currentByNodeId.get(node.id);
       const validationState = validationStates?.get(node.id);
       const validation = validationState?.status ?? 'idle';
-      const validationMessage = validationState?.issues.map(({ message, suggestion }) => `${message}\n${suggestion}`).join('\n\n') ?? '';
+      const validationMessage =
+        validationState?.issues
+          .map(({ message, suggestion }) => `${message}\n${suggestion}`)
+          .join('\n\n') ?? '';
       if (!existing) {
-        editor.createShape<ArchitectureCardShape>({ id: shapeIdForNode(node.id), type: CARD_TYPE, x: node.position.x, y: node.position.y, props: { w: CARD_WIDTH, h: CARD_HEIGHT, nodeId: node.id, label: node.data.label, kind: node.data.kind, variantId: node.data.variantId, validation, validationMessage } });
+        editor.createShape<ArchitectureCardShape>({
+          id: shapeIdForNode(node.id),
+          type: CARD_TYPE,
+          x: node.position.x,
+          y: node.position.y,
+          props: {
+            w: CARD_WIDTH,
+            h: CARD_HEIGHT,
+            nodeId: node.id,
+            label: node.data.label,
+            kind: node.data.kind,
+            variantId: node.data.variantId,
+            validation,
+            validationMessage,
+          },
+        });
       } else {
-        const architectureChanged = existing.x !== node.position.x || existing.y !== node.position.y || existing.props.label !== node.data.label || existing.props.kind !== node.data.kind || existing.props.variantId !== node.data.variantId;
-        const validationChanged = existing.props.validation !== validation || existing.props.validationMessage !== validationMessage;
-        const update: ArchitectureCardShape = { ...existing, x: node.position.x, y: node.position.y, props: { ...existing.props, label: node.data.label, kind: node.data.kind, variantId: node.data.variantId, validation, validationMessage } };
+        const architectureChanged =
+          existing.x !== node.position.x ||
+          existing.y !== node.position.y ||
+          existing.props.label !== node.data.label ||
+          existing.props.kind !== node.data.kind ||
+          existing.props.variantId !== node.data.variantId;
+        const validationChanged =
+          existing.props.validation !== validation ||
+          existing.props.validationMessage !== validationMessage;
+        const update: ArchitectureCardShape = {
+          ...existing,
+          x: node.position.x,
+          y: node.position.y,
+          props: {
+            ...existing.props,
+            label: node.data.label,
+            kind: node.data.kind,
+            variantId: node.data.variantId,
+            validation,
+            validationMessage,
+          },
+        };
         if (architectureChanged) architectureUpdates.push(update);
         else if (validationChanged) validationUpdates.push(update);
       }
     }
     if (architectureUpdates.length) editor.updateShapes(architectureUpdates);
-    if (validationUpdates.length) editor.run(() => editor.updateShapes(validationUpdates), { history: 'ignore' });
-    const cardsToDelete = currentCards.filter((shape) => !desiredNodeIds.has(shape.id)).map((shape) => shape.id);
+    if (validationUpdates.length)
+      editor.run(() => editor.updateShapes(validationUpdates), { history: 'ignore' });
+    const cardsToDelete = currentCards
+      .filter((shape) => !desiredNodeIds.has(shape.id))
+      .map((shape) => shape.id);
     if (cardsToDelete.length) editor.deleteShapes(cardsToDelete);
 
-    const currentArrows = editor.getCurrentPageShapes().filter((shape): shape is TLArrowShape => shape.type === 'arrow');
+    const currentArrows = editor
+      .getCurrentPageShapes()
+      .filter((shape): shape is TLArrowShape => shape.type === 'arrow');
     const desiredEdgeIds = new Set(edges.map(({ id }) => shapeIdForEdge(id)));
     const nextRenderedEdges = renderedEdgesKey(nodes, edges);
     if (nextRenderedEdges !== lastRenderedEdges.current) {
       for (const edge of edges) updateArrow(editor, edge, nodes);
       lastRenderedEdges.current = nextRenderedEdges;
     } else {
-      for (const edge of edges) if (!editor.getShape(shapeIdForEdge(edge.id))) createArrow(editor, edge, nodes);
+      for (const edge of edges)
+        if (!editor.getShape(shapeIdForEdge(edge.id))) createArrow(editor, edge, nodes);
     }
-    const arrowsToDelete = currentArrows.filter(({ id }) => !desiredEdgeIds.has(id)).map(({ id }) => id);
+    const arrowsToDelete = currentArrows
+      .filter(({ id }) => !desiredEdgeIds.has(id))
+      .map(({ id }) => id);
     if (arrowsToDelete.length) editor.deleteShapes(arrowsToDelete);
     canvasHydrated.current = true;
     if (!didInitialFit.current && componentNodes.length) {
@@ -669,17 +886,24 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
       if (!canvasHydrated.current) return;
       const shapes = editor.getCurrentPageShapes();
       const editorTool = editor.getCurrentToolId();
-      const nextTool = editorTool === 'hand' ? 'hand' : editorTool === 'arrow' ? 'connection' : 'selection';
+      const nextTool =
+        editorTool === 'hand' ? 'hand' : editorTool === 'arrow' ? 'connection' : 'selection';
       if (nextTool !== toolRef.current) onToolChange(nextTool);
       const selected = new Set(editor.getSelectedShapeIds());
-      const cards = shapes.filter((shape): shape is ArchitectureCardShape => shape.type === CARD_TYPE);
+      const cards = shapes.filter(
+        (shape): shape is ArchitectureCardShape => shape.type === CARD_TYPE,
+      );
       const cardById = new Map(cards.map((shape) => [shape.id, shape]));
       const cardNodes: ArchitectureNode[] = cards.map((shape) => ({
         id: shape.props.nodeId,
         type: 'architecture',
         position: { x: shape.x, y: shape.y },
         selected: selected.has(shape.id),
-        data: { kind: shape.props.kind, variantId: shape.props.variantId, label: shape.props.label },
+        data: {
+          kind: shape.props.kind,
+          variantId: shape.props.variantId,
+          label: shape.props.label,
+        },
       }));
       const nextNodes: ArchitectureNode[] = cardNodes;
       const nextEdges: ArchitectureEdge[] = [];
@@ -695,22 +919,64 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
         const targetId = endCard?.props.nodeId ?? `anchor-${edgeId}-end`;
         if (!startCard) {
           const point = transform.applyToPoint(terminals.start);
-          nextNodes.push({ id: sourceId, type: 'architecture', position: { x: point.x, y: point.y }, data: { kind: 'service', variantId: 'anchor', label: '', isAnchor: true } });
+          nextNodes.push({
+            id: sourceId,
+            type: 'architecture',
+            position: { x: point.x, y: point.y },
+            data: { kind: 'service', variantId: 'anchor', label: '', isAnchor: true },
+          });
         }
         if (!endCard) {
           const point = transform.applyToPoint(terminals.end);
-          nextNodes.push({ id: targetId, type: 'architecture', position: { x: point.x, y: point.y }, data: { kind: 'service', variantId: 'anchor', label: '', isAnchor: true } });
+          nextNodes.push({
+            id: targetId,
+            type: 'architecture',
+            position: { x: point.x, y: point.y },
+            data: { kind: 'service', variantId: 'anchor', label: '', isAnchor: true },
+          });
         }
         // HTTP / HTTPS is only the initial suggestion. Once the user edits a
         // non-empty label, keep that text as the connection protocol.
         const currentLabel = renderPlaintextFromRichText(editor, arrow.props.richText).trim();
         const defaultProtocol = startCard && endCard ? getArrowProtocol(startCard.props.kind) : '';
-        const protocol = currentLabel || (editor.getEditingShapeId() === arrow.id ? '' : defaultProtocol);
-        if (!currentLabel && protocol) editor.updateShape<TLArrowShape>({ id: arrow.id, type: 'arrow', props: { richText: toRichText(protocol), color: 'light-blue', labelColor: 'light-blue', font: 'mono', size: 's', kind: 'arc', arrowheadEnd: 'arrow' } });
-        const bend = Math.abs(arrow.props.bend) > 0.01 || Math.abs(arrow.props.labelPosition - 0.5) > 0.01
-          ? { along: arrow.props.labelPosition, normal: arrow.props.bend }
-          : undefined;
-        nextEdges.push({ id: edgeId, source: sourceId, target: targetId, type: 'architecture', selected: selected.has(arrow.id), label: protocol, data: { protocol, bend, sourceAnchor: bindings.start?.props.isPrecise ? edgeAnchor(bindings.start.props.normalizedAnchor) : undefined, targetAnchor: bindings.end?.props.isPrecise ? edgeAnchor(bindings.end.props.normalizedAnchor) : undefined } });
+        const protocol =
+          currentLabel || (editor.getEditingShapeId() === arrow.id ? '' : defaultProtocol);
+        if (!currentLabel && protocol)
+          editor.updateShape<TLArrowShape>({
+            id: arrow.id,
+            type: 'arrow',
+            props: {
+              richText: toRichText(protocol),
+              color: 'light-blue',
+              labelColor: 'light-blue',
+              font: 'mono',
+              size: 's',
+              kind: 'arc',
+              arrowheadEnd: 'arrow',
+            },
+          });
+        const bend =
+          Math.abs(arrow.props.bend) > 0.01 || Math.abs(arrow.props.labelPosition - 0.5) > 0.01
+            ? { along: arrow.props.labelPosition, normal: arrow.props.bend }
+            : undefined;
+        nextEdges.push({
+          id: edgeId,
+          source: sourceId,
+          target: targetId,
+          type: 'architecture',
+          selected: selected.has(arrow.id),
+          label: protocol,
+          data: {
+            protocol,
+            bend,
+            sourceAnchor: bindings.start?.props.isPrecise
+              ? edgeAnchor(bindings.start.props.normalizedAnchor)
+              : undefined,
+            targetAnchor: bindings.end?.props.isPrecise
+              ? edgeAnchor(bindings.end.props.normalizedAnchor)
+              : undefined,
+          },
+        });
       }
       const emittedState = JSON.stringify({ nodes: nextNodes, edges: nextEdges });
       lastRenderedEdges.current = renderedEdgesKey(nextNodes, nextEdges);
@@ -719,7 +985,11 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
         onNodesChange(nextNodes);
         onEdgesChange(nextEdges);
       }
-      if (arrows.length > lastArrowCount.current && toolRef.current === 'connection' && editor.getPath() === 'arrow.idle') {
+      if (
+        arrows.length > lastArrowCount.current &&
+        toolRef.current === 'connection' &&
+        editor.getPath() === 'arrow.idle'
+      ) {
         editor.setCurrentTool('select');
         onToolChange('selection');
       }
@@ -731,7 +1001,13 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
         ...Object.values(entry.changes.removed),
         ...Object.values(entry.changes.updated).flatMap((records) => records),
       ];
-      if (!changedRecords.some(({ typeName }) => typeName === 'shape' || typeName === 'binding' || typeName === 'instance_page_state')) return;
+      if (
+        !changedRecords.some(
+          ({ typeName }) =>
+            typeName === 'shape' || typeName === 'binding' || typeName === 'instance_page_state',
+        )
+      )
+        return;
       if (syncFrame.current) cancelAnimationFrame(syncFrame.current);
       const syncWhenIdle = () => {
         if (editor.inputs.getIsDragging()) {
@@ -761,7 +1037,8 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
           return;
         }
         const pagePoint = editor.screenToPage({ x: event.clientX, y: event.clientY });
-        const card = editor.getShapesAtPoint(pagePoint, { hitInside: true })
+        const card = editor
+          .getShapesAtPoint(pagePoint, { hitInside: true })
           .find((shape): shape is ArchitectureCardShape => shape.type === CARD_TYPE);
         if (!card) {
           lastCardPointerDown.current = null;
@@ -783,8 +1060,12 @@ export function TldrawArchitectureCanvas({ nodes, edges, tool, onNodesChange, on
           components={tldrawComponents}
           shapeUtils={shapeUtils}
           onMount={(nextEditor) => {
-            nextEditor.user.updateUserPreferences({ colorScheme: 'dark', isSnapMode: false });
-            nextEditor.updateInstanceState({ isGridMode: true });
+            nextEditor.user.updateUserPreferences({
+              colorScheme: 'dark',
+              isSnapMode: false,
+              areKeyboardShortcutsEnabled: false,
+            });
+            nextEditor.updateInstanceState({ isGridMode: false });
             setArchitectureArrowStyles(nextEditor);
             setEditor(nextEditor);
             onMountEditor(nextEditor);

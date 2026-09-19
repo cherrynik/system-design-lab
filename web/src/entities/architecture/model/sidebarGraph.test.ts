@@ -2,8 +2,19 @@ import { describe, expect, it } from 'vitest';
 import type { ArchitectureEdge, ArchitectureNode, ArchitectureNodeKind } from './types';
 import { buildSidebarGraphLayout } from './sidebarGraph';
 
-const node = (id: string, kind: ArchitectureNodeKind, isAnchor = false): ArchitectureNode => ({ id, type: 'architecture', position: { x: 0, y: 0 }, data: { kind, variantId: 'abstract', label: id, isAnchor } });
-const edge = (id: string, source: string, target: string): ArchitectureEdge => ({ id, source, target, type: 'architecture', data: { protocol: '' } });
+const node = (id: string, kind: ArchitectureNodeKind, isAnchor = false): ArchitectureNode => ({
+  id,
+  type: 'architecture',
+  position: { x: 0, y: 0 },
+  data: { kind, variantId: 'abstract', label: id, isAnchor },
+});
+const edge = (id: string, source: string, target: string): ArchitectureEdge => ({
+  id,
+  source,
+  target,
+  type: 'architecture',
+  data: { protocol: '' },
+});
 
 describe('git-style sidebar graph layout', () => {
   it('orders a connected path vertically across depth lanes', () => {

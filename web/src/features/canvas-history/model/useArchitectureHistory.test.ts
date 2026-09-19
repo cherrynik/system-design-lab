@@ -6,10 +6,26 @@ import { useArchitectureHistory } from './useArchitectureHistory';
 
 afterEach(cleanup);
 
-const client: ArchitectureNode = { id: 'client', type: 'architecture', position: { x: 0, y: 0 }, data: { kind: 'client', variantId: 'abstract', label: 'Client' } };
+const client: ArchitectureNode = {
+  id: 'client',
+  type: 'architecture',
+  position: { x: 0, y: 0 },
+  data: { kind: 'client', variantId: 'abstract', label: 'Client' },
+};
 const movedClient: ArchitectureNode = { ...client, position: { x: 120, y: 80 } };
-const service: ArchitectureNode = { id: 'service', type: 'architecture', position: { x: 300, y: 0 }, data: { kind: 'service', variantId: 'abstract', label: 'Service' } };
-const connection: ArchitectureEdge = { id: 'edge', source: client.id, target: service.id, type: 'architecture', data: { protocol: 'HTTPS' } };
+const service: ArchitectureNode = {
+  id: 'service',
+  type: 'architecture',
+  position: { x: 300, y: 0 },
+  data: { kind: 'service', variantId: 'abstract', label: 'Service' },
+};
+const connection: ArchitectureEdge = {
+  id: 'edge',
+  source: client.id,
+  target: service.id,
+  type: 'architecture',
+  data: { protocol: 'HTTPS' },
+};
 
 describe('useArchitectureHistory', () => {
   it('coalesces the canvas node and edge callbacks into one undo step', async () => {
@@ -35,7 +51,9 @@ describe('useArchitectureHistory', () => {
   it('does not duplicate an external change when the canvas echoes it back', async () => {
     const { result } = renderHook(() => useArchitectureHistory({ nodes: [client], edges: [] }));
 
-    act(() => result.current.applyChange((current) => ({ ...current, nodes: [...current.nodes, service] })));
+    act(() =>
+      result.current.applyChange((current) => ({ ...current, nodes: [...current.nodes, service] })),
+    );
     act(() => {
       result.current.syncCanvasNodes([client, service]);
       result.current.syncCanvasEdges([]);

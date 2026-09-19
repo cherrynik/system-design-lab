@@ -20,9 +20,7 @@ export function architectureSnapshotsMatch(
   return JSON.stringify(withoutSelection(left)) === JSON.stringify(withoutSelection(right));
 }
 
-export function createArchitectureHistory(
-  present: ArchitectureSnapshot,
-): ArchitectureHistoryState {
+export function createArchitectureHistory(present: ArchitectureSnapshot): ArchitectureHistoryState {
   return { present, past: [], future: [] };
 }
 
@@ -48,9 +46,7 @@ export function replaceArchitecturePresent(
   return state.present === present ? state : { ...state, present };
 }
 
-export function undoArchitectureHistory(
-  state: ArchitectureHistoryState,
-): ArchitectureHistoryState {
+export function undoArchitectureHistory(state: ArchitectureHistoryState): ArchitectureHistoryState {
   const previous = state.past.at(-1);
   if (!previous) return state;
 
@@ -61,9 +57,7 @@ export function undoArchitectureHistory(
   };
 }
 
-export function redoArchitectureHistory(
-  state: ArchitectureHistoryState,
-): ArchitectureHistoryState {
+export function redoArchitectureHistory(state: ArchitectureHistoryState): ArchitectureHistoryState {
   const next = state.future[0];
   if (!next) return state;
 
@@ -75,14 +69,19 @@ export function redoArchitectureHistory(
 }
 
 export function isEditableShortcutTarget(target: EventTarget | null) {
-  return target instanceof Element && Boolean(target.closest(
-    'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
-  ));
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]',
+      ),
+    )
+  );
 }
 
-export function getArchitectureHistoryShortcut(event: Pick<KeyboardEvent,
-  'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'
->): 'undo' | 'redo' | null {
+export function getArchitectureHistoryShortcut(
+  event: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>,
+): 'undo' | 'redo' | null {
   if ((!event.metaKey && !event.ctrlKey) || event.altKey) return null;
   const key = event.key.toLowerCase();
   if (key === 'z') return event.shiftKey ? 'redo' : 'undo';

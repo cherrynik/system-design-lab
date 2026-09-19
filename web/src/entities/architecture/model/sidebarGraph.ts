@@ -1,4 +1,10 @@
-import { Graph, layout as runDagreLayout, type EdgeLabel, type GraphLabel, type NodeLabel } from '@dagrejs/dagre';
+import {
+  Graph,
+  layout as runDagreLayout,
+  type EdgeLabel,
+  type GraphLabel,
+  type NodeLabel,
+} from '@dagrejs/dagre';
 import type { ArchitectureEdge, ArchitectureNode } from './types';
 
 export type SidebarGraphNodeLayout = {
@@ -48,13 +54,17 @@ function connectedGroups(components: ArchitectureNode[], edges: ArchitectureEdge
       if (visited.has(id)) continue;
       visited.add(id);
       ids.push(id);
-      for (const neighbor of neighbors.get(id) ?? []) if (!visited.has(neighbor)) queue.push(neighbor);
+      for (const neighbor of neighbors.get(id) ?? [])
+        if (!visited.has(neighbor)) queue.push(neighbor);
     }
     return [ids];
   });
 }
 
-export function buildSidebarGraphLayout(nodes: ArchitectureNode[], edges: ArchitectureEdge[]): SidebarGraphLayout {
+export function buildSidebarGraphLayout(
+  nodes: ArchitectureNode[],
+  edges: ArchitectureEdge[],
+): SidebarGraphLayout {
   const components = nodes.filter((node) => !node.data.isAnchor);
   const byId = new Map(components.map((node) => [node.id, node]));
   const originalOrder = new Map(components.map((node, index) => [node.id, index]));
@@ -63,9 +73,19 @@ export function buildSidebarGraphLayout(nodes: ArchitectureNode[], edges: Archit
   let y = TOP_PADDING;
   for (const group of connectedGroups(components, validEdges)) {
     const groupIds = new Set(group);
-    const groupEdges = validEdges.filter((edge) => groupIds.has(edge.source) && groupIds.has(edge.target));
+    const groupEdges = validEdges.filter(
+      (edge) => groupIds.has(edge.source) && groupIds.has(edge.target),
+    );
     const graph = new Graph<GraphLabel, NodeLabel, EdgeLabel>({ multigraph: true })
-      .setGraph({ rankdir: 'TB', ranker: 'network-simplex', acyclicer: 'greedy', ranksep: 42, nodesep: 24, marginx: 0, marginy: 0 })
+      .setGraph({
+        rankdir: 'TB',
+        ranker: 'network-simplex',
+        acyclicer: 'greedy',
+        ranksep: 42,
+        nodesep: 24,
+        marginx: 0,
+        marginy: 0,
+      })
       .setDefaultEdgeLabel(() => ({}));
 
     group.forEach((id) => graph.setNode(id, { width: 1, height: 1 }));
@@ -74,10 +94,11 @@ export function buildSidebarGraphLayout(nodes: ArchitectureNode[], edges: Archit
 
     const ordered = group
       .map((id) => ({ id, dagre: graph.node(id) }))
-      .sort((a, b) =>
-        (a.dagre.rank ?? 0) - (b.dagre.rank ?? 0)
-        || (a.dagre.order ?? 0) - (b.dagre.order ?? 0)
-        || originalOrder.get(a.id)! - originalOrder.get(b.id)!,
+      .sort(
+        (a, b) =>
+          (a.dagre.rank ?? 0) - (b.dagre.rank ?? 0) ||
+          (a.dagre.order ?? 0) - (b.dagre.order ?? 0) ||
+          originalOrder.get(a.id)! - originalOrder.get(b.id)!,
       );
     const ranks = [...new Set(ordered.map(({ dagre }) => dagre.rank ?? 0))].sort((a, b) => a - b);
     const laneByRank = new Map(ranks.map((rank, index) => [rank, index]));

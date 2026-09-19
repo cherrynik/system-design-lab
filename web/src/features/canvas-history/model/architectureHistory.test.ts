@@ -12,34 +12,46 @@ import {
   undoArchitectureHistory,
 } from './architectureHistory';
 
-const client: ArchitectureNode = { id: 'client', type: 'architecture', position: { x: 0, y: 0 }, data: { kind: 'client', variantId: 'abstract', label: 'Client' } };
-const service: ArchitectureNode = { id: 'service', type: 'architecture', position: { x: 300, y: 0 }, data: { kind: 'service', variantId: 'abstract', label: 'Service' } };
+const client: ArchitectureNode = {
+  id: 'client',
+  type: 'architecture',
+  position: { x: 0, y: 0 },
+  data: { kind: 'client', variantId: 'abstract', label: 'Client' },
+};
+const service: ArchitectureNode = {
+  id: 'service',
+  type: 'architecture',
+  position: { x: 300, y: 0 },
+  data: { kind: 'service', variantId: 'abstract', label: 'Service' },
+};
 const initial = { nodes: [client], edges: [] };
 const added = { nodes: [client, service], edges: [] };
 const connected = {
   nodes: [client, service],
-  edges: [{
-    id: 'connection',
-    source: client.id,
-    target: service.id,
-    type: 'architecture' as const,
-    data: { protocol: 'HTTPS' },
-  }],
+  edges: [
+    {
+      id: 'connection',
+      source: client.id,
+      target: service.id,
+      type: 'architecture' as const,
+      data: { protocol: 'HTTPS' },
+    },
+  ],
 };
 
 describe('architecture history', () => {
   it('undoes and redoes add, connect, rename, move, and delete snapshots in order', () => {
     const renamed = {
       ...connected,
-      nodes: connected.nodes.map((node) => node.id === service.id
-        ? { ...node, data: { ...node.data, label: 'Orders API' } }
-        : node),
+      nodes: connected.nodes.map((node) =>
+        node.id === service.id ? { ...node, data: { ...node.data, label: 'Orders API' } } : node,
+      ),
     };
     const moved = {
       ...renamed,
-      nodes: renamed.nodes.map((node) => node.id === service.id
-        ? { ...node, position: { x: 420, y: 120 } }
-        : node),
+      nodes: renamed.nodes.map((node) =>
+        node.id === service.id ? { ...node, position: { x: 420, y: 120 } } : node,
+      ),
     };
     const deleted = { nodes: [client], edges: [] };
 
@@ -81,14 +93,15 @@ describe('architecture history', () => {
 });
 
 describe('architecture history shortcuts', () => {
-  const shortcut = (overrides: Partial<KeyboardEvent>) => getArchitectureHistoryShortcut({
-    key: 'z',
-    metaKey: false,
-    ctrlKey: true,
-    shiftKey: false,
-    altKey: false,
-    ...overrides,
-  });
+  const shortcut = (overrides: Partial<KeyboardEvent>) =>
+    getArchitectureHistoryShortcut({
+      key: 'z',
+      metaKey: false,
+      ctrlKey: true,
+      shiftKey: false,
+      altKey: false,
+      ...overrides,
+    });
 
   it('supports platform undo and both common redo shortcuts', () => {
     expect(shortcut({})).toBe('undo');

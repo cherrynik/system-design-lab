@@ -1,4 +1,4 @@
-package model
+package domain
 
 type NodeKind string
 
@@ -9,16 +9,16 @@ const (
 )
 
 type Node struct {
-	ID   string   `json:"id"`
-	Kind NodeKind `json:"kind"`
+	ID   string
+	Kind NodeKind
 }
 
 type Edge struct {
-	From string `json:"from"`
-	To   string `json:"to"`
+	From string
+	To   string
 }
 
 type Architecture struct {
-	Nodes []Node `json:"nodes"`
-	Edges []Edge `json:"edges"`
+	Nodes []Node
+	Edges []Edge
 }

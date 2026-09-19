@@ -1,6 +1,11 @@
 export type ArchitectureNodeKind = 'client' | 'load-balancer' | 'service';
 export type EdgeAnchor = { side: 'top' | 'right' | 'bottom' | 'left'; offset: number };
-export type ArchitectureNodeData = { kind: ArchitectureNodeKind; variantId: string; label: string; isAnchor?: boolean };
+export type ArchitectureNodeData = {
+  kind: ArchitectureNodeKind;
+  variantId: string;
+  label: string;
+  isAnchor?: boolean;
+};
 export type ArchitectureNode = {
   id: string;
   type: 'architecture';
@@ -23,4 +28,8 @@ export type ArchitectureEdge = {
   selected?: boolean;
 };
 export type ArchitectureSnapshot = { nodes: ArchitectureNode[]; edges: ArchitectureEdge[] };
-export type ArchitectureVersion = ArchitectureSnapshot & { id: string; name: string; createdAt: string };
+export type ArchitectureVersion = ArchitectureSnapshot & {
+  id: string;
+  name: string;
+  createdAt: string;
+};

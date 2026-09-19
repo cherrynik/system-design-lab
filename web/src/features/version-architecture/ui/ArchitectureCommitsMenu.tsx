@@ -1,6 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
-import { FiCheck, FiEdit2, FiGitBranch, FiTrash2 } from 'react-icons/fi';
+import { useRef, useState } from 'react';
+import { Check, GitBranch, Pencil, Trash2 } from 'lucide-react';
 import type { ArchitectureVersion } from '../../../entities/architecture';
+import {
+  Button,
+  IconButton,
+  Input,
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from '../../../shared/ui';
 
 type Props = {
   versions: ArchitectureVersion[];
@@ -15,37 +24,20 @@ type Props = {
 
 const shortHash = (id: string) => id.replaceAll('-', '').slice(0, 7);
 
-export function ArchitectureCommitsMenu({ versions, dirty = false, open, onOpenChange, onCommit, onRestore, onRename, onDeleteLatest }: Props) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+export function ArchitectureCommitsMenu({
+  versions,
+  dirty = false,
+  open,
+  onOpenChange,
+  onCommit,
+  onRestore,
+  onRename,
+  onDeleteLatest,
+}: Props) {
   const commitButtonRef = useRef<HTMLButtonElement>(null);
   const renameCancelledRef = useRef(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
-
-  useEffect(() => {
-    if (open) commitButtonRef.current?.focus();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) onOpenChange(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || editingId) return;
-      event.preventDefault();
-      event.stopPropagation();
-      onOpenChange(false);
-      window.requestAnimationFrame(() => triggerRef.current?.focus());
-    };
-    document.addEventListener('pointerdown', closeOnOutsidePointer);
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsidePointer);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [editingId, open, onOpenChange]);
 
   const beginRename = (version: ArchitectureVersion) => {
     renameCancelledRef.current = false;
@@ -61,70 +53,115 @@ export function ArchitectureCommitsMenu({ versions, dirty = false, open, onOpenC
     setEditingId(null);
   };
 
-  return <div className="architecture-commits" ref={rootRef}>
-    <button
-      ref={triggerRef}
-      className={`commits-trigger ${open ? 'commits-trigger--active' : ''}`}
-      type="button"
-      aria-label={dirty ? 'Architecture commits — uncommitted changes' : 'Architecture commits'}
-      aria-expanded={open}
-      aria-haspopup="dialog"
-      title="Architecture commits"
-      onClick={() => onOpenChange(!open)}
-    >
-      <FiGitBranch />
-      {dirty && <span className="commits-trigger__dirty" aria-hidden="true" />}
-    </button>
-    {open && <div className="commits-popover" role="dialog" aria-label="Architecture commits">
-      <header>
-        <span className="commits-popover__title"><FiGitBranch /><span className="panel-id">COMMITS</span></span>
-        <button ref={commitButtonRef} className="commit-current-button" type="button" aria-label="Commit" onClick={onCommit}>Commit</button>
-      </header>
-      {versions.length ? <div className="commit-history">
-        {versions.map((version, index) => {
-          const isEditing = editingId === version.id;
-          const isLatest = index === 0;
-          return <div className="commit-history-row" key={version.id}>
-          <code>{shortHash(version.id)}</code>
-          {isEditing ? <input
-            autoFocus
-            value={draft}
-            aria-label={`Rename ${version.name}`}
-            onChange={(event) => setDraft(event.target.value)}
-            onBlur={finishRename}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') event.currentTarget.blur();
-              if (event.key === 'Escape') {
-                event.stopPropagation();
-                renameCancelledRef.current = true;
-                event.currentTarget.blur();
-              }
-            }}
-          /> : <button className="commit-history-row__restore" type="button" onClick={() => onRestore(version)}>
-            <strong>{version.name}</strong>
-            <small>{new Date(version.createdAt).toLocaleString()}</small>
-          </button>}
-          <span className="commit-history-row__actions">
-            <button
-              className={`commit-history-row__rename ${isEditing ? 'commit-history-row__rename--done' : ''}`}
-              type="button"
-              aria-label={isEditing ? `Finish renaming ${version.name}` : `Rename ${version.name}`}
-              title={isEditing ? 'Done' : 'Rename commit'}
-              onPointerDown={isEditing ? (event) => event.preventDefault() : undefined}
-              onClick={() => isEditing ? finishRename() : beginRename(version)}
+  return (
+    <div className="architecture-commits">
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger
+          render={
+            <IconButton
+              label={dirty ? 'Architecture commits — uncommitted changes' : 'Architecture commits'}
+              className={`commits-trigger ${open ? 'commits-trigger--active' : ''}`}
+              variant="outline"
+              size="icon"
+            />
+          }
+        >
+          <GitBranch />
+          {dirty && <span className="commits-trigger__dirty" aria-hidden="true" />}
+        </PopoverTrigger>
+        <PopoverContent
+          className="commits-popover"
+          role="dialog"
+          aria-label="Architecture commits"
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          initialFocus={commitButtonRef}
+        >
+          <header>
+            <span className="commits-popover__title">
+              <GitBranch />
+              <PopoverTitle className="panel-id">COMMITS</PopoverTitle>
+            </span>
+            <Button
+              ref={commitButtonRef}
+              className="commit-current-button"
+              size="xs"
+              onClick={onCommit}
             >
-              {isEditing ? <FiCheck /> : <FiEdit2 />}
-            </button>
-            {isLatest && !isEditing && <button
-              className="commit-history-row__delete"
-              type="button"
-              aria-label={`Delete latest commit ${version.name}`}
-              title="Delete latest commit"
-              onClick={onDeleteLatest}
-            ><FiTrash2 /></button>}
-          </span>
-        </div>})}
-      </div> : <p className="commit-history-empty">No commits yet.</p>}
-    </div>}
-  </div>;
+              Commit
+            </Button>
+          </header>
+          {versions.length ? (
+            <div className="commit-history">
+              {versions.map((version, index) => {
+                const isEditing = editingId === version.id;
+                const isLatest = index === 0;
+                return (
+                  <div className="commit-history-row" key={version.id}>
+                    <code>{shortHash(version.id)}</code>
+                    {isEditing ? (
+                      <Input
+                        autoFocus
+                        value={draft}
+                        aria-label={`Rename ${version.name}`}
+                        onChange={(event) => setDraft(event.target.value)}
+                        onBlur={finishRename}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') event.currentTarget.blur();
+                          if (event.key === 'Escape') {
+                            event.stopPropagation();
+                            renameCancelledRef.current = true;
+                            event.currentTarget.blur();
+                          }
+                        }}
+                      />
+                    ) : (
+                      <Button
+                        className="commit-history-row__restore"
+                        variant="ghost"
+                        onClick={() => onRestore(version)}
+                      >
+                        <strong>{version.name}</strong>
+                        <small>{new Date(version.createdAt).toLocaleString()}</small>
+                      </Button>
+                    )}
+                    <span className="commit-history-row__actions">
+                      <IconButton
+                        label={
+                          isEditing ? `Finish renaming ${version.name}` : `Rename ${version.name}`
+                        }
+                        className={`commit-history-row__rename ${isEditing ? 'commit-history-row__rename--done' : ''}`}
+                        title={isEditing ? 'Done' : 'Rename commit'}
+                        variant="ghost"
+                        size="icon-xs"
+                        onPointerDown={isEditing ? (event) => event.preventDefault() : undefined}
+                        onClick={() => (isEditing ? finishRename() : beginRename(version))}
+                      >
+                        {isEditing ? <Check /> : <Pencil />}
+                      </IconButton>
+                      {isLatest && !isEditing && (
+                        <IconButton
+                          label={`Delete latest commit ${version.name}`}
+                          className="commit-history-row__delete"
+                          title="Delete latest commit"
+                          variant="destructive"
+                          size="icon-xs"
+                          onClick={onDeleteLatest}
+                        >
+                          <Trash2 />
+                        </IconButton>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="commit-history-empty">No commits yet.</p>
+          )}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 }

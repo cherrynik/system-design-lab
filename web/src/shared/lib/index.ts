@@ -5,3 +5,4 @@ export {
   type FloatingPanelPoint,
   type FloatingPanelSize,
 } from './clampFloatingPanelPosition';
+export type { KeyValueStorage } from './storage';

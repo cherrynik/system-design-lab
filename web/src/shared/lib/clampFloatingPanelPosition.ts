@@ -19,9 +19,8 @@ export type ClampFloatingPanelOptions = {
   inset?: number;
 };
 
-const clamp = (value: number, minimum: number, maximum: number) => (
-  Math.min(Math.max(value, minimum), maximum)
-);
+const clamp = (value: number, minimum: number, maximum: number) =>
+  Math.min(Math.max(value, minimum), maximum);
 
 /**
  * Keeps the top-left corner of a floating panel inside viewport or canvas bounds.

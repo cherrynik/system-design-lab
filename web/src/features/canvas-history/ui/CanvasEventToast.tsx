@@ -6,9 +6,19 @@ type Props = {
 };
 
 export function CanvasEventToast({ message, tone = 'neutral', actionLabel, onAction }: Props) {
-  return <div className={`canvas-event-toast canvas-event-toast--${tone}`} role="status" aria-live="polite">
-    <i aria-hidden="true" />
-    <span>{message}</span>
-    {actionLabel && onAction && <button type="button" onClick={onAction}>{actionLabel}</button>}
-  </div>;
+  return (
+    <div
+      className={`canvas-event-toast canvas-event-toast--${tone}`}
+      role="status"
+      aria-live="polite"
+    >
+      <i aria-hidden="true" />
+      <span>{message}</span>
+      {actionLabel && onAction && (
+        <button type="button" onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
 }

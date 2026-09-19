@@ -1,24 +1,38 @@
 package evaluator
 
 import (
-	"system-design-lab/api/internal/exercises"
-	"system-design-lab/api/internal/model"
+	"context"
+
+	"system-design-lab/api/internal/domain"
 )
 
-func Evaluate(architecture model.Architecture) []model.ValidationResult {
-	return []model.ValidationResult{evaluateClientReachesService(architecture)}
+type Evaluator struct {
+	requirementID string
 }
 
-func evaluateClientReachesService(architecture model.Architecture) model.ValidationResult {
-	clients := nodeIDsByKind(architecture.Nodes, model.NodeKindClient)
-	services := nodeIDsByKind(architecture.Nodes, model.NodeKindService)
+func New(requirementID string) Evaluator {
+	return Evaluator{requirementID: requirementID}
+}
+
+func (e Evaluator) Evaluate(ctx context.Context, architecture domain.Architecture) ([]domain.ValidationResult, error) {
+	result, err := e.evaluateClientReachesService(ctx, architecture)
+	if err != nil {
+		return nil, err
+	}
+
+	return []domain.ValidationResult{result}, nil
+}
+
+func (e Evaluator) evaluateClientReachesService(ctx context.Context, architecture domain.Architecture) (domain.ValidationResult, error) {
+	clients := nodeIDsByKind(architecture.Nodes, domain.NodeKindClient)
+	services := nodeIDsByKind(architecture.Nodes, domain.NodeKindService)
 
 	if len(clients) == 0 {
-		return failed("Add at least one client node.", nil)
+		return e.failed("Add at least one client node.", nil), nil
 	}
 
 	if len(services) == 0 {
-		return failed("Add at least one service node.", clients)
+		return e.failed("Add at least one service node.", clients), nil
 	}
 
 	serviceSet := make(map[string]struct{}, len(services))
@@ -26,35 +40,53 @@ func evaluateClientReachesService(architecture model.Architecture) model.Validat
 		serviceSet[id] = struct{}{}
 	}
 
+	nodeSet := make(map[string]struct{}, len(architecture.Nodes))
+	for _, node := range architecture.Nodes {
+		nodeSet[node.ID] = struct{}{}
+	}
+
 	adjacency := make(map[string][]string, len(architecture.Nodes))
 	for _, edge := range architecture.Edges {
+		if _, ok := nodeSet[edge.From]; !ok {
+			continue
+		}
+		if _, ok := nodeSet[edge.To]; !ok {
+			continue
+		}
 		adjacency[edge.From] = append(adjacency[edge.From], edge.To)
 	}
 
 	for _, clientID := range clients {
-		if target, ok := reachableTarget(clientID, serviceSet, adjacency); ok {
-			return model.ValidationResult{
-				RequirementID: exercises.ClientReachesServiceRequirementID,
-				Status:        model.ValidationStatusPassed,
+		target, ok, err := reachableTarget(ctx, clientID, serviceSet, adjacency)
+		if err != nil {
+			return domain.ValidationResult{}, err
+		}
+		if ok {
+			return domain.ValidationResult{
+				RequirementID: e.requirementID,
+				Status:        domain.ValidationStatusPassed,
 				Message:       "A directed path exists from a client to a service.",
 				InvolvedNodes: []string{clientID, target},
-			}
+			}, nil
 		}
 	}
 
-	return failed("No directed path exists from a client to a service.", append(clients, services...))
+	return e.failed("No directed path exists from a client to a service.", append(clients, services...)), nil
 }
 
-func reachableTarget(start string, targets map[string]struct{}, adjacency map[string][]string) (string, bool) {
+func reachableTarget(ctx context.Context, start string, targets map[string]struct{}, adjacency map[string][]string) (string, bool, error) {
 	queue := []string{start}
 	visited := map[string]bool{start: true}
 
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
+	for index := 0; index < len(queue); index++ {
+		if err := ctx.Err(); err != nil {
+			return "", false, err
+		}
+
+		current := queue[index]
 
 		if _, ok := targets[current]; ok {
-			return current, true
+			return current, true, nil
 		}
 
 		for _, next := range adjacency[current] {
@@ -65,10 +97,10 @@ func reachableTarget(start string, targets map[string]struct{}, adjacency map[st
 		}
 	}
 
-	return "", false
+	return "", false, nil
 }
 
-func nodeIDsByKind(nodes []model.Node, kind model.NodeKind) []string {
+func nodeIDsByKind(nodes []domain.Node, kind domain.NodeKind) []string {
 	ids := make([]string, 0)
 	for _, node := range nodes {
 		if node.Kind == kind {
@@ -78,10 +110,10 @@ func nodeIDsByKind(nodes []model.Node, kind model.NodeKind) []string {
 	return ids
 }
 
-func failed(message string, involvedNodes []string) model.ValidationResult {
-	return model.ValidationResult{
-		RequirementID: exercises.ClientReachesServiceRequirementID,
-		Status:        model.ValidationStatusFailed,
+func (e Evaluator) failed(message string, involvedNodes []string) domain.ValidationResult {
+	return domain.ValidationResult{
+		RequirementID: e.requirementID,
+		Status:        domain.ValidationStatusFailed,
 		Message:       message,
 		InvolvedNodes: involvedNodes,
 	}

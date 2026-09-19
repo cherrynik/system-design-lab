@@ -1,5 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
-import type { ArchitectureEdge, ArchitectureNode, ArchitectureSnapshot } from '../../../entities/architecture';
+import type {
+  ArchitectureEdge,
+  ArchitectureNode,
+  ArchitectureSnapshot,
+} from '../../../entities/architecture';
 import {
   createArchitectureHistory,
   pushArchitectureHistory,
@@ -20,22 +24,30 @@ export function useArchitectureHistory(initialSnapshot: ArchitectureSnapshot) {
     });
   }, []);
 
-  const applyChange = useCallback((update: (current: ArchitectureSnapshot) => ArchitectureSnapshot) => {
-    updateState((current) => pushArchitectureHistory(current, update(current.present)));
-  }, [updateState]);
+  const applyChange = useCallback(
+    (update: (current: ArchitectureSnapshot) => ArchitectureSnapshot) => {
+      updateState((current) => pushArchitectureHistory(current, update(current.present)));
+    },
+    [updateState],
+  );
 
-  const replacePresent = useCallback((update: (current: ArchitectureSnapshot) => ArchitectureSnapshot) => {
-    updateState((current) => replaceArchitecturePresent(current, update(current.present)));
-  }, [updateState]);
+  const replacePresent = useCallback(
+    (update: (current: ArchitectureSnapshot) => ArchitectureSnapshot) => {
+      updateState((current) => replaceArchitecturePresent(current, update(current.present)));
+    },
+    [updateState],
+  );
 
   const flushCanvas = useCallback(() => {
     canvasFlushQueued.current = false;
     const pending = pendingCanvas.current;
     pendingCanvas.current = {};
-    updateState((current) => pushArchitectureHistory(current, {
-      nodes: pending.nodes ?? current.present.nodes,
-      edges: pending.edges ?? current.present.edges,
-    }));
+    updateState((current) =>
+      pushArchitectureHistory(current, {
+        nodes: pending.nodes ?? current.present.nodes,
+        edges: pending.edges ?? current.present.edges,
+      }),
+    );
   }, [updateState]);
 
   const scheduleCanvasFlush = useCallback(() => {
@@ -44,15 +56,21 @@ export function useArchitectureHistory(initialSnapshot: ArchitectureSnapshot) {
     queueMicrotask(flushCanvas);
   }, [flushCanvas]);
 
-  const syncCanvasNodes = useCallback((nodes: ArchitectureNode[]) => {
-    pendingCanvas.current.nodes = nodes;
-    scheduleCanvasFlush();
-  }, [scheduleCanvasFlush]);
+  const syncCanvasNodes = useCallback(
+    (nodes: ArchitectureNode[]) => {
+      pendingCanvas.current.nodes = nodes;
+      scheduleCanvasFlush();
+    },
+    [scheduleCanvasFlush],
+  );
 
-  const syncCanvasEdges = useCallback((edges: ArchitectureEdge[]) => {
-    pendingCanvas.current.edges = edges;
-    scheduleCanvasFlush();
-  }, [scheduleCanvasFlush]);
+  const syncCanvasEdges = useCallback(
+    (edges: ArchitectureEdge[]) => {
+      pendingCanvas.current.edges = edges;
+      scheduleCanvasFlush();
+    },
+    [scheduleCanvasFlush],
+  );
 
   const undo = useCallback(() => updateState(undoArchitectureHistory), [updateState]);
   const redo = useCallback(() => updateState(redoArchitectureHistory), [updateState]);
