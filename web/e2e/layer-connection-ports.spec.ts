@@ -62,6 +62,10 @@ test('Layers ports follow connections, deletion, undo and the active solution', 
   const inputBounds = await input.boundingBox();
   const outputBounds = await output.boundingBox();
   expect(inputBounds!.x).toBeLessThan(outputBounds!.x);
+  const componentBounds = await balancer
+    .getByRole('button', { name: 'Load Balancer', exact: true })
+    .boundingBox();
+  expect(outputBounds!.x + outputBounds!.width).toBeLessThanOrEqual(componentBounds!.x);
   await input.hover();
   await expect(
     page.getByRole('tooltip', { name: 'Input: 1 connection from Client' }),
@@ -90,9 +94,14 @@ test('Layers ports follow connections, deletion, undo and the active solution', 
   await page.getByRole('tab', { name: 'Solutions', exact: true }).click();
   await components.getByRole('tab', { name: 'Layers', exact: true }).click();
   await expect(components.locator('[data-port-state="connected"]')).toHaveCount(2);
-  await expect(components.locator('[data-port-state="unconnected"]')).toHaveCount(0);
+  await expect(components.locator('[data-port-state="unconnected"]')).toHaveCount(1);
+  await expect(components.locator('[data-port-state="unconnected"]')).toHaveAttribute(
+    'data-port-direction',
+    'outgoing',
+  );
   await page.getByRole('button', { name: /Load Balancer Path/ }).click();
   await expect(components.locator('[data-port-state="connected"]')).toHaveCount(4);
+  await expect(components.locator('[data-port-state="unconnected"]')).toHaveCount(1);
 
   await page.getByRole('button', { name: 'My Canvas', exact: true }).click();
   await expect(output).toHaveAttribute('data-port-state', 'connected');

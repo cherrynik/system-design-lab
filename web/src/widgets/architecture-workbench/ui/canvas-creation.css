@@ -1,0 +1,104 @@
+.canvas-add-button {
+  position: absolute;
+  z-index: 40;
+  top: var(--workspace-top-control-offset);
+  left: 12px;
+}
+.canvas-add-button .mantine-ActionIcon-root {
+  background: var(--surface-raised);
+  border: 1px solid var(--line-subtle);
+}
+.canvas-menu-surface {
+  width: 100%;
+  height: 100%;
+}
+.canvas-floating-anchor {
+  position: fixed;
+  inset: 0 auto auto 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.canvas-floating-anchor > .mantine-Popover-dropdown,
+.canvas-floating-anchor > .mantine-Menu-dropdown {
+  pointer-events: auto;
+}
+.canvas-component-popover__anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.canvas-component-popover.mantine-Popover-dropdown {
+  max-width: calc(100vw - 24px);
+}
+.canvas-component-popover > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 3px 4px 8px;
+}
+.canvas-component-popover > header > strong {
+  color: var(--text-strong);
+  font-size: var(--text-control);
+  font-weight: 600;
+}
+.connection-component-offer {
+  padding: 0 8px 8px;
+}
+.connection-component-offer p {
+  margin: 2px 0 14px;
+  color: var(--text-soft);
+  font-size: var(--text-control);
+  line-height: 1.5;
+}
+.connection-component-offer .mantine-Checkbox-label {
+  font-size: var(--text-meta);
+  color: var(--text-muted);
+}
+.connection-component-offer__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 14px;
+}
+.canvas-component-picker__search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-inline: 8px;
+  color: var(--text-muted);
+}
+.canvas-component-picker__search .mantine-Input-wrapper {
+  flex: 1;
+}
+.canvas-component-picker__search input {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: var(--text-control);
+}
+.canvas-component-picker__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(280px, 45vh);
+  overflow: auto;
+  margin-top: 4px;
+}
+.canvas-component-picker__list > button > svg {
+  color: var(--component-accent);
+}
+.canvas-component-picker__list small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-meta);
+  color: var(--text-muted);
+}
+.canvas-component-picker__empty {
+  padding: 12px 8px;
+  font-size: var(--text-control);
+  color: var(--text-muted);
+}

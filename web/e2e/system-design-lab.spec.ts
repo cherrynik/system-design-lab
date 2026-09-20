@@ -85,7 +85,7 @@ test('collapses the sidebar to a rail and can expand it again', async ({ page })
   await expect(page.getByRole('button', { name: 'Collapse requirements' })).toBeVisible();
 });
 
-test('suppresses the default canvas context menu', async ({ page }) => {
+test('uses the minimal canvas context menu instead of the tldraw menu', async ({ page }) => {
   await openApp(page);
 
   const component = page.locator('.tldraw-architecture-card').first();
@@ -96,8 +96,15 @@ test('suppresses the default canvas context menu', async ({ page }) => {
     button: 'right',
   });
 
-  await expect(page.locator('[role="menu"]')).toHaveCount(0);
+  const menu = page.getByRole('menu', { name: 'Canvas actions' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'Add component', exact: true })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'Inspect component' })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'Focus on canvas' })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'Delete', exact: true })).toBeVisible();
   await expect(page.locator('.tlui-menu')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
 });
 
 test('moves components freely without snapping them to the visual grid', async ({ page }) => {
@@ -361,7 +368,7 @@ test('opens the component library from the keyboard and restores focus on Escape
 }) => {
   await openApp(page);
 
-  const addComponent = page.getByRole('button', { name: 'Add component' });
+  const addComponent = page.getByRole('button', { name: 'Add component', exact: true });
   await addComponent.focus();
   await page.keyboard.press('ControlOrMeta+k');
 
@@ -383,7 +390,7 @@ test('opens the component library from the keyboard and restores focus on Escape
 test('adds a component and supports keyboard undo and redo', async ({ page }) => {
   await openApp(page);
 
-  await page.getByRole('button', { name: 'Add component' }).click();
+  await page.getByRole('button', { name: 'Add component', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'COMPONENT LIBRARY' });
   await dialog.getByRole('textbox', { name: 'Search components' }).fill('NGINX');
   await dialog.getByRole('button', { name: /NGINX/ }).click();

@@ -1,6 +1,5 @@
 export const ARCHITECTURE_CARD_TYPE = 'architecture-card' as const;
-export const ARCHITECTURE_CARD_WIDTH = 220;
-export const ARCHITECTURE_CARD_HEIGHT = 86;
+export { ARCHITECTURE_CARD_WIDTH, ARCHITECTURE_CARD_HEIGHT } from '@/entities/architecture';
 
 export const INSPECTOR_WIDTH = 248;
 export const INSPECTOR_FALLBACK_HEIGHT = 216;

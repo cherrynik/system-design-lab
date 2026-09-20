@@ -111,10 +111,10 @@ describe('createKeyboardHotspotArrow', () => {
   });
 
   it.each([
-    ['top', { x: 210, y: 189 }, { x: 0, y: -72 }],
-    ['right', { x: 331, y: 243 }, { x: 72, y: 0 }],
-    ['bottom', { x: 210, y: 297 }, { x: 0, y: 72 }],
-    ['left', { x: 89, y: 243 }, { x: -72, y: 0 }],
+    ['top', { x: 210, y: 243 }, { x: 0, y: -115 }],
+    ['right', { x: 210, y: 243 }, { x: 182, y: 0 }],
+    ['bottom', { x: 210, y: 243 }, { x: 0, y: 115 }],
+    ['left', { x: 210, y: 243 }, { x: -182, y: 0 }],
   ] as const)('creates a free %s arrow from the selected card hotspot', (side, origin, end) => {
     const harness = createEditorHarness();
 
@@ -139,7 +139,9 @@ describe('createKeyboardHotspotArrow', () => {
         fromId: createdArrow.id,
         toId: 'shape:service',
         props: expect.objectContaining({
-          anchor: { side, offset: 0.5, gap: 11 },
+          terminal: 'start',
+          normalizedAnchor: { x: 0.5, y: 0.5 },
+          isPrecise: false,
         }),
       }),
     );
@@ -147,20 +149,12 @@ describe('createKeyboardHotspotArrow', () => {
     expect(harness.setCurrentTool).toHaveBeenCalledWith('select');
   });
 
-  it('replaces an automatic native start binding with the external hotspot port', () => {
+  it('preserves an existing native start binding', () => {
     const harness = createEditorHarness();
-    const binding = existingBinding();
-    vi.mocked(getArrowBindings).mockReturnValue({ start: binding, end: undefined });
-
+    vi.mocked(getArrowBindings).mockReturnValue({ start: existingBinding(), end: undefined });
     createKeyboardHotspotArrow(harness.editor, architectureCard(), 'right');
-
-    expect(harness.deleteBinding).toHaveBeenCalledWith(binding.id);
-    expect(harness.createBinding).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'architecture-port',
-        props: { anchor: { side: 'right', offset: 0.5, gap: 11 } },
-      }),
-    );
+    expect(harness.deleteBinding).not.toHaveBeenCalled();
+    expect(harness.createBinding).not.toHaveBeenCalled();
   });
 
   it('removes an orphan when tldraw does not register the created arrow', () => {

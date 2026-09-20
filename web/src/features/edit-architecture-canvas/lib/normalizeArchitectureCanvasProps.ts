@@ -44,6 +44,7 @@ export function normalizeArchitectureCanvasProps(
       onNodesChange: props.onNodesChange,
       onEdgesChange: props.onEdgesChange,
       onToolChange: props.onToolChange,
+      onConnectionDraft: props.onConnectionDraft,
     },
   };
 }

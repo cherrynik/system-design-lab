@@ -6,6 +6,7 @@ export function useArchitectureAttemptPreview({
   selectedAttempt,
   selectAttempt,
   clearValidation,
+  restoreCurrentValidation,
   setWorkspaceView,
   closeTransientUi,
 }: ArchitectureAttemptPreviewOptions) {
@@ -30,13 +31,21 @@ export function useArchitectureAttemptPreview({
 
   const changeWorkspaceView = useCallback(
     (view: WorkspaceView) => {
-      if (previewing) clearValidation();
+      if (view === 'canvas') restoreCurrentValidation();
+      else if (previewing) clearValidation();
       setPreviewing(false);
       closeTransientUi();
       setWorkspaceView(view);
     },
-    [clearValidation, closeTransientUi, previewing, setWorkspaceView],
+    [clearValidation, closeTransientUi, previewing, restoreCurrentValidation, setWorkspaceView],
   );
+
+  const selectCurrentAttempt = useCallback(() => {
+    closeTransientUi();
+    setPreviewing(false);
+    setWorkspaceView('canvas');
+    restoreCurrentValidation();
+  }, [closeTransientUi, restoreCurrentValidation, setWorkspaceView]);
 
   const clearOutput = useCallback(() => {
     if (previewing) setWorkspaceView('canvas');
@@ -44,5 +53,5 @@ export function useArchitectureAttemptPreview({
     clearValidation();
   }, [clearValidation, previewing, setWorkspaceView]);
 
-  return { preview, viewAttempt, changeWorkspaceView, clearOutput };
+  return { preview, viewAttempt, selectCurrentAttempt, changeWorkspaceView, clearOutput };
 }

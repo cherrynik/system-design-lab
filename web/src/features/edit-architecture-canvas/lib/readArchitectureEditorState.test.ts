@@ -9,7 +9,6 @@ import {
 } from 'tldraw';
 import type * as TldrawModule from 'tldraw';
 import type { ArchitectureCardShape } from '../model/architectureCanvas.types';
-import type { ArchitecturePortBinding } from '../model/architecturePort.types';
 import { readArchitectureEditorState } from './readArchitectureEditorState';
 
 vi.mock('tldraw', async (importOriginal) => {
@@ -93,11 +92,21 @@ describe('readArchitectureEditorState', () => {
     vi.mocked(getArrowBindings).mockReturnValue({
       start: {
         toId: browser.id,
-        props: { isPrecise: true, normalizedAnchor: { x: 1, y: 0.4 } },
+        props: {
+          isPrecise: true,
+          isExact: false,
+          snap: 'none',
+          normalizedAnchor: { x: 0.74, y: 0.37 },
+        },
       },
       end: {
         toId: api.id,
-        props: { isPrecise: true, normalizedAnchor: { x: 0.3, y: 0 } },
+        props: {
+          isPrecise: true,
+          isExact: true,
+          snap: 'edge-point',
+          normalizedAnchor: { x: 0.3, y: 0.24 },
+        },
       },
     } as ReturnType<typeof getArrowBindings>);
     vi.mocked(getArrowTerminalsInArrowSpace).mockReturnValue({
@@ -128,8 +137,18 @@ describe('readArchitectureEditorState', () => {
           protocol: 'HTTPS',
           protocolMode: 'manual',
           bend: { along: 0.65, normal: 20 },
-          sourceAnchor: { side: 'right', offset: 0.4 },
-          targetAnchor: { side: 'top', offset: 0.3 },
+          sourceAttachment: {
+            normalizedAnchor: { x: 0.74, y: 0.37 },
+            isPrecise: true,
+            isExact: false,
+            snap: 'none',
+          },
+          targetAttachment: {
+            normalizedAnchor: { x: 0.3, y: 0.24 },
+            isPrecise: true,
+            isExact: true,
+            snap: 'edge-point',
+          },
         },
       }),
     ]);
@@ -207,65 +226,5 @@ describe('readArchitectureEditorState', () => {
         props: {},
       }),
     );
-  });
-  it('serializes a hotspot port as its source card with its exact external gap', () => {
-    const browser = card('browser-shape', 'browser', 'client', 40, 80);
-    const api = card('api-shape', 'api', 'service', 400, 160);
-    const request = arrow();
-    const editor = editorFor([browser, api, request]);
-    const anchor = { side: 'right' as const, offset: 0.43, gap: 10.5 };
-    vi.mocked(editor.getBindingsFromShape).mockReturnValue([
-      {
-        type: 'architecture-port',
-        toId: browser.id,
-        props: { anchor },
-      } as ArchitecturePortBinding,
-    ]);
-    vi.mocked(getArrowBindings).mockReturnValue({
-      start: undefined,
-      end: { toId: api.id, props: { isPrecise: false } },
-    } as ReturnType<typeof getArrowBindings>);
-    vi.mocked(getArrowTerminalsInArrowSpace).mockReturnValue({
-      start: { x: 0, y: 0 },
-      end: { x: 300, y: 80 },
-    } as ReturnType<typeof getArrowTerminalsInArrowSpace>);
-    vi.mocked(renderPlaintextFromRichText).mockReturnValue('');
-    const state = readArchitectureEditorState(editor);
-    expect(state.nodes).toHaveLength(2);
-    expect(state.edges[0]).toMatchObject({
-      source: 'browser',
-      target: 'api',
-      label: 'HTTPS',
-      data: { sourceAnchor: anchor },
-    });
-
-    vi.mocked(editor.getBindingsFromShape).mockReturnValue([
-      {
-        type: 'architecture-port',
-        toId: browser.id,
-        props: { anchor, originalAnchor: null },
-      } as ArchitecturePortBinding,
-    ]);
-    expect(readArchitectureEditorState(editor).edges[0].data?.sourceAnchor).toBeUndefined();
-    const originalAnchor = { side: 'right' as const, offset: 0.43 };
-    vi.mocked(editor.getBindingsFromShape).mockReturnValue([
-      {
-        type: 'architecture-port',
-        toId: browser.id,
-        props: { anchor, originalAnchor },
-      } as ArchitecturePortBinding,
-    ]);
-    expect(readArchitectureEditorState(editor).edges[0].data?.sourceAnchor).toEqual(originalAnchor);
-
-    vi.mocked(getArrowBindings).mockReturnValue({
-      start: { toId: api.id, props: { isPrecise: true, normalizedAnchor: { x: 0.3, y: 0 } } },
-      end: undefined,
-    } as ReturnType<typeof getArrowBindings>);
-    const rebound = readArchitectureEditorState(editor);
-    expect(rebound.edges[0]).toMatchObject({
-      source: 'api',
-      data: { sourceAnchor: { side: 'top', offset: 0.3 } },
-    });
-    expect(rebound.edges[0].data?.sourceAnchor?.gap).toBeUndefined();
   });
 });

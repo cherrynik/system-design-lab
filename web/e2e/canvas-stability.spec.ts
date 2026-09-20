@@ -37,6 +37,31 @@ async function settledCameraTransform(page: Page) {
   );
 }
 
+test('fits each reference solution while the canvas camera has not been manually changed', async ({
+  page,
+}) => {
+  await openApp(page);
+  const cards = page.locator('.tldraw-architecture-card');
+  await expect(cards).toHaveCount(2);
+  const ownCamera = await settledCameraTransform(page);
+
+  await page.getByRole('tab', { name: 'Solutions', exact: true }).click();
+  await expect(cards.filter({ hasText: 'Web Browser' })).toBeVisible();
+  const directCamera = await settledCameraTransform(page);
+  expect(directCamera).not.toBe(ownCamera);
+
+  await page.getByRole('button', { name: /Load Balancer Path/ }).click();
+  await expect(cards).toHaveCount(3);
+  const balancedCamera = await settledCameraTransform(page);
+  expect(balancedCamera).not.toBe(directCamera);
+
+  await page.getByRole('button', { name: /Direct Client/ }).click();
+  await expect(cards).toHaveCount(2);
+  expect(await settledCameraTransform(page)).toBe(directCamera);
+  await page.getByRole('tab', { name: 'Description', exact: true }).click();
+  expect(await settledCameraTransform(page)).toBe(ownCamera);
+});
+
 test('preserves the zoomed and panned camera while switching reference solutions', async ({
   page,
 }) => {
@@ -105,9 +130,10 @@ for (const returnRoute of ['Description', 'My Canvas']) {
 
     await page.getByRole('tab', { name: 'Solutions', exact: true }).click();
     await expect(canvasRuntime).toHaveAttribute('data-workspace-runtime', 'stable');
-    await settledCameraTransform(page);
+    expect(await settledCameraTransform(page)).toBe(userCamera);
     await page.getByRole('button', { name: /Load Balancer Path/ }).click();
     await expect(cards).toHaveCount(3);
+    expect(await settledCameraTransform(page)).toBe(userCamera);
 
     const bounds = await canvasRuntime.boundingBox();
     expect(bounds).not.toBeNull();

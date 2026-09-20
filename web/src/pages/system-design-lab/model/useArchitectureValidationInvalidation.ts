@@ -28,14 +28,15 @@ export function useArchitectureValidationInvalidation({
   view,
   solution,
   invalidateValidation,
+  preserveCanvasValidation,
 }: ArchitectureValidationInvalidationOptions) {
   const previousDocumentRef = useRef<ArchitectureValidationDocument>({ snapshot, view, solution });
 
   useLayoutEffect(() => {
     const currentDocument = { snapshot, view, solution };
     if (!validationDocumentsMatch(previousDocumentRef.current, currentDocument)) {
-      invalidateValidation();
+      if (view !== 'canvas' || !preserveCanvasValidation) invalidateValidation();
     }
     previousDocumentRef.current = currentDocument;
-  }, [invalidateValidation, snapshot, solution, view]);
+  }, [invalidateValidation, preserveCanvasValidation, snapshot, solution, view]);
 }

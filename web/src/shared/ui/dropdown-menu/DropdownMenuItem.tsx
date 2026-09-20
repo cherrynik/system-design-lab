@@ -14,6 +14,7 @@ export function DropdownMenuItem({
       data-slot="dropdown-menu-item"
       data-inset={inset}
       data-variant={variant}
+      data-destructive={resolvedColor === 'red' || undefined}
       color={resolvedColor}
       pl={paddingLeft}
       {...props}

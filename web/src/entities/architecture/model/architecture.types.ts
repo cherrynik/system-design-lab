@@ -4,6 +4,12 @@ export type EdgeAnchor = {
   offset: number;
   gap?: number;
 };
+export type ArchitectureAttachment = {
+  normalizedAnchor: { x: number; y: number };
+  isPrecise: boolean;
+  isExact: boolean;
+  snap: 'none' | 'center' | 'edge' | 'edge-point';
+};
 export type ArchitectureNodeData = {
   kind: ArchitectureNodeKind;
   variantId: string;
@@ -28,6 +34,8 @@ export type ArchitectureEdge = {
     bend?: { along: number; normal: number };
     sourceAnchor?: EdgeAnchor;
     targetAnchor?: EdgeAnchor;
+    sourceAttachment?: ArchitectureAttachment;
+    targetAttachment?: ArchitectureAttachment;
   };
   label?: string;
   selected?: boolean;

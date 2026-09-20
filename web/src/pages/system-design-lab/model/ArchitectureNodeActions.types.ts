@@ -1,11 +1,13 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type {
+  ArchitectureEdge,
   ArchitectureNode,
   ArchitectureNodeKind,
   ArchitectureSnapshot,
 } from '@/entities/architecture';
 import type { ComponentContextMenu } from '@/widgets/requirement-sidebar';
 import type { CanvasEventController } from './CanvasEvents.types';
+import type { ArchitectureNodePlacement } from '@/widgets/architecture-workbench';
 
 export type ArchitectureSnapshotUpdater = (
   update: (current: ArchitectureSnapshot) => ArchitectureSnapshot,
@@ -13,6 +15,7 @@ export type ArchitectureSnapshotUpdater = (
 
 export type ArchitectureNodeActionsOptions = {
   nodes: ArchitectureNode[];
+  edges: ArchitectureEdge[];
   applyChange: ArchitectureSnapshotUpdater;
   replacePresent: ArchitectureSnapshotUpdater;
   focusShape: (nodeId: string) => void;
@@ -28,7 +31,11 @@ export type ArchitectureNodeActions = {
   updateVariant: (id: string, variantId: string) => void;
   renameNode: (id: string, label: string) => void;
   reportCanvasRename: (id: string, label: string) => void;
-  addNode: (kind: ArchitectureNodeKind, variantId?: string) => void;
+  addNode: (
+    kind: ArchitectureNodeKind,
+    variantId?: string,
+    placement?: ArchitectureNodePlacement,
+  ) => void;
   deleteNode: (id: string) => void;
   focusNode: (id: string) => void;
   inspectNode: (id: string) => void;

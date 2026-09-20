@@ -34,6 +34,7 @@ export function ArchitectureCanvasSurface(props: ArchitectureCanvasSurfaceProps)
     edges: snapshot.edges,
     validationStates: props.validationStates,
     onMountEditor: props.onMountEditor,
+    autoFitOnDocumentChange: props.view === 'solutions' && !props.preview,
   };
   let canvasProps: TldrawArchitectureCanvasProps = { ...sharedProps, mode: 'readonly' };
   if (mode === 'interactive') {
@@ -48,6 +49,7 @@ export function ArchitectureCanvasSurface(props: ArchitectureCanvasSurfaceProps)
       onCloseInspector: props.onCloseInspector,
       onUpdateVariant: props.onUpdateVariant,
       onNodeRenamed: props.onNodeRenamed,
+      onConnectionDraft: props.onConnectionDraft,
     };
   }
 

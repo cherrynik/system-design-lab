@@ -38,7 +38,7 @@ export function ComponentRegistryDialog({
         centered
         classNames={{
           body: 'component-catalog-dialog__body',
-          content: 'component-catalog-dialog',
+          content: 'component-catalog-dialog platform-floating-surface',
         }}
         size="min(760px, calc(100vw - 24px))"
         showCloseButton={false}

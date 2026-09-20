@@ -40,6 +40,25 @@ const setup = (state = connectionState) => {
 };
 
 describe('ArchitectureLayerItem', () => {
+  it('places persistent connection ports before the component button in Layers only', () => {
+    const props = {
+      node,
+      fallbackLabel: 'Service',
+      connectionState,
+      onFocus: vi.fn(),
+      onRename: vi.fn(),
+    };
+    const { rerender } = render(<ArchitectureLayerItem {...props} mode="layers" />);
+    const ports = screen.getByRole('group', { name: 'Connection ports' });
+    const component = screen.getByRole('button', { name: 'Service' });
+
+    expect(ports.nextElementSibling).toBe(component);
+    expect(screen.getAllByRole('img')).toHaveLength(2);
+
+    rerender(<ArchitectureLayerItem {...props} mode="graph" />);
+    expect(screen.queryByRole('group', { name: 'Connection ports' })).toBeNull();
+  });
+
   it('opens inline rename on double click and submits with Enter', () => {
     const { onRename } = setup();
     fireEvent.doubleClick(screen.getByText('Service'));
@@ -66,10 +85,11 @@ describe('ArchitectureLayerItem', () => {
   it('keeps focus and context-menu actions working', () => {
     const { onFocus, onOpenMenu } = setup();
     fireEvent.click(screen.getByText('Service'));
-    fireEvent.click(screen.getByRole('button', { name: 'Open menu for Service' }), {
-      clientX: 24,
-      clientY: 42,
-    });
+    const trigger = screen.getByRole('button', { name: 'Open menu for Service' });
+    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ x: 24, y: 20, width: 22, height: 22 }),
+    );
+    fireEvent.click(trigger);
 
     expect(onFocus).toHaveBeenCalledWith('service-1');
     expect(onOpenMenu).toHaveBeenCalledWith('service-1', 24, 42);

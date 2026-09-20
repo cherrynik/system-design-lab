@@ -1,4 +1,5 @@
 import '@mantine/core/styles.css';
+import './floating-surfaces.css';
 
 import { MantineProvider } from '@mantine/core';
 import { TooltipProvider } from '@/shared/ui/tooltip';

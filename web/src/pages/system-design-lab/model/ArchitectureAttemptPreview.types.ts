@@ -5,6 +5,7 @@ export type ArchitectureAttemptPreviewOptions = {
   selectedAttempt: ValidationAttempt | null;
   selectAttempt: (id: number) => void;
   clearValidation: () => void;
+  restoreCurrentValidation: () => void;
   setWorkspaceView: (view: WorkspaceView) => void;
   closeTransientUi: () => void;
 };

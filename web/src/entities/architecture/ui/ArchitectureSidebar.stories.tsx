@@ -1,4 +1,5 @@
 import { createRef } from 'react';
+import { expect, within } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { getArchitectureNodeConnectionStates } from '../model/connections';
 import { validateArchitectureNodes } from '../model/nodeValidation';
@@ -234,4 +235,29 @@ export const TopologyGraph: Story = {
       onOpenMenu={noop}
     />
   ),
+};
+
+export const NarrowLayers: Story = {
+  render: (args) => (
+    <div style={{ width: 260, container: 'workspace-sidebar / inline-size' }}>
+      <ArchitectureSidebarGraph {...args} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const browser = canvas.getByRole('button', { name: 'Web Browser' });
+    const ports = browser.previousElementSibling!;
+    await expect(ports).toHaveAttribute('aria-label', 'Connection ports');
+    await expect(ports.getBoundingClientRect().right).toBeLessThanOrEqual(
+      browser.getBoundingClientRect().left,
+    );
+    await expect(within(ports as HTMLElement).getAllByRole('img')).toHaveLength(1);
+    const service = canvas.getByRole('button', { name: 'Go HTTP API' });
+    await expect(
+      within(service.previousElementSibling as HTMLElement).getAllByRole('img'),
+    ).toHaveLength(2);
+    await expect(getComputedStyle(canvas.getByRole('tab', { name: 'Layers' })).fontSize).toBe(
+      '0px',
+    );
+  },
 };

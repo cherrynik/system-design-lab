@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { createInitialArchitectureSnapshot, referenceSolutions } from '@/entities/architecture';
 import {
   createLocalStorageArchitectureAutosaveRepository,
   useArchitectureAutosave,
 } from '@/features/autosave-architecture';
-import { useArchitectureHistory } from '@/features/canvas-history';
+import { architectureSnapshotsMatch, useArchitectureHistory } from '@/features/canvas-history';
 import {
   useArchitectureValidation,
+  useLiveValidation,
   type ValidationAttemptSource,
 } from '@/features/validate-architecture';
 import { useArchitectureVersions } from '@/features/version-architecture';
@@ -40,14 +41,25 @@ export function useSystemDesignLabController(): SystemDesignLabController {
 
   const versioning = useArchitectureVersions();
   const validation = useArchitectureValidation();
+  const liveValidation = useLiveValidation();
   const workspace = useWorkspaceUiState();
   const transientUi = useTransientWorkspaceUi();
   const editor = useArchitectureEditorController();
   const canvasEvents = useCanvasEvents();
+  const { attempts: savedAttempts, selectAttempt, clear: clearValidation } = validation;
+  const restoreCurrentValidation = useCallback(() => {
+    const matching = savedAttempts.find(
+      (attempt) =>
+        attempt.view === 'canvas' && architectureSnapshotsMatch(attempt.snapshot, history.snapshot),
+    );
+    if (matching) selectAttempt(matching.id);
+    else clearValidation();
+  }, [history.snapshot, savedAttempts, clearValidation, selectAttempt]);
   const attempts = useArchitectureAttemptPreview({
     selectedAttempt: validation.selectedAttempt,
     selectAttempt: validation.selectAttempt,
     clearValidation: validation.clear,
+    restoreCurrentValidation,
     setWorkspaceView: workspace.setWorkspaceView,
     closeTransientUi: transientUi.closeTransientUi,
   });
@@ -58,7 +70,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     edges: history.edges,
     latestVersion: versioning.latestVersion,
     selectedSolutionId: workspace.selectedSolutionId,
-    nodeValidationVisible: validation.nodeValidationVisible,
+    nodeValidationVisible: validation.nodeValidationVisible || liveValidation.enabled,
     workspaceView: workspace.workspaceView,
     previewSnapshot: attempts.preview?.snapshot,
   });
@@ -68,6 +80,9 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     view: workspace.workspaceView,
     solution: derived.selectedSolution,
     invalidateValidation: validation.clear,
+    preserveCanvasValidation:
+      validation.selectedAttempt?.view === 'canvas' &&
+      architectureSnapshotsMatch(validation.selectedAttempt.snapshot, history.snapshot),
   });
 
   let validationView = workspace.workspaceView;
@@ -96,6 +111,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
 
   const nodeActions = useArchitectureNodeActions({
     nodes: history.nodes,
+    edges: history.edges,
     applyChange: history.applyChange,
     replacePresent: history.replacePresent,
     focusShape: editor.focusShape,
@@ -200,6 +216,10 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     sidebarCollapsed: workspace.requirementsCollapsed,
     sidebarProps,
     workbenchProps: {
+      onAddNode: nodeActions.addNode,
+      onInspectNode: nodeActions.inspectNode,
+      onDeleteNode: nodeActions.deleteNode,
+      onFocusNode: nodeActions.focusNode,
       preview: attempts.preview,
       view: workspace.workspaceView,
       solution: derived.selectedSolution,
@@ -233,6 +253,11 @@ export function useSystemDesignLabController(): SystemDesignLabController {
       onRedo: historyActions.redoArchitectureChange,
     },
     runnerProps: {
+      liveChecks: liveValidation.enabled,
+      liveIssueCount: derived.nodeValidationIssues.length,
+      onLiveChecksChange: liveValidation.change,
+      currentAttemptSelected: workspace.workspaceView === 'canvas' && !attempts.preview,
+      onSelectCurrentAttempt: attempts.selectCurrentAttempt,
       attempts: validation.attempts,
       selectedAttemptId: validation.selectedAttemptId,
       onSelectAttempt: attempts.viewAttempt,

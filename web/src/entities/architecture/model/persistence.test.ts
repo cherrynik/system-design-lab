@@ -275,6 +275,53 @@ describe('architecture persistence parsing', () => {
     });
   });
 
+  it('preserves native attachment coordinates and behavior without projecting them to edges', () => {
+    const attachment = {
+      normalizedAnchor: { x: 0.74, y: 0.37 },
+      isPrecise: true,
+      isExact: false,
+      snap: 'edge-point',
+    };
+    const snapshot = {
+      nodes: [],
+      edges: [
+        {
+          id: 'request',
+          type: 'architecture',
+          source: 'client',
+          target: 'service',
+          data: { protocol: 'HTTPS', sourceAttachment: attachment, targetAttachment: attachment },
+        },
+      ],
+    };
+    expect(parseArchitectureSnapshot(JSON.stringify(snapshot))?.edges[0].data).toEqual(
+      snapshot.edges[0].data,
+    );
+  });
+
+  it.each([
+    { normalizedAnchor: { x: null, y: 0.5 }, isPrecise: true, isExact: false, snap: 'none' },
+    { normalizedAnchor: { x: 0.5, y: 0.5 }, isPrecise: 'true', isExact: false, snap: 'none' },
+    { normalizedAnchor: { x: 0.5, y: 0.5 }, isPrecise: true, isExact: false, snap: 'invalid' },
+    { normalizedAnchor: { x: 0.5, y: 0.5 }, isPrecise: true, isExact: false, snap: ['none'] },
+  ])('rejects malformed native attachment %j', (attachment) => {
+    for (const terminal of ['sourceAttachment', 'targetAttachment']) {
+      const snapshot = {
+        nodes: [],
+        edges: [
+          {
+            id: 'request',
+            type: 'architecture',
+            source: 'client',
+            target: 'service',
+            data: { protocol: 'HTTPS', [terminal]: attachment },
+          },
+        ],
+      };
+      expect(parseArchitectureSnapshot(JSON.stringify(snapshot))).toBeNull();
+    }
+  });
+
   it.each([undefined, 'auto', 'manual'])(
     'preserves protocol intent %s, including a blank label',
     (protocolMode) => {

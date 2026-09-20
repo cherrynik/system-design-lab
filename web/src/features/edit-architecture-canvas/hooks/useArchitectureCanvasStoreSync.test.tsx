@@ -51,6 +51,7 @@ function createEditorHarness() {
   const unsubscribe = vi.fn();
   const setCurrentTool = vi.fn();
   const editor = {
+    getCurrentPageShapes: vi.fn(() => []),
     getCurrentToolId: vi.fn(() => tool),
     getPath: vi.fn(() => 'arrow.idle'),
     inputs: { getIsDragging: vi.fn(() => dragging) },
@@ -211,7 +212,6 @@ describe('useArchitectureCanvasStoreSync', () => {
       pendingHotspotStartRef: {
         current: {
           shapeId: 'shape:client' as TLShapeId,
-          anchor: { side: 'right', offset: 0.5, gap: 11 },
           existingArrowIds: new Set(),
         },
       },
@@ -235,6 +235,72 @@ describe('useArchitectureCanvasStoreSync', () => {
     options.pendingHotspotStartRef.current = null;
     act(flushFrame);
     expect(options.onEdgesChange).toHaveBeenCalledOnce();
+  });
+
+  it('suggests a component only once after a newly drawn source-bound arrow is committed', () => {
+    const harness = createEditorHarness();
+    const onConnectionDraft = vi.fn();
+    const options: ArchitectureCanvasStoreSyncOptions = {
+      editor: harness.editor,
+      mode: 'interactive',
+      toolRef: { current: 'connection' },
+      pendingHotspotStartRef: { current: null },
+      onNodesChange: vi.fn(),
+      onEdgesChange: vi.fn(),
+      onToolChange: vi.fn(),
+      onConnectionDraft,
+    };
+    const source = architectureNode('Service');
+    const target = {
+      ...source,
+      id: 'anchor-new-arrow-end',
+      position: { x: 500, y: 400 },
+      data: { ...source.data, isAnchor: true },
+    };
+    const arrow = { id: 'shape:new-arrow', type: 'arrow' } as TLArrowShape;
+    vi.mocked(readArchitectureEditorState).mockReturnValue({
+      nodes: [source, target],
+      edges: [
+        {
+          id: 'new-arrow',
+          source: source.id,
+          target: target.id,
+          type: 'architecture',
+          data: { protocol: 'HTTP' },
+        },
+      ],
+      arrows: [arrow],
+    });
+    renderHook(() => useArchitectureCanvasStoreSync(options, { current: null }));
+    const addedArrow = {
+      changes: {
+        added: { record: { typeName: 'shape', type: 'arrow', id: arrow.id } },
+        removed: {},
+        updated: {},
+      },
+    };
+    harness.setDragging(true);
+    act(() => {
+      harness.emit(addedArrow);
+      flushFrame();
+    });
+    expect(onConnectionDraft).not.toHaveBeenCalled();
+    harness.setDragging(false);
+    act(flushFrame);
+    expect(onConnectionDraft).toHaveBeenCalledWith({
+      arrowId: arrow.id,
+      edgeId: 'new-arrow',
+      sourceNodeId: source.id,
+      point: target.position,
+    });
+    expect(vi.mocked(options.onEdgesChange).mock.invocationCallOrder[0]).toBeLessThan(
+      onConnectionDraft.mock.invocationCallOrder[0],
+    );
+    act(() => {
+      harness.emit(addedArrow);
+      flushFrame();
+    });
+    expect(onConnectionDraft).toHaveBeenCalledOnce();
   });
 
   it('does not subscribe a readonly canvas to interactive store updates', () => {

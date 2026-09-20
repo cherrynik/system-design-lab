@@ -22,7 +22,6 @@ function actionCallbacks(inspectorId: string | null): ArchitectureCanvasActionCa
 function pendingHotspot(shapeId: string): PendingHotspotStart {
   return {
     shapeId: `shape:${shapeId}`,
-    anchor: { side: 'right', offset: 0.5, gap: 11 },
     existingArrowIds: new Set(),
   } as PendingHotspotStart;
 }

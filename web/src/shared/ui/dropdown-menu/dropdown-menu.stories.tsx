@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Copy, Focus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { expect, userEvent, within } from 'storybook/test';
 import { IconButton } from '../button';
 import { DropdownMenu } from './DropdownMenu';
 import { DropdownMenuCheckboxItem } from './DropdownMenuCheckboxItem';
@@ -73,4 +74,17 @@ export const ComponentActions: Story = {
       </DropdownMenuContent>
     </DropdownMenu>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = canvas.getByRole('button', { name: 'Component actions' });
+    await userEvent.click(trigger);
+    const menu = await page.findByRole('menu', { name: 'Component actions' });
+    const item = page.getByRole('menuitem', { name: 'Duplicate' });
+    await expect(getComputedStyle(menu).borderTopWidth).toBe('0px');
+    await expect(getComputedStyle(menu).backgroundColor).toBe('rgb(16, 29, 48)');
+    await expect(getComputedStyle(item).fontSize).toBe('12px');
+    await userEvent.keyboard('{Escape}');
+    await expect(trigger).toHaveFocus();
+  },
 };

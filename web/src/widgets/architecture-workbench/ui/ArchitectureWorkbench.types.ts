@@ -6,9 +6,13 @@ import type {
   ArchitectureNodeValidationState,
   ArchitectureVersion,
   ArchitectureSnapshot,
+  ArchitectureNodeKind,
   ReferenceSolution,
 } from '@/entities/architecture';
-import type { ArchitectureCanvasTool } from '@/features/edit-architecture-canvas';
+import type {
+  ArchitectureCanvasTool,
+  ArchitectureConnectionDraft,
+} from '@/features/edit-architecture-canvas';
 
 export type WorkspaceView = 'canvas' | 'solutions';
 export type CanvasTool = ArchitectureCanvasTool;
@@ -26,6 +30,14 @@ export type ArchitectureCanvasPreview = {
 };
 
 export type ArchitectureWorkbenchProps = {
+  onAddNode?: (
+    kind: ArchitectureNodeKind,
+    variantId?: string,
+    placement?: ArchitectureNodePlacement,
+  ) => void;
+  onInspectNode?: (id: string) => void;
+  onDeleteNode?: (id: string) => void;
+  onFocusNode?: (id: string) => void;
   preview?: ArchitectureCanvasPreview;
   view: WorkspaceView;
   solution: ReferenceSolution;
@@ -76,7 +88,12 @@ export type ArchitectureCanvasSurfaceProps = Pick<
   | 'tool'
   | 'validationStates'
   | 'view'
->;
+> & { onConnectionDraft?: (draft: ArchitectureConnectionDraft) => void };
+
+export type ArchitectureNodePlacement = {
+  point: { x: number; y: number };
+  connectionId?: string;
+};
 
 export type CanvasToolbarProps = {
   tool: CanvasTool;

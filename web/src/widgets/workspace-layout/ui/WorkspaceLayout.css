@@ -15,6 +15,10 @@
   overflow: hidden;
 }
 
+.workspace-layout__sidebar {
+  container: workspace-sidebar / inline-size;
+}
+
 .workspace-layout__sidebar--collapsed {
   overflow: hidden !important;
 }
@@ -26,6 +30,22 @@
   outline: none;
   transition: background-color 100ms ease;
   touch-action: none;
+  user-select: none;
+}
+
+/* The resize library's expanded hit region must also own the DOM pointer target. */
+.workspace-resize-handle::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.workspace-resize-handle[aria-orientation='vertical']::after {
+  inset-inline: -5px;
+}
+
+.workspace-resize-handle[aria-orientation='horizontal']::after {
+  inset-block: -5px;
 }
 
 .workspace-resize-handle[aria-orientation='vertical'] {
@@ -40,7 +60,7 @@
 
 .workspace-resize-handle:is(:hover, [data-separator='hover']) {
   background: var(--signal);
-  transition-delay: 220ms;
+  transition-delay: 100ms;
 }
 
 .workspace-resize-handle:focus-visible,
@@ -51,4 +71,14 @@
 
 body:has(.workspace-resize-handle[data-separator='active']) {
   user-select: none;
+}
+
+@media (pointer: coarse) {
+  .workspace-resize-handle[aria-orientation='vertical']::after {
+    inset-inline: -14px;
+  }
+
+  .workspace-resize-handle[aria-orientation='horizontal']::after {
+    inset-block: -14px;
+  }
 }

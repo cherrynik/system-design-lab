@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import type { Exercise, ValidationResult } from '@/entities/exercise';
 import {
   ARCHITECTURE_AUTOSAVE_STORAGE_KEY,
@@ -90,9 +90,11 @@ export const Workspace: Story = {
     const canvas = within(canvasElement);
 
     await step('Load the technical workspace', async () => {
-      await expect(
-        await canvas.findByRole('heading', { name: 'Route web traffic to an HTTP API' }),
-      ).toBeVisible();
+      await waitFor(() =>
+        expect(
+          canvas.getByRole('heading', { name: 'Route web traffic to an HTTP API' }),
+        ).toBeVisible(),
+      );
       await expect(canvas.getByRole('button', { name: /Validate/ })).toBeEnabled();
     });
 

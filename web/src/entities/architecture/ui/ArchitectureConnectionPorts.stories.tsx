@@ -77,14 +77,17 @@ export const OutputOnly: Story = {
   },
 };
 
-export const InputOnly: Story = {
+export const ServiceCapabilities: Story = {
   args: { kind: 'service', connectionState: connected.get('service')! },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByRole('img')).toHaveLength(1);
+    await expect(canvas.getAllByRole('img')).toHaveLength(2);
     const input = canvas.getByRole('img', { name: 'Input: 1 connection from NGINX' });
     await expect(input).toHaveAttribute('data-port-direction', 'incoming');
-    await expect(input.nextElementSibling).toHaveAttribute('aria-hidden', 'true');
+    await expect(canvas.getByRole('img', { name: 'Output: Not connected' })).toHaveAttribute(
+      'data-port-state',
+      'unconnected',
+    );
   },
 };
 
@@ -92,4 +95,8 @@ export const IndividualPort: Story = {
   render: () => (
     <ArchitectureConnectionPort direction="incoming" connections={[connectionPortNodes[0]]} />
   ),
+};
+
+export const IsolatedService: Story = {
+  args: { kind: 'service', connectionState: isolated.get('service')! },
 };

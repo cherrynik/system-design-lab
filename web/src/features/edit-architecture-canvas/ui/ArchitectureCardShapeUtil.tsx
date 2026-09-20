@@ -37,7 +37,7 @@ export class ArchitectureCardShapeUtil extends BaseBoxShapeUtil<ArchitectureCard
   }
 
   override canBind({ bindingType }: { bindingType: string }) {
-    return bindingType === 'arrow' || bindingType === 'architecture-port';
+    return bindingType === 'arrow';
   }
 
   override canEdit(shape: ArchitectureCardShape) {

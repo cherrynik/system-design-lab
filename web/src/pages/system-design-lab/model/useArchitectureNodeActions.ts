@@ -3,15 +3,19 @@ import {
   getArchitectureVariant,
   makeArchitectureNode,
   renameArchitectureNode,
+  ARCHITECTURE_CARD_WIDTH,
+  ARCHITECTURE_CARD_HEIGHT,
   type ArchitectureNodeKind,
 } from '@/entities/architecture';
 import type {
   ArchitectureNodeActions,
   ArchitectureNodeActionsOptions,
 } from './ArchitectureNodeActions.types';
+import type { ArchitectureNodePlacement } from '@/widgets/architecture-workbench';
 
 export function useArchitectureNodeActions({
   nodes,
+  edges,
   applyChange,
   replacePresent,
   focusShape,
@@ -57,7 +61,12 @@ export function useArchitectureNodeActions({
   );
 
   const addNode = useCallback(
-    (kind: ArchitectureNodeKind, variantId = 'abstract') => {
+    (kind: ArchitectureNodeKind, variantId = 'abstract', placement?: ArchitectureNodePlacement) => {
+      if (placement?.connectionId) {
+        const connection = edges.find((edge) => edge.id === placement.connectionId);
+        const target = nodes.find((node) => node.id === connection?.target);
+        if (!connection || !target?.data.isAnchor) return;
+      }
       const kindCount =
         nodes.filter((node) => !node.data.isAnchor && node.data.kind === kind).length + 1;
       const total = nodes.filter((node) => !node.data.isAnchor).length;
@@ -66,17 +75,42 @@ export function useArchitectureNodeActions({
       const node = makeArchitectureNode(
         kind,
         variantId,
-        100 + (total % 3) * 280,
-        140 + Math.floor(total / 3) * 150,
+        placement ? placement.point.x - ARCHITECTURE_CARD_WIDTH / 2 : 100 + (total % 3) * 280,
+        placement
+          ? placement.point.y - ARCHITECTURE_CARD_HEIGHT / 2
+          : 140 + Math.floor(total / 3) * 150,
         label,
       );
-      applyChange((current) => ({ ...current, nodes: [...current.nodes, node] }));
+      applyChange((current) => {
+        if (
+          placement?.connectionId &&
+          !current.edges.some((edge) => edge.id === placement.connectionId)
+        )
+          return current;
+        return {
+          ...current,
+          nodes: [...current.nodes, node],
+          edges: current.edges.map((edge) => {
+            if (edge.id !== placement?.connectionId) return edge;
+            return {
+              ...edge,
+              target: node.id,
+              data: {
+                ...edge.data,
+                protocol: edge.data?.protocol ?? String(edge.label ?? ''),
+                targetAnchor: undefined,
+                targetAttachment: undefined,
+              },
+            };
+          }),
+        };
+      });
       setRegistryOpen(false);
       setGroup(null);
       showEvent({ message: `Added “${node.data.label}”`, action: 'undo' });
-      window.setTimeout(() => focusShape(node.id), 0);
+      if (!placement) window.setTimeout(() => focusShape(node.id), 0);
     },
-    [applyChange, focusShape, nodes, setGroup, setRegistryOpen, showEvent],
+    [applyChange, edges, focusShape, nodes, setGroup, setRegistryOpen, showEvent],
   );
 
   const deleteNode = useCallback(

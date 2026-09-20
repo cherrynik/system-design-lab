@@ -136,7 +136,7 @@ test('mobile canvas events do not cover the canvas toolbar', async ({ page }) =>
   await page.setViewportSize({ width: 390, height: 844 });
   await openWorkspace(page);
 
-  await page.getByRole('button', { name: 'Add component' }).click();
+  await page.getByRole('button', { name: 'Add component', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'COMPONENT LIBRARY' });
   await dialog.getByRole('button', { name: 'Quick add Balancers' }).click();
   await expect(page.getByText(/Added/)).toBeVisible();

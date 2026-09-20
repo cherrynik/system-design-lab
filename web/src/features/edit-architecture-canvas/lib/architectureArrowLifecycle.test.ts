@@ -9,14 +9,10 @@ import {
 } from 'tldraw';
 import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture';
 import type * as TldrawModule from 'tldraw';
-import type { ArchitecturePortBinding } from '../model/architecturePort.types';
 import { createArchitectureArrow } from './createArchitectureArrow';
 import { reconcileArrowBinding } from './reconcileArrowBinding';
 import { shapeIdForEdge, shapeIdForNode } from './shapeIds';
 import { updateArchitectureArrow } from './updateArchitectureArrow';
-import { normalizeArrowSourceGap } from './normalizeArrowSourceGap';
-
-vi.mock('./normalizeArrowSourceGap', () => ({ normalizeArrowSourceGap: vi.fn() }));
 
 vi.mock('tldraw', async (importOriginal) => {
   const actual = (await importOriginal()) as typeof TldrawModule;
@@ -142,11 +138,6 @@ describe('architecture arrow lifecycle', () => {
           isPrecise: true,
         }),
       }),
-    );
-    expect(normalizeArrowSourceGap).toHaveBeenCalledWith(
-      harness.editor,
-      expect.objectContaining({ type: 'arrow' }),
-      edge.data?.sourceAnchor,
     );
     expect(harness.createBinding).toHaveBeenNthCalledWith(
       2,
@@ -281,89 +272,57 @@ describe('architecture arrow lifecycle', () => {
     expect(harness.createShape).toHaveBeenCalledTimes(1);
     expect(harness.createBinding).toHaveBeenCalledTimes(2);
   });
-  it('restores external hotspot sources as port bindings while keeping native targets', () => {
+  it('migrates legacy external ports into automatic native bindings', () => {
     const harness = createEditorHarness();
-    const anchor = { side: 'right' as const, offset: 0.4, gap: 10.5 };
     createArchitectureArrow(
       harness.editor,
-      { ...edge, data: { ...edge.data!, sourceAnchor: anchor } },
+      { ...edge, data: { ...edge.data!, sourceAnchor: { side: 'right', offset: 0.4, gap: 11 } } },
       [client, service],
     );
-    expect(harness.createBinding).toHaveBeenNthCalledWith(1, {
-      type: 'architecture-port',
-      fromId: shapeIdForEdge(edge.id),
-      toId: shapeIdForNode(client.id),
-      props: { anchor },
-    });
     expect(harness.createBinding).toHaveBeenNthCalledWith(
-      2,
+      1,
       expect.objectContaining({
         type: 'arrow',
-        props: expect.objectContaining({ terminal: 'end' }),
+        props: {
+          terminal: 'start',
+          normalizedAnchor: { x: 0.5, y: 0.5 },
+          isPrecise: false,
+          isExact: false,
+          snap: 'none',
+        },
       }),
     );
   });
 
-  it('reconciles restored ports, switched source cards and explicit native reattachments', () => {
+  it('restores native precise attachment coordinates without projecting to an edge', () => {
     const harness = createEditorHarness();
-    const anchor = { side: 'bottom' as const, offset: 0.6, gap: 11 };
-    const native = arrowBinding('native-start', 'start', shapeIdForNode(client.id));
-    reconcileArrowBinding(harness.editor, shapeIdForEdge(edge.id), 'start', client, anchor, native);
-    expect(harness.deleteBinding).toHaveBeenCalledWith(native.id);
-    expect(harness.createBinding).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'architecture-port', props: { anchor } }),
+    const sourceAttachment = {
+      normalizedAnchor: { x: 0.74, y: 0.37 },
+      isPrecise: true,
+      isExact: false,
+      snap: 'none' as const,
+    };
+    createArchitectureArrow(
+      harness.editor,
+      { ...edge, data: { ...edge.data!, sourceAttachment } },
+      [client, service],
     );
-    const port = {
-      id: 'binding:port',
-      type: 'architecture-port',
-      toId: shapeIdForNode(client.id),
-      fromId: shapeIdForEdge(edge.id),
-      props: { anchor },
-    } as ArchitecturePortBinding;
-    vi.mocked(harness.editor.getBindingsFromShape).mockReturnValue([port]);
+    expect(harness.createBinding).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ type: 'arrow', props: { terminal: 'start', ...sourceAttachment } }),
+    );
+    const existing = arrowBinding('native-start', 'start', shapeIdForNode(client.id));
     reconcileArrowBinding(
       harness.editor,
       shapeIdForEdge(edge.id),
       'start',
       client,
-      anchor,
       undefined,
+      existing,
+      sourceAttachment,
     );
-    expect(harness.updateBinding).toHaveBeenCalledWith({ ...port, props: { anchor } });
-    reconcileArrowBinding(
-      harness.editor,
-      shapeIdForEdge(edge.id),
-      'start',
-      service,
-      anchor,
-      undefined,
+    expect(harness.updateBinding).toHaveBeenCalledWith(
+      expect.objectContaining({ props: { terminal: 'start', ...sourceAttachment } }),
     );
-    expect(harness.deleteBinding).toHaveBeenCalledWith(port.id);
-    expect(harness.createBinding).toHaveBeenLastCalledWith(
-      expect.objectContaining({ type: 'architecture-port', toId: shapeIdForNode(service.id) }),
-    );
-    reconcileArrowBinding(
-      harness.editor,
-      shapeIdForEdge(edge.id),
-      'start',
-      client,
-      { side: 'left', offset: 0.3 },
-      undefined,
-    );
-    expect(harness.createBinding).toHaveBeenLastCalledWith(
-      expect.objectContaining({ type: 'arrow' }),
-    );
-    const free = { ...client, data: { ...client.data, isAnchor: true } };
-    harness.createBinding.mockClear();
-    reconcileArrowBinding(
-      harness.editor,
-      shapeIdForEdge(edge.id),
-      'start',
-      free,
-      undefined,
-      undefined,
-    );
-    expect(harness.deleteBinding).toHaveBeenLastCalledWith(port.id);
-    expect(harness.createBinding).not.toHaveBeenCalled();
   });
 });

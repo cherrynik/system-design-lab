@@ -1,5 +1,5 @@
 import { Crosshair, SlidersHorizontal, Trash2 } from 'lucide-react';
-import { handleComponentMenuKeyDown } from '../lib/handleComponentMenuKeyDown';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, DropdownMenuTrigger } from '@/shared/ui';
 import type { ComponentContextMenuProps } from './RequirementSidebar.types';
 
 export function ComponentContextMenu({
@@ -22,49 +22,67 @@ export function ComponentContextMenu({
   };
 
   return (
-    <div
-      ref={contextMenuRef}
-      className="context-menu"
-      role="menu"
-      aria-label="Component actions"
-      style={{ left: menu.x, top: menu.y }}
-      onKeyDown={(event) => handleComponentMenuKeyDown(event, closeAndRestoreFocus)}
-      onPointerDown={(event) => event.stopPropagation()}
+    <ContextMenu
+      opened
+      onChange={(open) => {
+        if (!open) onMenuChange(null);
+      }}
+      position="bottom-start"
+      width={204}
+      closeOnEscape={false}
+      returnFocus={false}
+      withInitialFocusPlaceholder={false}
     >
-      <button
-        role="menuitem"
-        type="button"
-        onClick={() => {
-          onFocusNode(menu.id);
-          onMenuChange(null);
+      <DropdownMenuTrigger>
+        <span
+          aria-hidden="true"
+          className="platform-floating-anchor"
+          style={{ left: menu.x, top: menu.y }}
+        />
+      </DropdownMenuTrigger>
+      <ContextMenuContent
+        ref={contextMenuRef}
+        className="context-menu"
+        aria-label="Component actions"
+        aria-labelledby=""
+        onKeyDown={(event) => {
+          if (event.key !== 'Escape') return;
+          event.preventDefault();
+          closeAndRestoreFocus();
         }}
+        onPointerDown={(event) => event.stopPropagation()}
       >
-        <Crosshair />
-        Focus on canvas
-      </button>
-      <button
-        role="menuitem"
-        type="button"
-        onClick={() => {
-          onInspectNode(menu.id);
-          onMenuChange(null);
-        }}
-      >
-        <SlidersHorizontal />
-        Inspect component
-      </button>
-      <button
-        role="menuitem"
-        type="button"
-        className="context-menu__danger"
-        onClick={() => {
-          onDeleteNode(menu.id);
-          onMenuChange(null);
-        }}
-      >
-        <Trash2 />
-        Delete component
-      </button>
-    </div>
+        <ContextMenuItem
+          autoFocus
+          data-autofocus
+          leftSection={<Crosshair />}
+          onClick={() => {
+            onFocusNode(menu.id);
+            onMenuChange(null);
+          }}
+        >
+          Focus on canvas
+        </ContextMenuItem>
+        <ContextMenuItem
+          leftSection={<SlidersHorizontal />}
+          onClick={() => {
+            onInspectNode(menu.id);
+            onMenuChange(null);
+          }}
+        >
+          Inspect component
+        </ContextMenuItem>
+        <ContextMenuItem
+          variant="destructive"
+          leftSection={<Trash2 />}
+          onClick={() => {
+            onDeleteNode(menu.id);
+            onMenuChange(null);
+          }}
+        >
+          Delete component
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

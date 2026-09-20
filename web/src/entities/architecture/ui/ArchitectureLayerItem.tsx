@@ -64,7 +64,10 @@ export function ArchitectureLayerItem({
         data-component-menu-trigger={node.id}
         type="button"
         aria-label={`Open menu for ${label}`}
-        onClick={(event) => onOpenMenu(node.id, event.clientX, event.clientY)}
+        onClick={(event) => {
+          const anchor = event.currentTarget.getBoundingClientRect();
+          onOpenMenu(node.id, anchor.left, anchor.bottom);
+        }}
       >
         <FiMoreHorizontal />
       </button>
@@ -85,6 +88,9 @@ export function ArchitectureLayerItem({
         if (!readOnly) onOpenMenu?.(node.id, event.clientX, event.clientY);
       }}
     >
+      {showPorts && (
+        <ArchitectureConnectionPorts kind={node.data.kind} connectionState={connectionState} />
+      )}
       <div
         className={cn(
           'layer-item',
@@ -141,9 +147,6 @@ export function ArchitectureLayerItem({
           compact={compact}
         />
       </div>
-      {showPorts && (
-        <ArchitectureConnectionPorts kind={node.data.kind} connectionState={connectionState} />
-      )}
       {menuButton}
     </div>
   );

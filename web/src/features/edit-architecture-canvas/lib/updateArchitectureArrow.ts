@@ -3,7 +3,6 @@ import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture
 import { architectureNodeCenter } from './architectureArrowGeometry';
 import { architectureArrowProps } from './architectureArrowProps';
 import { architectureArrowMeta } from './architectureArrowMeta';
-import { normalizeArrowSourceGap } from './normalizeArrowSourceGap';
 import { createArchitectureArrow } from './createArchitectureArrow';
 import { reconcileArrowBinding } from './reconcileArrowBinding';
 import { shapeIdForEdge } from './shapeIds';
@@ -33,8 +32,22 @@ export function updateArchitectureArrow(
     meta: { ...existing.meta, ...architectureArrowMeta(edge) },
     props: architectureArrowProps(edge, start, end),
   });
-  reconcileArrowBinding(editor, arrowId, 'start', source, edge.data?.sourceAnchor, bindings.start);
-  reconcileArrowBinding(editor, arrowId, 'end', target, edge.data?.targetAnchor, bindings.end);
-  const arrow = editor.getShape<TLArrowShape>(arrowId);
-  if (arrow) normalizeArrowSourceGap(editor, arrow, edge.data?.sourceAnchor ?? null);
+  reconcileArrowBinding(
+    editor,
+    arrowId,
+    'start',
+    source,
+    edge.data?.sourceAnchor,
+    bindings.start,
+    edge.data?.sourceAttachment,
+  );
+  reconcileArrowBinding(
+    editor,
+    arrowId,
+    'end',
+    target,
+    edge.data?.targetAnchor,
+    bindings.end,
+    edge.data?.targetAttachment,
+  );
 }

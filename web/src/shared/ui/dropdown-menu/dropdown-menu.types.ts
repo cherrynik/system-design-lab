@@ -11,7 +11,7 @@ import type {
   MenuSubItemProps,
   MenuSubProps,
 } from '@mantine/core';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ComponentProps, ReactElement, Ref } from 'react';
 
 export type DropdownMenuProps = Omit<MenuProps, 'onChange' | 'opened'> & {
   onOpenChange?: (opened: boolean) => void;
@@ -20,11 +20,12 @@ export type DropdownMenuProps = Omit<MenuProps, 'onChange' | 'opened'> & {
 export type DropdownMenuTriggerProps = ComponentProps<typeof Menu.Target> & {
   render?: ReactElement;
 };
-export type DropdownMenuContentProps = MenuDropdownProps;
-export type DropdownMenuItemProps = MenuItemProps & {
-  inset?: boolean;
-  variant?: 'default' | 'destructive';
-};
+export type DropdownMenuContentProps = MenuDropdownProps & { ref?: Ref<HTMLDivElement> };
+export type DropdownMenuItemProps = MenuItemProps &
+  Omit<ComponentProps<'button'>, keyof MenuItemProps> & {
+    inset?: boolean;
+    variant?: 'default' | 'destructive';
+  };
 export type DropdownMenuCheckboxItemProps = MenuCheckboxItemProps & { inset?: boolean };
 export type DropdownMenuRadioItemProps = MenuRadioItemProps & { inset?: boolean };
 export type DropdownMenuRadioGroupProps = MenuRadioGroupProps;
