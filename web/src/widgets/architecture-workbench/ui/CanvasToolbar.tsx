@@ -28,7 +28,7 @@ export function CanvasToolbar({ tool, onToolChange }: CanvasToolbarProps) {
                   label={`${item.label} (${item.shortcut})`}
                   aria-pressed={active}
                   className="canvas-toolbar__action"
-                  color="cyan"
+                  color="platformSignal"
                   size="icon"
                   variant={getToolVariant(active)}
                   onClick={() => onToolChange(item.id)}

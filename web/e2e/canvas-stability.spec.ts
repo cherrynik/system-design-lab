@@ -76,6 +76,76 @@ test('preserves the zoomed and panned camera while switching reference solutions
   ).toBeAttached();
 });
 
+for (const returnRoute of ['Description', 'My Canvas']) {
+  test(`restores each workspace camera when returning from Solutions through ${returnRoute}`, async ({
+    page,
+  }) => {
+    await openApp(page);
+    const canvasRuntime = page.locator('.tldraw-engine');
+    await expect(canvasRuntime).toBeVisible();
+    const cards = page.locator('.tldraw-architecture-card');
+    await expect(cards).toHaveCount(2);
+    const userLabels = await cards.locator('strong').allTextContents();
+    await settledCameraTransform(page);
+    await canvasRuntime.evaluate((element) => {
+      element.dataset.workspaceRuntime = 'stable';
+    });
+    await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+    await settledCameraTransform(page);
+    await page.getByRole('button', { name: 'Pan canvas (1)' }).click();
+    const userBounds = await canvasRuntime.boundingBox();
+    expect(userBounds).not.toBeNull();
+    const userPanX = userBounds!.x + userBounds!.width * 0.8;
+    const userPanY = userBounds!.y + userBounds!.height * 0.8;
+    await page.mouse.move(userPanX, userPanY);
+    await page.mouse.down();
+    await page.mouse.move(userPanX + 55, userPanY - 35, { steps: 6 });
+    await page.mouse.up();
+    const userCamera = await settledCameraTransform(page);
+
+    await page.getByRole('tab', { name: 'Solutions', exact: true }).click();
+    await expect(canvasRuntime).toHaveAttribute('data-workspace-runtime', 'stable');
+    await settledCameraTransform(page);
+    await page.getByRole('button', { name: /Load Balancer Path/ }).click();
+    await expect(cards).toHaveCount(3);
+
+    const bounds = await canvasRuntime.boundingBox();
+    expect(bounds).not.toBeNull();
+    const startX = bounds!.x + bounds!.width * 0.75;
+    const startY = bounds!.y + bounds!.height * 0.75;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX - 90, startY - 50, { steps: 8 });
+    await page.mouse.up();
+    await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+    const solutionCamera = await settledCameraTransform(page);
+    expect(solutionCamera).not.toBe(userCamera);
+
+    if (returnRoute === 'Description') {
+      await page.getByRole('tab', { name: 'Description', exact: true }).click();
+    } else {
+      await page.getByRole('button', { name: 'My Canvas', exact: true }).click();
+    }
+
+    await expect(canvasRuntime).toHaveAttribute('data-workspace-runtime', 'stable');
+    expect(await settledCameraTransform(page)).toBe(userCamera);
+    await expect(cards).toHaveCount(2);
+    expect(await cards.locator('strong').allTextContents()).toEqual(userLabels);
+    await expect(cards.first()).toHaveAttribute('tabindex', '0');
+    await cards.first().press('Enter');
+    await expect(cards.first()).toHaveClass(/tldraw-architecture-card--selected/);
+    const storedLabels = await page.evaluate((key) => {
+      const snapshot = JSON.parse(window.localStorage.getItem(key)!);
+      return snapshot.nodes.map((node: { data: { label: string } }) => node.data.label);
+    }, autosaveKey);
+    expect(storedLabels).toEqual(userLabels);
+    await page.getByRole('tab', { name: 'Solutions', exact: true }).click();
+    await expect(canvasRuntime).toHaveAttribute('data-workspace-runtime', 'stable');
+    expect(await settledCameraTransform(page)).toBe(solutionCamera);
+    await expect(cards).toHaveCount(3);
+  });
+}
+
 test('keeps the sidebar toggle on one baseline when the sidebar collapses', async ({ page }) => {
   const viewports = [
     { width: 1280, height: 720 },

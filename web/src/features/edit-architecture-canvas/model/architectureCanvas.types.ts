@@ -36,6 +36,7 @@ type SharedCanvasProps = {
   nodes: ArchitectureNode[];
   edges: ArchitectureEdge[];
   documentId?: string;
+  cameraId?: string;
   validationStates?: Map<string, ArchitectureNodeValidationState>;
   onMountEditor?: (editor: Editor) => void;
 };

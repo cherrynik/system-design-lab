@@ -29,7 +29,7 @@ export function ComponentLibrarySection({ kind, onAddNode }: ComponentLibrarySec
         aria-label={`Quick add ${category.group}`}
       >
         <Plus aria-hidden="true" focusable="false" />
-        <span>Quick add {abstractVariant.label}</span>
+        <span>Quick add</span>
       </button>
     );
   }

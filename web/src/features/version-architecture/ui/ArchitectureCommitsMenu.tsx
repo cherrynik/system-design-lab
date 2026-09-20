@@ -120,7 +120,7 @@ export function ArchitectureCommitsMenu({
               className="commit-current-button"
               size="xs"
               variant="secondary"
-              color="teal"
+              color="platformSignal"
               onClick={onCommit}
             >
               Commit

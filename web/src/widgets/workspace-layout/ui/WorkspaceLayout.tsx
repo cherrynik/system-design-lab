@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useMediaQuery } from '@mantine/hooks';
-import { Group, Panel, Separator, usePanelRef } from 'react-resizable-panels';
+import { Group, Panel, usePanelRef } from 'react-resizable-panels';
 import type { Orientation } from 'react-resizable-panels';
 import { cn } from '@/shared/lib';
 import type { WorkspaceLayoutProps } from './WorkspaceLayout.types';
@@ -83,11 +83,7 @@ export function WorkspaceLayout({
         {sidebar}
       </Panel>
 
-      {!sidebarCollapsed && (
-        <Separator id="sidebar-separator" className="workspace-resize-handle">
-          <WorkspaceResizeHandle orientation={outerOrientation} />
-        </Separator>
-      )}
+      {!sidebarCollapsed && <WorkspaceResizeHandle id="sidebar-separator" label="Resize sidebar" />}
 
       <Panel id="workbench-panel" className="workspace-layout__workbench" minSize="35%">
         <Group
@@ -99,9 +95,7 @@ export function WorkspaceLayout({
           <Panel id="canvas-panel" minSize={canvasMinSize}>
             {canvas}
           </Panel>
-          <Separator id="runner-separator" className="workspace-resize-handle">
-            <WorkspaceResizeHandle orientation="horizontal" />
-          </Separator>
+          <WorkspaceResizeHandle id="runner-separator" label="Resize test runner" />
           <Panel
             id="runner-panel"
             className="workspace-layout__runner"

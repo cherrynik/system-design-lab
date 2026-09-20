@@ -414,8 +414,8 @@
 }
 
 .sidebar-topology-graph__commit--ready {
-  fill: var(--success);
-  stroke: color-mix(in srgb, var(--success) 18%, var(--surface-deep));
+  fill: var(--component-accent);
+  stroke: color-mix(in srgb, var(--component-accent) 18%, var(--surface-deep));
 }
 
 .sidebar-topology-graph__commit--incomplete,

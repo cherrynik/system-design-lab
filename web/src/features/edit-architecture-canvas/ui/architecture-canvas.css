@@ -370,10 +370,10 @@
 }
 .inspector-capabilities code {
   padding: 3px 5px;
-  color: color-mix(in srgb, var(--success) 62%, var(--text-default));
+  color: color-mix(in srgb, var(--signal) 62%, var(--text-default));
   border: 0;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--success) 10%, var(--surface-deep));
+  background: color-mix(in srgb, var(--signal) 10%, var(--surface-deep));
   font: 9px/1.35 var(--font-code);
 }
 

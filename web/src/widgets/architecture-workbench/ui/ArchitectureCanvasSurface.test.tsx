@@ -88,6 +88,7 @@ describe('ArchitectureCanvasSurface', () => {
       expect.objectContaining({
         mode: 'interactive',
         documentId: 'my-canvas',
+        cameraId: 'my-canvas',
         nodes: interactiveNodes,
         edges: interactiveEdges,
         tool: 'selection',
@@ -130,10 +131,12 @@ describe('ArchitectureCanvasSurface', () => {
       expect.objectContaining({
         mode: 'interactive',
         documentId: 'my-canvas',
+        cameraId: 'my-canvas',
         nodes: interactiveNodes,
       }),
     );
 
+    const initialRuntime = screen.getByTestId('architecture-canvas-runtime');
     canvasRenderSpy.mockClear();
     rerender(<ArchitectureCanvasSurface {...surfaceProps} view="solutions" />);
     await waitFor(() => expect(canvasRenderSpy).toHaveBeenCalled());
@@ -144,6 +147,7 @@ describe('ArchitectureCanvasSurface', () => {
       expect.objectContaining({
         mode: 'readonly',
         documentId: `solution:${solution.id}`,
+        cameraId: 'reference-solutions',
         nodes: solutionNodes,
         edges: solutionEdges,
         validationStates: surfaceProps.validationStates,
@@ -155,6 +159,7 @@ describe('ArchitectureCanvasSurface', () => {
     expect(runtimeProps.onUpdateVariant).toBeUndefined();
 
     const solutionRuntime = screen.getByTestId('architecture-canvas-runtime');
+    expect(solutionRuntime).toBe(initialRuntime);
     rerender(
       <ArchitectureCanvasSurface
         {...surfaceProps}
@@ -176,9 +181,11 @@ describe('ArchitectureCanvasSurface', () => {
       expect.objectContaining({
         mode: 'interactive',
         documentId: 'my-canvas',
+        cameraId: 'my-canvas',
         nodes: interactiveNodes,
         edges: interactiveEdges,
       }),
     );
+    expect(screen.getByTestId('architecture-canvas-runtime')).toBe(initialRuntime);
   });
 });

@@ -1,6 +1,5 @@
 .validation-panel {
   position: relative;
-  border-top: 1px solid var(--line-subtle);
 }
 
 .validation-terminal {
@@ -20,7 +19,6 @@
   min-width: 0;
   min-height: 48px;
   padding: 7px var(--space-4);
-  border-bottom: 1px solid var(--line-subtle);
   background: var(--surface-panel);
 }
 
@@ -84,14 +82,14 @@
   min-height: 32px;
   color: var(--ink);
   border: 0;
-  background: var(--success);
+  background: var(--signal);
   font-family: var(--font-code);
   font-size: var(--text-meta);
   font-weight: 650;
 }
 
 .validation-header .validate-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--success) 88%, white);
+  background: color-mix(in srgb, var(--signal) 88%, white);
 }
 
 .validation-header .validate-button:disabled {
@@ -208,7 +206,7 @@
   width: 10px;
   height: 10px;
   border: 1px solid var(--line-strong);
-  border-top-color: var(--success);
+  border-top-color: var(--signal);
   border-radius: 50%;
   animation: terminal-spin 700ms linear infinite;
 }
@@ -222,7 +220,7 @@
 
 .architecture-commits .commits-trigger {
   color: var(--text-muted);
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--line-subtle) 76%, transparent);
   background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
   backdrop-filter: blur(16px);
 }
@@ -273,7 +271,7 @@
   align-items: center;
   margin: 0;
   padding: 2px 4px;
-  color: var(--success);
+  color: var(--signal);
   background: transparent;
   border-radius: var(--radius-sm);
   font: 500 9px / 1 var(--font-code);

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Tldraw, type Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
 import './architecture-canvas.css';
+import { useArchitectureCanvasCamera } from '../hooks/useArchitectureCanvasCamera';
 import { useArchitectureCanvasActionsValue } from '../hooks/useArchitectureCanvasActionsValue';
 import { useArchitectureCanvasReconciler } from '../hooks/useArchitectureCanvasReconciler';
 import { useArchitectureCanvasStoreSync } from '../hooks/useArchitectureCanvasStoreSync';
@@ -29,6 +30,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
     props.edges,
     props.validationStates,
   );
+  useArchitectureCanvasCamera(editor, props.cameraId ?? documentId);
   // Hydrate the document before locking a reference solution. Tldraw rejects
   // programmatic shape creation once the editor instance is read-only.
   const toolRef = useArchitectureCanvasTool(editor, runtime.mode, runtime.tool);

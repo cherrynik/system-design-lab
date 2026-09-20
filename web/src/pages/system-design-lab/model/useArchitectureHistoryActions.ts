@@ -19,7 +19,6 @@ export function useArchitectureHistoryActions({
     showEvent({
       message: 'Last change undone',
       action: 'redo',
-      persistent: true,
     });
   }, [canUndo, closeTransientUi, showEvent, undo]);
 

@@ -23,7 +23,7 @@ describe('useCanvasEvents', () => {
     expect(result.current.event).toBeNull();
   });
 
-  it('restarts dismissal for a newer event and keeps persistent actions visible', () => {
+  it('restarts dismissal for a newer event, including undo notifications', () => {
     const { result } = renderHook(() => useCanvasEvents());
 
     act(() => result.current.show({ message: 'First event' }));
@@ -32,15 +32,8 @@ describe('useCanvasEvents', () => {
     act(() => vi.advanceTimersByTime(1000));
     expect(result.current.event?.message).toBe('Last change undone');
 
-    act(() =>
-      result.current.show({
-        message: 'Keep this until another action',
-        action: 'redo',
-        persistent: true,
-      }),
-    );
-    act(() => vi.advanceTimersByTime(10_000));
-    expect(result.current.event?.message).toBe('Keep this until another action');
+    act(() => vi.advanceTimersByTime(3500));
+    expect(result.current.event).toBeNull();
   });
 
   it('cancels pending dismissal when its owner unmounts', () => {

@@ -2,6 +2,7 @@ import { CanvasEventToast } from '@/features/canvas-history';
 import { ArchitectureCommitsMenu } from '@/features/version-architecture';
 import { ArchitectureCanvasSurface } from './ArchitectureCanvasSurface';
 import type { ArchitectureWorkbenchProps } from './ArchitectureWorkbench.types';
+import { CanvasHistoryControls } from './CanvasHistoryControls';
 import { CanvasToolbar } from './CanvasToolbar';
 import { CanvasZoomControls } from './CanvasZoomControls';
 import { SolutionCanvasHeader } from './SolutionCanvasHeader';
@@ -46,7 +47,18 @@ export function ArchitectureWorkbench(props: ArchitectureWorkbenchProps) {
         />
 
         {isCanvas && <CanvasToolbar tool={props.tool} onToolChange={props.onToolChange} />}
-        <CanvasZoomControls editorRef={props.editorRef} />
+        <div className="canvas-navigation-controls">
+          <CanvasZoomControls editorRef={props.editorRef} />
+          {isCanvas && (
+            <CanvasHistoryControls
+              canUndo={props.canUndo}
+              canRedo={props.canRedo}
+              usesCommandKey={props.usesCommandKey}
+              onUndo={props.onUndo}
+              onRedo={props.onRedo}
+            />
+          )}
+        </div>
       </div>
 
       {showEvent && props.event && (

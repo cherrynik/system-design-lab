@@ -76,6 +76,28 @@ afterEach(() => {
 });
 
 describe('useSystemDesignLabController', () => {
+  it('keeps history availability in sync with undo and redo actions', () => {
+    mockArchitectureApi();
+    const { result } = renderHook(() => useSystemDesignLabController());
+    expect(result.current.workbenchProps.canUndo).toBe(false);
+    expect(result.current.workbenchProps.canRedo).toBe(false);
+
+    act(() => result.current.sidebarProps.onAddNode('load-balancer'));
+    expect(result.current.workbenchProps.canUndo).toBe(true);
+    expect(result.current.workbenchProps.canRedo).toBe(false);
+    expect(result.current.workbenchProps.nodes).toHaveLength(3);
+
+    act(() => result.current.workbenchProps.onUndo());
+    expect(result.current.workbenchProps.canUndo).toBe(false);
+    expect(result.current.workbenchProps.canRedo).toBe(true);
+    expect(result.current.workbenchProps.nodes).toHaveLength(2);
+
+    act(() => result.current.workbenchProps.onRedo());
+    expect(result.current.workbenchProps.canUndo).toBe(true);
+    expect(result.current.workbenchProps.canRedo).toBe(false);
+    expect(result.current.workbenchProps.nodes).toHaveLength(3);
+  });
+
   it('wires one saved architecture through the sidebar and canvas across workspace views', async () => {
     mockArchitectureApi();
     const { result } = renderHook(() => useSystemDesignLabController());

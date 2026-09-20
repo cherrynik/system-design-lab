@@ -32,6 +32,9 @@ export type ArchitectureWorkbenchProps = {
   versionsOpen: boolean;
   dirty: boolean;
   event: CanvasEvent | null;
+  canUndo: boolean;
+  canRedo: boolean;
+  usesCommandKey: boolean;
   onViewChange: (view: WorkspaceView) => void;
   onVersionsOpenChange: (open: boolean) => void;
   onCommit: () => void;

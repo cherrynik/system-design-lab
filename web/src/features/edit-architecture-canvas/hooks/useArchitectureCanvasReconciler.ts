@@ -20,17 +20,6 @@ import type {
   ArchitectureCardShape,
 } from '../model/architectureCanvas.types';
 
-function fitInitialDocument(editor: Editor) {
-  let frame = 0;
-  frame = requestAnimationFrame(() => {
-    frame = requestAnimationFrame(() => {
-      editor.zoomToFit();
-    });
-  });
-
-  return () => cancelAnimationFrame(frame);
-}
-
 export function useArchitectureCanvasReconciler(
   editor: Editor | null,
   mode: ArchitectureCanvasMode,
@@ -42,13 +31,10 @@ export function useArchitectureCanvasReconciler(
   const lastRenderedEdges = useRef<string | null>(null);
   const lastReconciledContent = useRef<string | null>(null);
   const hydratedDocumentId = useRef<string | null>(null);
-  const cancelInitialFit = useRef<(() => void) | null>(null);
   const isReconciling = useRef(false);
 
   useEffect(
     () => () => {
-      cancelInitialFit.current?.();
-      cancelInitialFit.current = null;
       hydratedDocumentId.current = null;
       lastRenderedEdges.current = null;
       lastReconciledContent.current = null;
@@ -59,10 +45,11 @@ export function useArchitectureCanvasReconciler(
   useEffect(() => {
     if (!editor) return;
     isReconciling.current = true;
-    if (mode === 'readonly') editor.updateInstanceState({ isReadonly: false });
+    if (editor.getInstanceState().isReadonly) {
+      editor.updateInstanceState({ isReadonly: false });
+    }
 
     try {
-      const hasHydratedDocument = hydratedDocumentId.current !== null;
       const documentChanged = hydratedDocumentId.current !== documentId;
       const nextContent = `${mode}:${documentId}:${architectureContentKey(nodes, edges)}`;
       const contentChanged = nextContent !== lastReconciledContent.current;
@@ -172,14 +159,7 @@ export function useArchitectureCanvasReconciler(
       }
 
       hydratedDocumentId.current = documentId;
-      if (documentChanged) {
-        cancelInitialFit.current?.();
-        cancelInitialFit.current = null;
-        if (!hasHydratedDocument && componentNodes.length) {
-          cancelInitialFit.current = fitInitialDocument(editor);
-        }
-        editor.clearHistory();
-      }
+      if (documentChanged) editor.clearHistory();
     } finally {
       isReconciling.current = false;
       if (mode === 'readonly') editor.updateInstanceState({ isReadonly: true });

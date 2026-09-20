@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { Editor } from 'tldraw';
 import { CanvasZoomControls } from './CanvasZoomControls';
+import './ArchitectureWorkbench.css';
 
 const editorRef = { current: null as Editor | null };
 

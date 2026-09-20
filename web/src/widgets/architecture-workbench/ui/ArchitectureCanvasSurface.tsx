@@ -15,8 +15,8 @@ export function ArchitectureCanvasSurface(props: ArchitectureCanvasSurfaceProps)
     return (
       <Suspense fallback={<CanvasLoadingState />}>
         <TldrawArchitectureCanvas
-          key="reference-solutions"
           mode="readonly"
+          cameraId="reference-solutions"
           documentId={`solution:${props.solution.id}`}
           nodes={snapshot.nodes}
           edges={snapshot.edges}
@@ -30,8 +30,8 @@ export function ArchitectureCanvasSurface(props: ArchitectureCanvasSurfaceProps)
   return (
     <Suspense fallback={<CanvasLoadingState />}>
       <TldrawArchitectureCanvas
-        key="my-canvas"
         mode="interactive"
+        cameraId="my-canvas"
         documentId="my-canvas"
         nodes={props.nodes}
         edges={props.edges}

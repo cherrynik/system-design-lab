@@ -34,7 +34,7 @@ describe('useArchitectureHistoryActions', () => {
     expect(options.showEvent).not.toHaveBeenCalled();
   });
 
-  it('undoes a change, closes transient UI, and offers a persistent redo', () => {
+  it('undoes a change, closes transient UI, and offers redo', () => {
     const options = createOptions({ canUndo: true });
     const { result } = renderHook(() => useArchitectureHistoryActions(options));
 
@@ -45,7 +45,6 @@ describe('useArchitectureHistoryActions', () => {
     expect(options.showEvent).toHaveBeenCalledWith({
       message: 'Last change undone',
       action: 'redo',
-      persistent: true,
     });
   });
 

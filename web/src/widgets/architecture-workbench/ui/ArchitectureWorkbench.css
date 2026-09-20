@@ -5,6 +5,7 @@
   height: 100%;
   overflow: hidden;
   background: var(--surface-canvas);
+  container-type: inline-size;
 }
 
 .flow-canvas {
@@ -22,8 +23,8 @@
 
 .canvas-toolbar,
 .canvas-zoom-controls,
+.canvas-history-controls,
 .solution-canvas-header {
-  position: absolute;
   z-index: 40;
   border: 0;
   border-radius: var(--radius-md);
@@ -31,7 +32,14 @@
   backdrop-filter: blur(16px);
 }
 
+.canvas-toolbar,
+.canvas-zoom-controls,
+.canvas-history-controls {
+  border: 1px solid color-mix(in srgb, var(--line-subtle) 76%, transparent);
+}
+
 .canvas-toolbar {
+  position: absolute;
   top: 12px;
   left: 50%;
   padding: 3px;
@@ -56,14 +64,30 @@
   line-height: 11px;
 }
 
-.canvas-zoom-controls {
+.canvas-navigation-controls {
+  position: absolute;
+  z-index: 40;
   left: 12px;
-  right: auto;
   bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canvas-zoom-controls,
+.canvas-history-controls {
+  width: max-content;
   padding: 3px;
 }
 
+.canvas-history-controls .mantine-ActionIcon-root:disabled {
+  background: transparent;
+  color: var(--text-faint);
+  opacity: 0.55;
+}
+
 .solution-canvas-header {
+  position: absolute;
   top: 12px;
   right: 12px;
   max-width: calc(100% - 24px);
@@ -92,6 +116,18 @@
 }
 
 @media (max-width: 720px) {
+  .canvas-zoom-controls {
+    display: none;
+  }
+}
+
+@container (max-width: 720px) {
+  .canvas-panel > .canvas-event-toast.mantine-Notification-root {
+    bottom: 56px;
+  }
+}
+
+@container (max-width: 520px) {
   .canvas-zoom-controls {
     display: none;
   }

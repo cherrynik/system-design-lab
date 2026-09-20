@@ -50,7 +50,7 @@ export function ValidationRunnerHeader({
 
         <Button
           className="validate-button"
-          color="teal"
+          color="platformSignal"
           leftSection={!running && <Play size={14} aria-hidden="true" />}
           onClick={onValidate}
           disabled={running}

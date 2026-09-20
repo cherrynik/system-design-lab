@@ -21,6 +21,9 @@ describe('WorkspaceLayout', () => {
     expect(screen.getByText('Test runner')).toBeTruthy();
     const separators = screen.getAllByRole('separator');
     expect(separators).toHaveLength(2);
+    expect(screen.getByRole('separator', { name: 'Resize sidebar' })).toBe(separators[0]);
+    expect(screen.getByRole('separator', { name: 'Resize test runner' })).toBe(separators[1]);
+    expect(separators.every((separator) => separator.querySelector('svg') === null)).toBe(true);
     expect(separators[0].getAttribute('aria-orientation')).toBe('vertical');
     expect(separators[0].getAttribute('tabindex')).toBe('0');
     expect(separators[0].getAttribute('aria-controls')).toBe('requirements-panel');

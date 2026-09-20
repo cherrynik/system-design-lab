@@ -8,5 +8,6 @@ export type WorkspaceLayoutProps = {
 };
 
 export type WorkspaceResizeHandleProps = {
-  orientation: 'horizontal' | 'vertical';
+  id: string;
+  label: string;
 };

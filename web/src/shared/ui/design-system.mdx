@@ -11,7 +11,7 @@ The interface behaves like an engineering workbench: dense enough for architectu
 1. **Every visible element starts here.** A reusable UI component is added to Storybook before product code imports it.
 2. **One component, one file.** Props and shared types live in adjacent `*.types.ts` files. Compound families share one folder and one public index.
 3. **No conditional expressions in JSX.** Derive state before the return or use explicit branches so each state is readable and testable.
-4. **Structure communicates state.** Borders separate editable regions, color communicates validation or destructive actions, and spacing follows information hierarchy.
+4. **Structure communicates state.** Surface contrast separates workspace regions. Thin borders group canvas controls; resize boundaries appear on deliberate hover or keyboard focus. Color communicates actions and validation, and spacing follows information hierarchy.
 5. **Platform behavior comes from Mantine.** Do not rebuild keyboard navigation, portals, focus traps, scroll areas, menus, or overlays in product features.
 
 ## Provider boundary
@@ -25,9 +25,13 @@ The base rhythm is 4px. Compact controls use 4–8px internal gaps; related bloc
 ## Surface hierarchy
 
 - **Canvas:** architecture topology on the lowest-contrast technical grid.
-- **Panel:** requirements and validation on a stable dark surface with a single boundary.
+- **Panel:** requirements and validation on a stable dark surface without permanent divider lines.
 - **Floating:** menus, inspectors, and commits on an elevated, focus-managed surface.
-- **Selection:** the current node or edge, communicated with a cyan or teal focus signal.
+- **Selection:** the current node or edge, communicated with the same cyan signal used for primary actions.
+
+## Product accent
+
+Cyan is the single product accent: component icons use it consistently in the library, sidebar, inspector, and canvas. Component roles are identified by their icon and label, not a different color for each role. `--component-accent` aliases `--signal`; Mantine uses the matching `platformSignal` palette for tabs and controls.
 
 ## Typography
 
@@ -36,8 +40,8 @@ Geist is the interface face. Sentence case is the default. Monospace is reserved
 ## Validation colors
 
 - **Neutral:** idle or not evaluated
-- **Cyan:** work in progress or informational state
-- **Teal:** valid, connected, or completed
+- **Cyan:** selection, primary actions, components, and informational state
+- **Teal:** successful validation or completed status
 - **Amber:** usable result with a warning
 - **Red:** destructive action or failed validation
 

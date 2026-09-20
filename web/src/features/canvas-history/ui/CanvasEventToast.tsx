@@ -5,7 +5,7 @@ import type { CanvasEventToastProps, CanvasEventTone } from './CanvasEventToast.
 
 function getNotificationColor(tone: CanvasEventTone) {
   if (tone === 'danger') return 'red';
-  return 'teal';
+  return 'platformSignal';
 }
 
 function getNotificationIcon(tone: CanvasEventTone) {

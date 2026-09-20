@@ -7,6 +7,7 @@ import type {
   ArchitectureNode,
   ArchitectureNodeValidationState,
 } from '@/entities/architecture';
+import type { ArchitectureCanvasMode } from '../model/architectureCanvas.types';
 import { shapeIdForEdge, shapeIdForNode } from '../lib/shapeIds';
 import { useArchitectureCanvasReconciler } from './useArchitectureCanvasReconciler';
 import { useArchitectureShapeGuard } from './useArchitectureShapeGuard';
@@ -78,6 +79,7 @@ function createEditorHarness(): EditorHarness {
       return editor;
     }),
     getCurrentPageShapes: vi.fn(() => [...shapes.values()]),
+    getInstanceState: vi.fn(() => ({ isReadonly: readonly })),
     getShape: vi.fn((id: TLShapeId) => shapes.get(id)),
     run: vi.fn((callback: () => void) => callback()),
     setCurrentTool: vi.fn((tool: string) => events.push(`tool:${tool}`)),
@@ -159,7 +161,6 @@ describe('useArchitectureCanvasReconciler', () => {
     expect(harness.events.indexOf(`create:${shapeIdForNode(node.id)}`)).toBeLessThan(
       harness.events.indexOf('readonly:true'),
     );
-    expect(harness.events).toContain('zoom-to-fit');
     expect(harness.events).toContain('clear-history');
   });
 
@@ -185,54 +186,46 @@ describe('useArchitectureCanvasReconciler', () => {
       y: 40,
       props: { nodeId: 'gateway', label: 'Gateway', isReadonly: true },
     });
-    expect(harness.editor.zoomToFit).toHaveBeenCalledTimes(1);
+    expect(harness.editor.zoomToFit).not.toHaveBeenCalled();
     expect(harness.editor.clearHistory).toHaveBeenCalledTimes(2);
   });
 
-  it('cancels a pending initial fit when another solution opens before the next frame', () => {
-    const frames = new Map<number, FrameRequestCallback>();
-    let nextFrame = 0;
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-      const frame = ++nextFrame;
-      frames.set(frame, callback);
-      return frame;
+  it('restores the editable document from a locked solution in the same editor without refitting', () => {
+    const harness = createEditorHarness();
+    const client = architectureNode('my-client', 'My client');
+    const solutionNode = architectureNode('solution-api', 'Reference API', 320, 40);
+    const { rerender } = renderHook(
+      ({ mode, documentId, nodes }) => {
+        const reconciliation = useArchitectureCanvasReconciler(
+          harness.editor,
+          mode,
+          documentId,
+          nodes,
+          [],
+        );
+        useArchitectureCanvasTool(harness.editor, mode, 'selection');
+        useArchitectureShapeGuard(harness.editor, mode, reconciliation.isReconciling);
+      },
+      {
+        initialProps: {
+          mode: 'interactive' as ArchitectureCanvasMode,
+          documentId: 'my-canvas',
+          nodes: [client],
+        },
+      },
+    );
+
+    rerender({ mode: 'readonly', documentId: 'solution:example', nodes: [solutionNode] });
+    expect(harness.isReadonly()).toBe(true);
+    expect(harness.shapes.has(shapeIdForNode(client.id))).toBe(false);
+
+    rerender({ mode: 'interactive', documentId: 'my-canvas', nodes: [client] });
+
+    expect(harness.isReadonly()).toBe(false);
+    expect(harness.shapes.has(shapeIdForNode(solutionNode.id))).toBe(false);
+    expect(harness.shapes.get(shapeIdForNode(client.id))).toMatchObject({
+      props: { nodeId: client.id, isReadonly: false },
     });
-    vi.stubGlobal('cancelAnimationFrame', (frame: number) => frames.delete(frame));
-    const harness = createEditorHarness();
-    const firstNode = architectureNode('client', 'Client');
-    const secondNode = architectureNode('gateway', 'Gateway', 320, 40);
-    const { rerender, unmount } = renderHook(
-      ({ documentId, nodes }) => useReadonlyArchitectureDocument(harness.editor, documentId, nodes),
-      { initialProps: { documentId: 'solution:first', nodes: [firstNode] } },
-    );
-    const firstFrame = frames.get(1)!;
-    frames.delete(1);
-    firstFrame(0);
-
-    rerender({ documentId: 'solution:second', nodes: [secondNode] });
-
-    expect(frames.size).toBe(0);
-    expect(harness.editor.zoomToFit).not.toHaveBeenCalled();
-    expect(harness.shapes.has(shapeIdForNode(secondNode.id))).toBe(true);
-    unmount();
-    expect(frames.size).toBe(0);
-  });
-
-  it('cancels the initial camera fit when the canvas unmounts', () => {
-    const harness = createEditorHarness();
-    vi.stubGlobal(
-      'requestAnimationFrame',
-      vi.fn(() => 42),
-    );
-    const { unmount } = renderHook(() =>
-      useReadonlyArchitectureDocument(harness.editor, 'solution:first', [
-        architectureNode('client', 'Client'),
-      ]),
-    );
-
-    unmount();
-
-    expect(cancelAnimationFrame).toHaveBeenCalledWith(42);
     expect(harness.editor.zoomToFit).not.toHaveBeenCalled();
   });
 

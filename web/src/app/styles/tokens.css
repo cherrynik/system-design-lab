@@ -22,9 +22,10 @@
   --line-focus: #536c91;
   --grid-dot: #6887b0;
   --signal: #68d5ff;
-  --component-client: #64a6ff;
-  --component-load-balancer: #45d89a;
-  --component-service: #32c9ec;
+  --component-accent: var(--signal);
+  --component-client: var(--component-accent);
+  --component-load-balancer: var(--component-accent);
+  --component-service: var(--component-accent);
   --success: #72dfb2;
   --warning: #efc96d;
   --danger: #ff7d8f;

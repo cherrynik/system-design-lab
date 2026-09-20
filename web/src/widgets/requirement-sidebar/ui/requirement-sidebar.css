@@ -7,7 +7,6 @@
   padding: 20px 16px;
   box-sizing: border-box;
   overflow-y: auto;
-  border-right: 1px solid var(--line-hairline);
   background: var(--surface-sidebar);
 }
 
@@ -167,7 +166,7 @@
 
 .requirement-document__eyebrow {
   margin: 0;
-  color: var(--success);
+  color: var(--signal);
   font: 9px var(--font-code);
   letter-spacing: 0.1em;
   text-transform: uppercase;
