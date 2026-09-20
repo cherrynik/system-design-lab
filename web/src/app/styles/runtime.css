@@ -104,15 +104,19 @@
 
 .validate-shortcut [data-slot='kbd'],
 .validate-shortcut kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 18px;
   height: 18px;
-  padding-inline: 4px;
+  padding: 0 4px;
   color: inherit;
+  border-width: 1px;
   border-color: color-mix(in srgb, var(--ink) 18%, transparent);
   background: color-mix(in srgb, white 16%, transparent);
   font-family: var(--font-ui);
   font-size: 9px;
-  line-height: 18px;
+  line-height: 1;
 }
 
 .validation-body,
