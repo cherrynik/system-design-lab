@@ -52,3 +52,30 @@ export const SelectedNode: Story = {
     );
   },
 };
+
+export const ConnectMode: Story = {
+  render: () => (
+    <div className="canvas-story">
+      <TldrawArchitectureCanvas
+        nodes={snapshot.nodes}
+        edges={snapshot.edges}
+        documentId="storybook-card-hotspot-connect"
+        mode="interactive"
+        tool="connection"
+        onNodesChange={() => undefined}
+        onEdgesChange={() => undefined}
+        onToolChange={() => undefined}
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const hotspot = await within(canvasElement).findByRole('button', {
+      name: 'Create connection from right of NGINX',
+    });
+
+    await waitFor(() => expect(hotspot).toBeVisible());
+    await expect(hotspot).toBeEnabled();
+    await expect(hotspot).toHaveAttribute('aria-hidden', 'false');
+    await expect(hotspot).toHaveAttribute('tabindex', '0');
+  },
+};

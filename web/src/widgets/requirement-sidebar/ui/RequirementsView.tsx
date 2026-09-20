@@ -17,7 +17,6 @@ export function RequirementsView({
   registryOpen,
   query,
   group,
-  groupQuery,
   usesCommandKey,
   menu,
   contextMenuRef,
@@ -26,7 +25,6 @@ export function RequirementsView({
   onRegistryOpenChange,
   onQueryChange,
   onGroupChange,
-  onGroupQueryChange,
   onMenuChange,
   onAddNode,
   onFocusNode,
@@ -62,12 +60,10 @@ export function RequirementsView({
         registryOpen={registryOpen}
         query={query}
         group={group}
-        groupQuery={groupQuery}
         usesCommandKey={usesCommandKey}
         onRegistryOpenChange={onRegistryOpenChange}
         onQueryChange={onQueryChange}
         onGroupChange={onGroupChange}
-        onGroupQueryChange={onGroupQueryChange}
         onAddNode={onAddNode}
       />
       <ComponentContextMenu

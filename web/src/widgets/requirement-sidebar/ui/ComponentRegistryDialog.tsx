@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import {
   Dialog,
@@ -10,34 +9,24 @@ import {
   Input,
   Kbd,
 } from '@/shared/ui';
+import { ComponentCatalog } from './ComponentCatalog';
 import { ComponentSearchResults } from './ComponentSearchResults';
 import { RegistryCategories } from './RegistryCategories';
 import type { ComponentRegistryDialogProps } from './RequirementSidebar.types';
+import './component-library.css';
 
 export function ComponentRegistryDialog({
   registryOpen,
   query,
   group,
-  groupQuery,
   usesCommandKey,
   onRegistryOpenChange,
   onQueryChange,
   onGroupChange,
-  onGroupQueryChange,
   onAddNode,
 }: ComponentRegistryDialogProps) {
-  const searchRef = useRef<HTMLInputElement | null>(null);
-  const registryDialogRef = useRef<HTMLDivElement | null>(null);
   const shortcutKey = usesCommandKey ? '⌘' : 'Ctrl';
-  let content = (
-    <RegistryCategories
-      activeGroup={group}
-      groupQuery={groupQuery}
-      onGroupChange={onGroupChange}
-      onGroupQueryChange={onGroupQueryChange}
-      onAddNode={onAddNode}
-    />
-  );
+  let content = <ComponentCatalog group={group} onAddNode={onAddNode} />;
 
   if (query.trim()) {
     content = <ComponentSearchResults query={query} onAddNode={onAddNode} />;
@@ -46,19 +35,20 @@ export function ComponentRegistryDialog({
   return (
     <Dialog open={registryOpen} onOpenChange={onRegistryOpenChange}>
       <DialogContent
-        ref={registryDialogRef}
         centered
         classNames={{
-          body: 'component-library__body',
-          content: 'component-library',
+          body: 'component-catalog-dialog__body',
+          content: 'component-catalog-dialog',
         }}
-        size="410px"
+        size="min(760px, calc(100vw - 24px))"
         showCloseButton={false}
       >
-        <DialogHeader className="component-library__header">
+        <DialogHeader className="component-catalog-dialog__header" role="presentation">
           <div>
-            <DialogTitle className="panel-id">COMPONENT LIBRARY</DialogTitle>
-            <DialogDescription>Search or browse by category</DialogDescription>
+            <DialogTitle aria-label="COMPONENT LIBRARY">Components</DialogTitle>
+            <DialogDescription>
+              Add an architecture primitive to the active canvas.
+            </DialogDescription>
           </div>
           <IconButton
             label="Close component library"
@@ -69,18 +59,26 @@ export function ComponentRegistryDialog({
             <X />
           </IconButton>
         </DialogHeader>
-        <label className="catalog-search">
-          <Search />
+        <label className="component-catalog-search">
+          <Search aria-hidden="true" focusable="false" />
           <Input
-            ref={searchRef}
+            autoFocus
+            data-autofocus
             aria-label="Search components"
-            placeholder="Search components…"
+            placeholder="Search names, types, or capabilities"
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
           />
           <Kbd>{shortcutKey} K</Kbd>
         </label>
-        {content}
+        <div className="component-catalog-dialog__workspace">
+          <RegistryCategories
+            group={group}
+            onGroupChange={onGroupChange}
+            onQueryChange={onQueryChange}
+          />
+          <div className="component-catalog-dialog__results">{content}</div>
+        </div>
       </DialogContent>
     </Dialog>
   );

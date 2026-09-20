@@ -17,7 +17,12 @@ export function ValidationRunnerOutput({ error, lines, outputRef }: ValidationRu
         </Alert>
       )}
 
-      <ScrollArea viewportRef={outputRef} className={outputClassName} type="auto">
+      <ScrollArea
+        viewportRef={outputRef}
+        classNames={{ viewport: 'terminal-output__viewport' }}
+        className={outputClassName}
+        type="auto"
+      >
         {idle && (
           <div className="terminal-idle-state">
             <p className="terminal-line terminal-line--info">archlab simulator v0.4</p>

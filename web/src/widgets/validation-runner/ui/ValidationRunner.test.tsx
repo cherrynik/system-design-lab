@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -89,5 +89,30 @@ describe('ValidationRunner', () => {
 
     await user.click(screen.getByRole('button', { name: 'Clear test runner' }));
     expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps native text copying inside the runner instead of forwarding it to the canvas', () => {
+    const documentCopy = vi.fn();
+    document.addEventListener('copy', documentCopy);
+
+    renderWithPlatform(
+      <ValidationRunner
+        error={null}
+        lines={[{ kind: 'success', text: 'PASS  request path reaches handler' }]}
+        running={false}
+        status="ready"
+        usesCommandKey
+        outputRef={createRef<HTMLDivElement>()}
+        onClear={vi.fn()}
+        onValidate={vi.fn()}
+      />,
+    );
+
+    const copyEvent = new Event('copy', { bubbles: true, cancelable: true });
+    fireEvent(screen.getByText('PASS request path reaches handler'), copyEvent);
+
+    expect(documentCopy).not.toHaveBeenCalled();
+    expect(copyEvent.defaultPrevented).toBe(false);
+    document.removeEventListener('copy', documentCopy);
   });
 });

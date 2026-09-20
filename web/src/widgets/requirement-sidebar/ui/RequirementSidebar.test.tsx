@@ -38,7 +38,6 @@ function makeProps(overrides: Partial<RequirementSidebarProps> = {}): Requiremen
     registryOpen: false,
     query: '',
     group: null,
-    groupQuery: '',
     usesCommandKey: true,
     menu: null,
     contextMenuRef: createRef<HTMLDivElement>(),
@@ -50,7 +49,6 @@ function makeProps(overrides: Partial<RequirementSidebarProps> = {}): Requiremen
     onRegistryOpenChange: vi.fn(),
     onQueryChange: vi.fn(),
     onGroupChange: vi.fn(),
-    onGroupQueryChange: vi.fn(),
     onMenuChange: vi.fn(),
     onAddNode: vi.fn(),
     onFocusNode: vi.fn(),
@@ -118,6 +116,36 @@ describe('RequirementSidebar', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /NGINX/i }));
     expect(onAddNode).toHaveBeenCalledWith('load-balancer', 'nginx');
+  });
+
+  it('uses categories for navigation without adding a component', () => {
+    const onGroupChange = vi.fn();
+    const onQueryChange = vi.fn();
+    const onAddNode = vi.fn();
+    renderSidebar(
+      makeProps({
+        registryOpen: true,
+        onGroupChange,
+        onQueryChange,
+        onAddNode,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^Balancers/i }));
+
+    expect(onGroupChange).toHaveBeenCalledWith('load-balancer');
+    expect(onQueryChange).toHaveBeenCalledWith('');
+    expect(onAddNode).not.toHaveBeenCalled();
+  });
+
+  it('shows only concrete implementations for the selected category', () => {
+    renderSidebar(makeProps({ registryOpen: true, group: 'load-balancer' }));
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Balancers' })).toBeTruthy();
+    expect(screen.getByText('1 group')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Quick add Balancers' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add NGINX' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add Web Browser' })).toBeNull();
   });
 
   it('keeps focus, inspect, and delete context actions distinct', () => {

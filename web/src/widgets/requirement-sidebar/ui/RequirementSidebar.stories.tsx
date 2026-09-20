@@ -8,6 +8,8 @@ import {
 } from '@/entities/architecture';
 import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture';
 import { ComponentContextMenu } from './ComponentContextMenu';
+import { ComponentCatalog } from './ComponentCatalog';
+import { ComponentLibrarySection } from './ComponentLibrarySection';
 import { ComponentOption } from './ComponentOption';
 import { ComponentRegistryDialog } from './ComponentRegistryDialog';
 import { ComponentSearchResults } from './ComponentSearchResults';
@@ -83,7 +85,6 @@ const sidebarProps: RequirementSidebarProps = {
   registryOpen: false,
   query: '',
   group: null,
-  groupQuery: '',
   usesCommandKey: true,
   menu: null,
   contextMenuRef: { current: null },
@@ -95,7 +96,6 @@ const sidebarProps: RequirementSidebarProps = {
   onRegistryOpenChange: noopBoolean,
   onQueryChange: noopValue,
   onGroupChange: noop,
-  onGroupQueryChange: noopValue,
   onMenuChange: noop,
   onAddNode: noop,
   onFocusNode: noopValue,
@@ -168,7 +168,9 @@ export const Option: Story = {
         variantId: 'web-browser',
         label: 'Web Browser',
         description: 'Browser-based request source',
-        meta: 'Clients',
+        type: 'client.browser',
+        actionLabel: 'Add Web Browser',
+        actionText: 'Add',
         icon: Monitor,
       }}
       onAdd={noop}
@@ -181,28 +183,21 @@ export const SearchResults: Story = {
 };
 
 export const Category: Story = {
-  render: () => (
-    <RegistryCategory
-      kind="client"
-      expanded
-      query=""
-      onToggle={noop}
-      onQueryChange={noopValue}
-      onAddNode={noop}
-    />
-  ),
+  render: () => <RegistryCategory kind="client" selected onSelect={noop} />,
 };
 
 export const Categories: Story = {
   render: () => (
-    <RegistryCategories
-      activeGroup="load-balancer"
-      groupQuery=""
-      onGroupChange={noop}
-      onGroupQueryChange={noopValue}
-      onAddNode={noop}
-    />
+    <RegistryCategories group="load-balancer" onGroupChange={noop} onQueryChange={noopValue} />
   ),
+};
+
+export const CatalogSection: Story = {
+  render: () => <ComponentLibrarySection kind="load-balancer" onAddNode={noop} />,
+};
+
+export const Catalog: Story = {
+  render: () => <ComponentCatalog group={null} onAddNode={noop} />,
 };
 
 export const RegistryDialog: Story = {
@@ -211,12 +206,10 @@ export const RegistryDialog: Story = {
       registryOpen
       query=""
       group={null}
-      groupQuery=""
       usesCommandKey
       onRegistryOpenChange={noopBoolean}
       onQueryChange={noopValue}
       onGroupChange={noop}
-      onGroupQueryChange={noopValue}
       onAddNode={noop}
     />
   ),

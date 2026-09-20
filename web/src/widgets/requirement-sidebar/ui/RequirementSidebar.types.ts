@@ -17,7 +17,10 @@ export type ComponentOptionData = {
   variantId: string;
   label: string;
   description: string;
-  meta: string;
+  type: string;
+  context?: string;
+  actionLabel: string;
+  actionText: string;
   icon: ComponentType<{
     className?: string;
     'aria-hidden'?: boolean | 'true' | 'false';
@@ -41,7 +44,6 @@ export type RequirementSidebarProps = {
   registryOpen: boolean;
   query: string;
   group: ArchitectureNodeKind | null;
-  groupQuery: string;
   usesCommandKey: boolean;
   menu: ComponentContextMenu | null;
   contextMenuRef: RefObject<HTMLDivElement | null>;
@@ -53,7 +55,6 @@ export type RequirementSidebarProps = {
   onRegistryOpenChange: (open: boolean) => void;
   onQueryChange: (query: string) => void;
   onGroupChange: (group: ArchitectureNodeKind | null) => void;
-  onGroupQueryChange: (query: string) => void;
   onMenuChange: (menu: ComponentContextMenu | null) => void;
   onAddNode: (kind: ArchitectureNodeKind, variantId?: string) => void;
   onFocusNode: (nodeId: string) => void;
@@ -83,12 +84,10 @@ export type ComponentRegistryDialogProps = Pick<
   | 'registryOpen'
   | 'query'
   | 'group'
-  | 'groupQuery'
   | 'usesCommandKey'
   | 'onRegistryOpenChange'
   | 'onQueryChange'
   | 'onGroupChange'
-  | 'onGroupQueryChange'
   | 'onAddNode'
 >;
 
@@ -119,17 +118,18 @@ export type ComponentSearchResultsProps = Pick<RequirementSidebarProps, 'query' 
 
 export type RegistryCategoryProps = {
   kind: ArchitectureNodeKind;
-  expanded: boolean;
-  query: string;
-  onToggle: () => void;
-  onQueryChange: (query: string) => void;
-  onAddNode: RequirementSidebarProps['onAddNode'];
+  selected: boolean;
+  onSelect: () => void;
 };
 
-export type RegistryCategoriesProps = {
-  activeGroup: ArchitectureNodeKind | null;
-  groupQuery: string;
-  onGroupChange: RequirementSidebarProps['onGroupChange'];
-  onGroupQueryChange: RequirementSidebarProps['onGroupQueryChange'];
+export type RegistryCategoriesProps = Pick<
+  RequirementSidebarProps,
+  'group' | 'onGroupChange' | 'onQueryChange'
+>;
+
+export type ComponentCatalogProps = Pick<RequirementSidebarProps, 'group' | 'onAddNode'>;
+
+export type ComponentLibrarySectionProps = {
+  kind: ArchitectureNodeKind;
   onAddNode: RequirementSidebarProps['onAddNode'];
 };

@@ -4,7 +4,10 @@ import type { ValidationRunnerProps } from './ValidationRunner.types';
 
 export function ValidationRunner(props: ValidationRunnerProps) {
   return (
-    <section className="panel validation-panel validation-terminal">
+    <section
+      className="panel validation-panel validation-terminal"
+      onCopy={(event) => event.stopPropagation()}
+    >
       <ValidationRunnerHeader
         lines={props.lines}
         onClear={props.onClear}

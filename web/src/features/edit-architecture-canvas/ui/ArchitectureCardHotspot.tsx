@@ -28,20 +28,43 @@ export function ArchitectureCardHotspot({
       ),
     };
     actions.queueHotspotStart(pending);
-    const finalizeArrow = () => {
+    let clearStaleArrow = 0;
+    const cleanupPointerListeners = () => {
       window.removeEventListener('pointerup', finalizeArrow, true);
-      window.removeEventListener('pointercancel', finalizeArrow, true);
-      window.requestAnimationFrame(() => {
+      window.removeEventListener('pointercancel', cancelArrow, true);
+      window.clearTimeout(clearStaleArrow);
+    };
+    const cancelArrow = () => {
+      cleanupPointerListeners();
+      actions.clearHotspotStart(pending);
+    };
+    const finalizeArrow = () => {
+      cleanupPointerListeners();
+      let remainingAttempts = 3;
+      const finalizeAfterTldraw = () => {
         if (!actions.isCurrentHotspotStart(pending)) return;
         if (finalizePendingHotspotStart(editor, pending)) {
           actions.clearHotspotStart(pending);
           return;
         }
-        window.setTimeout(() => actions.clearHotspotStart(pending), 1_200);
-      });
+        remainingAttempts -= 1;
+        if (remainingAttempts > 0) window.requestAnimationFrame(finalizeAfterTldraw);
+        else actions.clearHotspotStart(pending);
+      };
+      let settlingFrames = 3;
+      const waitForTldraw = () => {
+        settlingFrames -= 1;
+        if (settlingFrames > 0) {
+          window.requestAnimationFrame(waitForTldraw);
+          return;
+        }
+        finalizeAfterTldraw();
+      };
+      window.requestAnimationFrame(waitForTldraw);
     };
     window.addEventListener('pointerup', finalizeArrow, true);
-    window.addEventListener('pointercancel', finalizeArrow, true);
+    window.addEventListener('pointercancel', cancelArrow, true);
+    clearStaleArrow = window.setTimeout(cancelArrow, 5_000);
     editor.setCurrentTool('arrow');
   };
 

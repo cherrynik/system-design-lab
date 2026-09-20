@@ -145,16 +145,12 @@
   background-size: 100% 24px;
 }
 
-.terminal-output :where([data-radix-scroll-area-viewport]) > div {
+.terminal-output__viewport > div {
   padding: 16px;
 }
 
 .terminal-output--idle {
   opacity: 0.82;
-}
-
-.terminal-idle-state {
-  padding: 16px;
 }
 
 .terminal-line {

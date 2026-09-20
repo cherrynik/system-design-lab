@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { cleanup, renderHook } from '@testing-library/react';
-import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Editor, TLShape, TLShapeId } from 'tldraw';
 import type {
@@ -9,7 +8,6 @@ import type {
   ArchitectureNodeValidationState,
 } from '@/entities/architecture';
 import { shapeIdForEdge, shapeIdForNode } from '../lib/shapeIds';
-import type { PendingHotspotStart } from '../model/architectureCanvas.types';
 import { useArchitectureCanvasReconciler } from './useArchitectureCanvasReconciler';
 import { useArchitectureShapeGuard } from './useArchitectureShapeGuard';
 import { useArchitectureCanvasTool } from './useArchitectureCanvasTool';
@@ -124,13 +122,7 @@ function useReadonlyArchitectureDocument(
     edges,
   );
   useArchitectureCanvasTool(editor, 'readonly', 'hand');
-  const pendingHotspotStartRef = useRef<PendingHotspotStart | null>(null);
-  useArchitectureShapeGuard(
-    editor,
-    'readonly',
-    pendingHotspotStartRef,
-    reconciliation.isReconciling,
-  );
+  useArchitectureShapeGuard(editor, 'readonly', reconciliation.isReconciling);
 }
 
 describe('useArchitectureCanvasReconciler', () => {
@@ -192,6 +184,11 @@ describe('useArchitectureCanvasReconciler', () => {
       y: 40,
       props: { nodeId: 'gateway', label: 'Gateway', isReadonly: true },
     });
+    expect(harness.editor.zoomToFit).toHaveBeenCalledTimes(2);
+    expect(harness.editor.zoomToFit).toHaveBeenNthCalledWith(2, {
+      animation: { duration: 160 },
+    });
+    expect(harness.editor.clearHistory).toHaveBeenCalledTimes(2);
   });
 
   it('updates an existing card and removes shapes absent from the current document', () => {

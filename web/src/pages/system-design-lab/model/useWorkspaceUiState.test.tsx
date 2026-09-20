@@ -22,11 +22,17 @@ describe('useWorkspaceUiState', () => {
 
   it('expands the sidebar when component search opens and closes only the registry', () => {
     const { result } = renderHook(() => useWorkspaceUiState());
-    act(() => result.current.setRequirementsCollapsed(true));
+    act(() => {
+      result.current.setRequirementsCollapsed(true);
+      result.current.setQuery('nginx');
+      result.current.setGroup('load-balancer');
+    });
 
     act(() => result.current.handleRegistryOpenChange(true));
     expect(result.current.requirementsCollapsed).toBe(false);
     expect(result.current.registryOpen).toBe(true);
+    expect(result.current.query).toBe('');
+    expect(result.current.group).toBeNull();
 
     act(() => result.current.handleRegistryOpenChange(false));
     expect(result.current.registryOpen).toBe(false);
@@ -43,7 +49,6 @@ describe('useWorkspaceUiState', () => {
       result.current.setLayersExpanded(false);
       result.current.setQuery('nginx');
       result.current.setGroup('load-balancer');
-      result.current.setGroupQuery('proxy');
       result.current.setVersionsOpen(true);
       result.current.setTool('connection');
     });
@@ -55,7 +60,6 @@ describe('useWorkspaceUiState', () => {
       layersExpanded: false,
       query: 'nginx',
       group: 'load-balancer',
-      groupQuery: 'proxy',
       versionsOpen: true,
       tool: 'connection',
     });

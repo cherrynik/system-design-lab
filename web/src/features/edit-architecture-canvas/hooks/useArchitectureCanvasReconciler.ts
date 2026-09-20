@@ -20,10 +20,16 @@ import type {
   ArchitectureCardShape,
 } from '../model/architectureCanvas.types';
 
-function fitDocument(editor: Editor) {
+const solutionCameraTransitionDuration = 160;
+
+function fitDocument(editor: Editor, animate: boolean) {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      editor.zoomToFit();
+      if (animate) {
+        editor.zoomToFit({ animation: { duration: solutionCameraTransitionDuration } });
+      } else {
+        editor.zoomToFit();
+      }
       editor.clearHistory();
     });
   });
@@ -47,6 +53,7 @@ export function useArchitectureCanvasReconciler(
     if (mode === 'readonly') editor.updateInstanceState({ isReadonly: false });
 
     try {
+      const hasHydratedDocument = hydratedDocumentId.current !== null;
       const documentChanged = hydratedDocumentId.current !== documentId;
       if (documentChanged) lastRenderedEdges.current = null;
 
@@ -138,7 +145,9 @@ export function useArchitectureCanvasReconciler(
       if (arrowsToDelete.length) editor.deleteShapes(arrowsToDelete);
 
       hydratedDocumentId.current = documentId;
-      if (documentChanged && componentNodes.length) fitDocument(editor);
+      if (documentChanged && componentNodes.length) {
+        fitDocument(editor, hasHydratedDocument);
+      }
     } finally {
       isReconciling.current = false;
       if (mode === 'readonly') editor.updateInstanceState({ isReadonly: true });

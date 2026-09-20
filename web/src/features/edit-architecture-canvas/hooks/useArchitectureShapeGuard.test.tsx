@@ -3,7 +3,6 @@ import { cleanup, renderHook } from '@testing-library/react';
 import type { MutableRefObject } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createShapeId, type Editor, type TLShape } from 'tldraw';
-import type { PendingHotspotStart } from '../model/architectureCanvas.types';
 import { useArchitectureShapeGuard } from './useArchitectureShapeGuard';
 
 type AfterCreateHandler = (shape: TLShape, source: 'remote' | 'user') => void;
@@ -39,7 +38,6 @@ function createGuardHarness() {
 function refs(isReconciling = false) {
   return {
     isReconciling: { current: isReconciling } as MutableRefObject<boolean>,
-    pending: { current: null } as MutableRefObject<PendingHotspotStart | null>,
   };
 }
 
@@ -49,9 +47,7 @@ describe('useArchitectureShapeGuard', () => {
   it('removes a user-created shape from a readonly solution', () => {
     const harness = createGuardHarness();
     const state = refs();
-    renderHook(() =>
-      useArchitectureShapeGuard(harness.editor, 'readonly', state.pending, state.isReconciling),
-    );
+    renderHook(() => useArchitectureShapeGuard(harness.editor, 'readonly', state.isReconciling));
     const shape = { id: createShapeId('manual-card'), type: 'architecture-card' as const };
 
     harness.created(shape);
@@ -63,9 +59,7 @@ describe('useArchitectureShapeGuard', () => {
   it('preserves supported architecture shapes created by the interactive tools', () => {
     const harness = createGuardHarness();
     const state = refs();
-    renderHook(() =>
-      useArchitectureShapeGuard(harness.editor, 'interactive', state.pending, state.isReconciling),
-    );
+    renderHook(() => useArchitectureShapeGuard(harness.editor, 'interactive', state.isReconciling));
 
     harness.created({ id: createShapeId('card'), type: 'architecture-card' });
     harness.created({ id: createShapeId('edge'), type: 'arrow' });
@@ -77,9 +71,7 @@ describe('useArchitectureShapeGuard', () => {
   it('removes unsupported user shapes and returns to selection', () => {
     const harness = createGuardHarness();
     const state = refs();
-    renderHook(() =>
-      useArchitectureShapeGuard(harness.editor, 'interactive', state.pending, state.isReconciling),
-    );
+    renderHook(() => useArchitectureShapeGuard(harness.editor, 'interactive', state.isReconciling));
     const shape = { id: createShapeId('free-text'), type: 'text' as const };
 
     harness.created(shape);
@@ -92,7 +84,7 @@ describe('useArchitectureShapeGuard', () => {
     const harness = createGuardHarness();
     const state = refs(true);
     const { unmount } = renderHook(() =>
-      useArchitectureShapeGuard(harness.editor, 'readonly', state.pending, state.isReconciling),
+      useArchitectureShapeGuard(harness.editor, 'readonly', state.isReconciling),
     );
 
     harness.created({ id: createShapeId('hydrated-card'), type: 'architecture-card' });

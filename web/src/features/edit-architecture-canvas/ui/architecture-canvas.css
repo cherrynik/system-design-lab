@@ -183,13 +183,15 @@
   .tldraw-node-hotspot,
 .tldraw-architecture-card--selected:not(.tldraw-architecture-card--arrow-interaction)
   .tldraw-node-hotspot,
+.tldraw-architecture-card--connection-tool .tldraw-node-hotspot,
 .tldraw-architecture-card--binding-target .tldraw-node-hotspot {
   opacity: 1;
 }
 .tldraw-architecture-card:not(.tldraw-architecture-card--arrow-interaction):hover
   .tldraw-node-hotspot,
 .tldraw-architecture-card--selected:not(.tldraw-architecture-card--arrow-interaction)
-  .tldraw-node-hotspot {
+  .tldraw-node-hotspot,
+.tldraw-architecture-card--connection-tool .tldraw-node-hotspot {
   pointer-events: all;
   cursor: crosshair;
 }

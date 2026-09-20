@@ -51,12 +51,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
     ],
   );
   useArchitectureCanvasStoreSync(storeSyncOptions, reconciliation.lastRenderedEdges);
-  useArchitectureShapeGuard(
-    editor,
-    runtime.mode,
-    actionsRuntime.pendingHotspotStartRef,
-    reconciliation.isReconciling,
-  );
+  useArchitectureShapeGuard(editor, runtime.mode, reconciliation.isReconciling);
   useBrowserZoomGuard();
   const handleCardDoubleClick = useArchitectureCardDoubleClick(editor, runtime.mode);
 

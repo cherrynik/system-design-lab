@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { referenceSolutions } from '@/entities/architecture';
 import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture';
@@ -21,7 +21,9 @@ vi.mock('@/entities/architecture', async (importOriginal) => {
 vi.mock('@/features/edit-architecture-canvas', () => ({
   TldrawArchitectureCanvas: (props: Record<string, unknown>) => {
     canvasRenderSpy(props);
-    return <div data-testid="architecture-canvas-runtime" />;
+    return (
+      <div data-testid="architecture-canvas-runtime" data-document-id={String(props.documentId)} />
+    );
   },
 }));
 
@@ -150,6 +152,21 @@ describe('ArchitectureCanvasSurface', () => {
     expect(runtimeProps.onEdgesChange).toBeUndefined();
     expect(runtimeProps.onToolChange).toBeUndefined();
     expect(runtimeProps.onUpdateVariant).toBeUndefined();
+
+    const solutionRuntime = screen.getByTestId('architecture-canvas-runtime');
+    rerender(
+      <ArchitectureCanvasSurface
+        {...surfaceProps}
+        view="solutions"
+        solution={referenceSolutions[0]}
+      />,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('architecture-canvas-runtime').getAttribute('data-document-id'),
+      ).toBe(`solution:${referenceSolutions[0].id}`),
+    );
+    expect(screen.getByTestId('architecture-canvas-runtime')).toBe(solutionRuntime);
 
     canvasRenderSpy.mockClear();
     rerender(<ArchitectureCanvasSurface {...surfaceProps} view="canvas" />);

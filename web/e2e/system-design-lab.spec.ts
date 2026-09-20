@@ -200,6 +200,124 @@ test('creates a free connection from a focused node hotspot', async ({ page }) =
     .toEqual({ edges: 1, anchors: 1 });
 });
 
+test('connects nodes from hotspots and draws free arrows with the Connect tool', async ({
+  page,
+}) => {
+  await openApp(page, {
+    nodes: [
+      {
+        id: 'connect-client',
+        type: 'architecture',
+        position: { x: 80, y: 180 },
+        data: { kind: 'client', variantId: 'abstract', label: 'Connect Client' },
+      },
+      {
+        id: 'connect-service',
+        type: 'architecture',
+        position: { x: 560, y: 180 },
+        data: { kind: 'service', variantId: 'abstract', label: 'Connect Service' },
+      },
+    ],
+    edges: [],
+  });
+
+  await page.keyboard.press('3');
+  const connectTool = page.getByRole('button', { name: 'Connect (3)' });
+  await expect(connectTool).toHaveAttribute('aria-pressed', 'true');
+
+  const sourceHotspot = page.getByRole('button', {
+    name: 'Create connection from right of Connect Client',
+  });
+  const target = page.getByRole('group', { name: 'Connect Service, Request Handler' });
+  await expect(sourceHotspot).toBeVisible();
+  await expect(sourceHotspot).toBeEnabled();
+  const sourceBounds = await sourceHotspot.boundingBox();
+  const targetBounds = await target.boundingBox();
+  expect(sourceBounds).not.toBeNull();
+  expect(targetBounds).not.toBeNull();
+  await page.mouse.move(
+    sourceBounds!.x + sourceBounds!.width / 2,
+    sourceBounds!.y + sourceBounds!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    targetBounds!.x + targetBounds!.width / 2,
+    targetBounds!.y + targetBounds!.height / 2,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+
+  await expect
+    .poll(() =>
+      page.evaluate((key) => {
+        const stored = window.localStorage.getItem(key);
+        if (!stored) return null;
+        const architecture = JSON.parse(stored) as StoredArchitecture;
+        return architecture.edges.map((edge) => ({
+          source: edge.source,
+          target: edge.target,
+          label: edge.label,
+        }));
+      }, autosaveKey),
+    )
+    .toEqual([{ source: 'connect-client', target: 'connect-service', label: 'HTTPS' }]);
+
+  await connectTool.click();
+  const canvas = page.locator('.tldraw-engine');
+  const canvasBounds = await canvas.boundingBox();
+  expect(canvasBounds).not.toBeNull();
+  const freeStart = {
+    x: canvasBounds!.x + canvasBounds!.width * 0.7,
+    y: canvasBounds!.y + canvasBounds!.height * 0.65,
+  };
+  await page.mouse.move(freeStart.x, freeStart.y);
+  await page.mouse.down();
+  await page.mouse.move(freeStart.x + 90, freeStart.y + 55, { steps: 5 });
+  await page.mouse.up();
+
+  await expect
+    .poll(() =>
+      page.evaluate((key) => {
+        const stored = window.localStorage.getItem(key);
+        if (!stored) return null;
+        const architecture = JSON.parse(stored) as StoredArchitecture;
+        return {
+          edges: architecture.edges.length,
+          anchors: architecture.nodes.filter((node) => node.data.isAnchor).length,
+        };
+      }, autosaveKey),
+    )
+    .toEqual({ edges: 2, anchors: 2 });
+});
+
+test('copies selected terminal text instead of selected tldraw shapes', async ({
+  context,
+  page,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await openApp(page);
+
+  const component = page.locator('.tldraw-architecture-card').first();
+  const componentBounds = await component.boundingBox();
+  expect(componentBounds).not.toBeNull();
+  await page.mouse.click(
+    componentBounds!.x + componentBounds!.width / 2,
+    componentBounds!.y + componentBounds!.height / 2,
+  );
+  await expect(component).toHaveClass(/tldraw-architecture-card--selected/);
+  const terminalText = 'archlab simulator v0.4';
+  await page.getByText(terminalText, { exact: true }).evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  });
+  await page.keyboard.press('ControlOrMeta+c');
+
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(terminalText);
+});
+
 test('keeps hidden tldraw tools disabled and includes deletion in undo history', async ({
   page,
 }) => {
@@ -317,8 +435,16 @@ test('validates a connected architecture through the Go API', async ({ page }) =
   await page.getByRole('button', { name: 'Validate' }).click();
 
   await expect.poll(async () => (await evaluationResponse).status()).toBe(200);
-  await expect(page.getByText(/PASS\s+1 passed/)).toBeVisible();
+  const terminalSummary = page.getByText(/PASS\s+1 passed/);
+  await expect(terminalSummary).toBeVisible();
   await expect(page.getByText('Passed', { exact: true })).toBeVisible();
+
+  const terminalInset = await page.evaluate(() => {
+    const viewport = document.querySelector('.terminal-output__viewport')!.getBoundingClientRect();
+    const line = document.querySelector('.terminal-line')!.getBoundingClientRect();
+    return line.left - viewport.left;
+  });
+  expect(terminalInset).toBeGreaterThanOrEqual(15);
 });
 
 test('uses the same canvas runtime for solutions and restores the user canvas', async ({

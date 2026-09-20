@@ -12,12 +12,13 @@ export function useWorkspaceUiState(): WorkspaceUiState {
   const [registryOpen, setRegistryOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<ArchitectureNodeKind | null>(null);
-  const [groupQuery, setGroupQuery] = useState('');
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [tool, setTool] = useState<CanvasTool>('selection');
 
   const openRegistry = useCallback(() => {
     setRequirementsCollapsed(false);
+    setQuery('');
+    setGroup(null);
     setRegistryOpen(true);
   }, []);
 
@@ -48,8 +49,6 @@ export function useWorkspaceUiState(): WorkspaceUiState {
     setQuery,
     group,
     setGroup,
-    groupQuery,
-    setGroupQuery,
     versionsOpen,
     setVersionsOpen,
     tool,

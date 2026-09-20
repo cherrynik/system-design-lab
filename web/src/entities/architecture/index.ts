@@ -6,6 +6,7 @@ export {
   getArrowProtocol,
   getConnectionProtocol,
 } from './model/catalog';
+export type { ArchitectureMeta, ArchitectureVariant } from './model/catalog';
 export {
   isArchitectureCardDoubleClick,
   isBrowserZoomShortcut,

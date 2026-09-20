@@ -18,8 +18,6 @@ export type WorkspaceUiState = {
   setQuery: Dispatch<SetStateAction<string>>;
   group: ArchitectureNodeKind | null;
   setGroup: Dispatch<SetStateAction<ArchitectureNodeKind | null>>;
-  groupQuery: string;
-  setGroupQuery: Dispatch<SetStateAction<string>>;
   versionsOpen: boolean;
   setVersionsOpen: Dispatch<SetStateAction<boolean>>;
   tool: CanvasTool;

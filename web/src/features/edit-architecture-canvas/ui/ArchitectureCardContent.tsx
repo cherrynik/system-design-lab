@@ -28,17 +28,20 @@ export function ArchitectureCardContent({ shape }: ArchitectureCardContentProps)
     () => editor.getHintingShapeIds().includes(shape.id),
     [editor, shape.id],
   );
-  const isArrowInteraction = useValue(
-    'arrow interaction active',
-    () =>
-      editor.getCurrentToolId() === 'arrow' ||
-      editor.getPath().startsWith('select.dragging_handle'),
+  const isConnectionTool = useValue(
+    'connection tool active',
+    () => editor.getCurrentToolId() === 'arrow',
+    [editor],
+  );
+  const isDraggingArrowHandle = useValue(
+    'arrow handle drag active',
+    () => editor.getPath().startsWith('select.dragging_handle'),
     [editor],
   );
   const isInteractive = actions.mode === 'interactive';
   const roleLabel = architectureMeta[shape.props.kind].role;
-  const showHotspots = isInteractive && (isSelected || isBindingTarget);
-  const disableHotspots = !isInteractive || isArrowInteraction;
+  const showHotspots = isInteractive && (isConnectionTool || isSelected || isBindingTarget);
+  const disableHotspots = !isInteractive || isDraggingArrowHandle;
   const classes = [
     'tldraw-architecture-card',
     `tldraw-architecture-card--${shape.props.kind}`,
@@ -46,7 +49,8 @@ export function ArchitectureCardContent({ shape }: ArchitectureCardContentProps)
   ];
   if (isSelected) classes.push('tldraw-architecture-card--selected');
   if (isBindingTarget) classes.push('tldraw-architecture-card--binding-target');
-  if (isArrowInteraction) classes.push('tldraw-architecture-card--arrow-interaction');
+  if (isConnectionTool) classes.push('tldraw-architecture-card--connection-tool');
+  if (isDraggingArrowHandle) classes.push('tldraw-architecture-card--arrow-interaction');
   let cardTabIndex = -1;
   if (isInteractive) {
     cardTabIndex = 0;

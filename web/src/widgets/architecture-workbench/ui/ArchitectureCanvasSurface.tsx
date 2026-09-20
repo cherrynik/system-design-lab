@@ -15,7 +15,7 @@ export function ArchitectureCanvasSurface(props: ArchitectureCanvasSurfaceProps)
     return (
       <Suspense fallback={<CanvasLoadingState />}>
         <TldrawArchitectureCanvas
-          key={`solution:${props.solution.id}`}
+          key="reference-solutions"
           mode="readonly"
           documentId={`solution:${props.solution.id}`}
           nodes={snapshot.nodes}
