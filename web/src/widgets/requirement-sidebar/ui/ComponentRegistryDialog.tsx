@@ -36,19 +36,19 @@ export function ComponentRegistryDialog({
     <Dialog open={registryOpen} onOpenChange={onRegistryOpenChange}>
       <DialogContent
         centered
+        yOffset="12px"
+        xOffset="8px"
         classNames={{
           body: 'component-catalog-dialog__body',
           content: 'component-catalog-dialog',
         }}
-        size="min(760px, calc(100vw - 24px))"
+        size="min(1180px, calc(100vw - 48px))"
         showCloseButton={false}
       >
         <DialogHeader className="component-catalog-dialog__header" role="presentation">
           <div>
             <DialogTitle aria-label="COMPONENT LIBRARY">Components</DialogTitle>
-            <DialogDescription>
-              Add an architecture primitive to the active canvas.
-            </DialogDescription>
+            <DialogDescription>Choose a component for your architecture.</DialogDescription>
           </div>
           <IconButton
             label="Close component library"

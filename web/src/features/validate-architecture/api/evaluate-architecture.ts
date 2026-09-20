@@ -1,3 +1,4 @@
+import { apiRequest } from '@/shared/api';
 import type { ArchitectureNodeKind } from '../../../entities/architecture';
 import type { ValidationResult } from '../../../entities/exercise';
 import type { ArchitecturePayload } from './evaluate-architecture.types';
@@ -23,7 +24,7 @@ export function toArchitecturePayload(
 export async function evaluateArchitecture(
   architecture: ArchitecturePayload,
 ): Promise<ValidationResult[]> {
-  const response = await fetch('/api/evaluate', {
+  const response = await apiRequest('/api/evaluate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(architecture),

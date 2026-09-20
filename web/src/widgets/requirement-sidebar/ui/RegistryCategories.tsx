@@ -15,7 +15,8 @@ export function RegistryCategories({
   const allSelected = group === null;
   const allClassName = cn('registry-category', allSelected && 'registry-category--active');
   const componentCount = categoryKinds.reduce(
-    (count, kind) => count + architectureVariants[kind].length,
+    (count, kind) =>
+      count + architectureVariants[kind].filter((variant) => variant.concrete).length,
     0,
   );
   let current: 'page' | undefined;

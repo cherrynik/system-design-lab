@@ -1,5 +1,6 @@
 .tldraw-engine {
   position: absolute;
+  isolation: isolate;
   inset: 0;
   overflow: hidden;
   --tl-color-background: var(--surface-canvas-paper);

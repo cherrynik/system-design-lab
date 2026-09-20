@@ -18,7 +18,9 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run --coverage",
-    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm architecture:check && pnpm storybook:check && pnpm storybook:test && pnpm test:coverage"
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm architecture:check && pnpm storybook:check && pnpm storybook:test && pnpm test:coverage",
+    "build:pages": "node scripts/build-browser-api.mjs && tsc -b && vite build --mode pages",
+    "test:pages": "playwright test --config playwright.pages.config.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",

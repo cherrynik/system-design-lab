@@ -10,3 +10,4 @@ web/vite.config.d.ts
 api/server
 *.log
 *.tar.gz
+web/public/runtime/

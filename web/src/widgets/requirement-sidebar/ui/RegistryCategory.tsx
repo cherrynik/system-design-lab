@@ -9,7 +9,7 @@ import type { RegistryCategoryProps } from './RequirementSidebar.types';
 export function RegistryCategory({ kind, selected, onSelect }: RegistryCategoryProps) {
   const CategoryIcon = architectureCategoryIcons[kind];
   const category = architectureMeta[kind];
-  const count = architectureVariants[kind].length;
+  const count = architectureVariants[kind].filter((variant) => variant.concrete).length;
   const className = cn('registry-category', selected && 'registry-category--active');
   let current: 'page' | undefined;
 

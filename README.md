@@ -44,3 +44,19 @@ make check
 ```
 
 `make check` runs backend race tests, vet, and build; frontend type checking, linting, formatting, architecture and Storybook guards, browser-based Storybook interaction and accessibility tests, coverage, production builds, and Playwright workflows. The same contract runs in GitHub Actions on every pull request and push to `main`.
+
+## Public demo (GitHub Pages)
+
+The `Verify platform` workflow verifies main, builds the static app, tests it without an API server, and publishes it to GitHub Pages. Configure **Settings → Pages → Source → GitHub Actions** once. The default address is https://cherrynik.github.io/system-design-lab/.
+
+Pages builds use the existing Go API compiled to WebAssembly in a Web Worker. The same handlers and evaluator run locally in the browser; no evaluation rules are duplicated in TypeScript. The canvas and saved attempts stay in the visitor's browser. The first validation loads the Go runtime. Local development continues to use the Go HTTP server.
+
+Build and verify the static version (Go must be on PATH):
+
+```sh
+pnpm --dir web build:pages
+pnpm --dir web test:pages
+pnpm --dir web exec vite preview --mode pages
+```
+
+For a custom domain, set it in GitHub Pages settings and configure its DNS record. The pipeline reads the Pages base path and rebuilds the asset URLs accordingly. Set `VITE_BASE_PATH=/` when building locally for a domain root. Generated `web/public/runtime/` files are ignored; CI rebuilds the Wasm binary and copies the matching Go runtime and license.

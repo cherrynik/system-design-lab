@@ -1,6 +1,7 @@
 .component-catalog-dialog.mantine-Modal-content {
-  width: min(760px, calc(100vw - 24px));
-  max-height: min(78dvh, 680px);
+  width: min(1180px, calc(100vw - 48px));
+  height: min(86dvh, 820px);
+  max-height: calc(100dvh - 24px);
   overflow: hidden;
   border: 0;
   border-radius: var(--radius-xl);
@@ -11,7 +12,8 @@
 .component-catalog-dialog__body {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  max-height: min(78dvh, 680px);
+  height: 100%;
+  min-height: 0;
   padding: 0;
   overflow: hidden;
 }
@@ -22,7 +24,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   margin-bottom: 0;
-  padding: 18px 18px 12px;
+  padding: 24px 24px 16px;
 }
 
 .component-catalog-dialog__header [data-slot='dialog-title'] {
@@ -51,7 +53,7 @@
   align-items: center;
   gap: 9px;
   min-height: 44px;
-  margin: 0 14px 12px;
+  margin: 0 24px 20px;
   padding: 0 11px;
   color: var(--text-muted);
   border-radius: var(--radius-lg);
@@ -110,7 +112,8 @@
   flex-direction: column;
   gap: 3px;
   min-width: 0;
-  padding: 14px 9px;
+  padding: 20px 12px;
+  overflow-y: auto;
   background: var(--surface-sidebar);
 }
 
@@ -216,7 +219,7 @@
 .component-catalog,
 .component-search-results {
   min-height: 100%;
-  padding: 15px 16px 18px;
+  padding: 20px 24px 24px;
 }
 
 .component-catalog__intro,
@@ -259,12 +262,12 @@
 
 .component-catalog__sections {
   display: grid;
-  gap: 18px;
+  gap: 28px;
 }
 
 .component-library-section {
   display: grid;
-  gap: 6px;
+  gap: 12px;
 }
 
 .component-library-section__header {
@@ -342,114 +345,112 @@
 .component-library-section__options,
 .component-search-results__list {
   display: grid;
-  gap: 3px;
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+  gap: 12px;
 }
 
+/* Tiles share the same footprint in browsing and search results. */
 .catalog-option {
+  position: relative;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  grid-template-rows: 36px 1fr;
+  align-content: start;
+  gap: 14px;
   width: 100%;
   min-width: 0;
-  min-height: 58px;
-  padding: 8px 9px;
+  min-height: 180px;
+  padding: 18px;
   color: var(--text-default);
   text-align: left;
   border: 0;
   border-radius: var(--radius-lg);
-  background: transparent;
+  background: var(--surface-card);
   cursor: pointer;
 }
 
 .catalog-option:hover,
 .catalog-option:focus-visible {
-  color: var(--text-strong);
   background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--signal) 45%, transparent);
+}
+
+.catalog-option:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
 }
 
 .catalog-option__icon {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, currentColor 10%, var(--surface-control));
+  width: 36px;
+  height: 36px;
+  color: var(--component-accent);
 }
 
 .catalog-option__icon svg {
-  width: 18px;
-  height: 18px;
+  width: 30px;
+  height: 30px;
 }
 
 .catalog-option__copy {
   display: grid;
-  gap: 2px;
+  grid-template-rows: auto 1fr auto;
+  gap: 7px;
   min-width: 0;
 }
 
 .catalog-option__title {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 7px;
   min-width: 0;
 }
 
 .catalog-option__title strong {
-  overflow: hidden;
   color: var(--text-strong);
-  font-size: 11px;
+  font-size: var(--text-md);
   font-weight: 620;
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .catalog-option__context {
   color: var(--text-faint);
-  font-size: 9px;
+  font-size: var(--text-xs);
 }
 
 .catalog-option__copy small {
-  overflow: hidden;
   color: var(--text-muted);
-  font-size: 10px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: var(--text-sm);
+  line-height: 1.5;
 }
 
 .catalog-option__copy code {
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: var(--text-faint);
-  font: 500 8.5px / 1.35 var(--font-code);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font: 500 10px / 1.4 var(--font-code);
 }
 
 .catalog-option__action {
+  position: absolute;
+  top: 18px;
+  right: 18px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-height: 24px;
-  padding: 0 6px;
   color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--surface-control) 74%, transparent);
-  font-size: 9px;
-  font-weight: 580;
-  white-space: nowrap;
+  font-size: var(--text-xs);
 }
 
 .catalog-option:hover .catalog-option__action,
 .catalog-option:focus-visible .catalog-option__action {
-  color: var(--text-strong);
-  background: var(--surface-control);
+  color: var(--signal);
 }
 
 .catalog-option__action svg {
-  width: 11px;
-  height: 11px;
+  width: 13px;
+  height: 13px;
 }
 
 .component-library-empty {
@@ -483,11 +484,11 @@
 @media (max-width: 620px) {
   .component-catalog-dialog.mantine-Modal-content {
     width: calc(100vw - 16px);
-    max-height: min(86dvh, 680px);
+    height: calc(100dvh - 24px);
   }
 
   .component-catalog-dialog__body {
-    max-height: min(86dvh, 680px);
+    height: 100%;
   }
 
   .component-catalog-dialog__header {
@@ -554,27 +555,6 @@
 }
 
 @media (max-width: 420px) {
-  .catalog-option {
-    grid-template-columns: 32px minmax(0, 1fr) 24px;
-    gap: 8px;
-  }
-
-  .catalog-option__icon {
-    width: 30px;
-    height: 30px;
-  }
-
-  .catalog-option__action {
-    display: grid;
-    place-items: center;
-    width: 24px;
-    padding: 0;
-  }
-
-  .catalog-option__action span {
-    display: none;
-  }
-
   .component-library-section__header p {
     display: none;
   }
@@ -611,4 +591,19 @@
     height: 36px;
     min-height: 36px;
   }
+}
+
+.component-catalog__sections--all {
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.component-catalog__sections--all .component-library-section__header {
+  padding-inline: 0;
+}
+
+.component-catalog__sections--all .component-library-section__header p,
+.component-catalog__sections--all .component-library-section__actions > span {
+  display: none;
 }

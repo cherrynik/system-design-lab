@@ -1,7 +1,8 @@
+import { apiRequest } from '@/shared/api';
 import type { Exercise } from '@/entities/exercise';
 
 export async function fetchExercise(): Promise<Exercise> {
-  const response = await fetch('/api/exercise');
+  const response = await apiRequest('/api/exercise');
 
   if (!response.ok) throw new Error('The exercise could not be loaded.');
 

@@ -10,6 +10,8 @@ export default defineConfig(({ mode }) => {
   const apiTarget = env.API_TARGET || 'http://localhost:8081';
 
   return {
+    base: env.VITE_BASE_PATH || '/',
+    worker: { format: 'es' },
     plugins: [react()],
     resolve: {
       alias: {

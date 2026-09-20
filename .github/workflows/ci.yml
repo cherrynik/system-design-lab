@@ -1,6 +1,7 @@
 name: Verify platform
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -64,3 +65,65 @@ jobs:
           go test -race ./...
           go vet ./...
           go build ./...
+
+  pages:
+    name: Build and verify Pages
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache-dependency-path: api/go.mod
+      - run: pnpm install --frozen-lockfile
+      - name: Build the static app and browser Go runtime
+        working-directory: web
+        run: pnpm build:pages
+      - name: Verify static deployment without an API server
+        working-directory: web
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm test:pages
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Rebuild for the configured domain path
+        working-directory: web
+        env:
+          VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+        run: pnpm build:pages
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    name: Publish Pages
+    needs: pages
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -6,7 +6,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['coverage/**', 'dist/**', 'node_modules/**', 'storybook-static/**'],
+    ignores: [
+      'public/runtime/**',
+      'coverage/**',
+      'dist/**',
+      'node_modules/**',
+      'storybook-static/**',
+    ],
   },
   js.configs.recommended,
   {
