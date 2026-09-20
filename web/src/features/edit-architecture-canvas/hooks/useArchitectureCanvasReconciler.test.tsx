@@ -308,6 +308,50 @@ describe('useArchitectureCanvasReconciler', () => {
     expect(harness.events.filter((event) => event === 'clear-history')).toHaveLength(1);
   });
 
+  it('preserves a newly drawn arrow while a prior selection snapshot reaches React', () => {
+    const harness = createEditorHarness();
+    const client = architectureNode('client', 'Client');
+    const { rerender } = renderHook(
+      ({ nodes }) =>
+        useArchitectureCanvasReconciler(harness.editor, 'interactive', 'my-canvas', nodes, []),
+      { initialProps: { nodes: [client] } },
+    );
+    const arrowId = 'shape:pending-arrow' as TLShapeId;
+    harness.editor.createShape({ id: arrowId, type: 'arrow' });
+
+    rerender({ nodes: [{ ...client, selected: true }] });
+
+    expect(harness.shapes.has(arrowId)).toBe(true);
+    expect(harness.editor.deleteShapes).not.toHaveBeenCalled();
+  });
+
+  it('updates validation without reverting pending canvas movement or deleting its new arrow', () => {
+    const harness = createEditorHarness();
+    const client = architectureNode('client', 'Client');
+    const { rerender } = renderHook(
+      ({ validationStates }) =>
+        useArchitectureCanvasReconciler(
+          harness.editor,
+          'interactive',
+          'my-canvas',
+          [client],
+          [],
+          validationStates,
+        ),
+      { initialProps: { validationStates: new Map<string, ArchitectureNodeValidationState>() } },
+    );
+    const arrowId = 'shape:pending-arrow' as TLShapeId;
+    harness.editor.createShape({ id: arrowId, type: 'arrow' });
+    const moved = harness.shapes.get(shapeIdForNode(client.id))!;
+    harness.shapes.set(moved.id, { ...moved, x: 120 });
+
+    rerender({ validationStates: new Map([[client.id, { status: 'valid', issues: [] }]]) });
+
+    expect(harness.shapes.has(arrowId)).toBe(true);
+    expect(harness.shapes.get(moved.id)).toMatchObject({ x: 120, props: { validation: 'valid' } });
+    expect(harness.editor.deleteShapes).not.toHaveBeenCalled();
+  });
+
   it('removes stale arrows when a document no longer contains their connection', () => {
     const harness = createEditorHarness();
     const client = architectureNode('client', 'Client');

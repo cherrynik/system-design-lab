@@ -6,7 +6,7 @@ import type {
   ArchitectureNodeValidationState,
 } from '@/entities/architecture';
 import { createArchitectureArrow } from '../lib/createArchitectureArrow';
-import { renderedEdgesKey } from '../lib/contentKeys';
+import { architectureContentKey, renderedEdgesKey } from '../lib/contentKeys';
 import { shapeIdForEdge, shapeIdForNode } from '../lib/shapeIds';
 import { getCardValidationProps } from '../lib/validationProps';
 import { updateArchitectureArrow } from '../lib/updateArchitectureArrow';
@@ -40,6 +40,7 @@ export function useArchitectureCanvasReconciler(
   validationStates?: Map<string, ArchitectureNodeValidationState>,
 ) {
   const lastRenderedEdges = useRef<string | null>(null);
+  const lastReconciledContent = useRef<string | null>(null);
   const hydratedDocumentId = useRef<string | null>(null);
   const cancelInitialFit = useRef<(() => void) | null>(null);
   const isReconciling = useRef(false);
@@ -50,6 +51,7 @@ export function useArchitectureCanvasReconciler(
       cancelInitialFit.current = null;
       hydratedDocumentId.current = null;
       lastRenderedEdges.current = null;
+      lastReconciledContent.current = null;
     },
     [editor],
   );
@@ -62,6 +64,8 @@ export function useArchitectureCanvasReconciler(
     try {
       const hasHydratedDocument = hydratedDocumentId.current !== null;
       const documentChanged = hydratedDocumentId.current !== documentId;
+      const nextContent = `${mode}:${documentId}:${architectureContentKey(nodes, edges)}`;
+      const contentChanged = nextContent !== lastReconciledContent.current;
       if (documentChanged) lastRenderedEdges.current = null;
 
       const componentNodes = nodes.filter((node) => !node.data.isAnchor);
@@ -77,6 +81,7 @@ export function useArchitectureCanvasReconciler(
         const existing = currentByNodeId.get(node.id);
         const validationProps = getCardValidationProps(validationStates?.get(node.id));
         if (!existing) {
+          if (!contentChanged) continue;
           editor.createShape<ArchitectureCardShape>({
             id: shapeIdForNode(node.id),
             type: ARCHITECTURE_CARD_TYPE,
@@ -96,6 +101,19 @@ export function useArchitectureCanvasReconciler(
           continue;
         }
 
+        const validationChanged =
+          existing.props.validation !== validationProps.validation ||
+          existing.props.validationMessage !== validationProps.validationMessage;
+        if (!contentChanged) {
+          if (validationChanged) {
+            validationUpdates.push({
+              ...existing,
+              props: { ...existing.props, ...validationProps },
+            });
+          }
+          continue;
+        }
+
         const architectureChanged =
           existing.x !== node.position.x ||
           existing.y !== node.position.y ||
@@ -103,9 +121,6 @@ export function useArchitectureCanvasReconciler(
           existing.props.kind !== node.data.kind ||
           existing.props.variantId !== node.data.variantId ||
           existing.props.isReadonly !== (mode === 'readonly');
-        const validationChanged =
-          existing.props.validation !== validationProps.validation ||
-          existing.props.validationMessage !== validationProps.validationMessage;
         const update: ArchitectureCardShape = {
           ...existing,
           x: node.position.x,
@@ -126,30 +141,35 @@ export function useArchitectureCanvasReconciler(
       if (validationUpdates.length) {
         editor.run(() => editor.updateShapes(validationUpdates), { history: 'ignore' });
       }
-      const cardsToDelete = currentCards
-        .filter((shape) => !desiredNodeIds.has(shape.id))
-        .map((shape) => shape.id);
-      if (cardsToDelete.length) editor.deleteShapes(cardsToDelete);
+      // Selection and validation snapshots may arrive before the next canvas sync.
+      // Only changed document content may replace live shapes or connections.
+      if (contentChanged) {
+        const cardsToDelete = currentCards
+          .filter((shape) => !desiredNodeIds.has(shape.id))
+          .map((shape) => shape.id);
+        if (cardsToDelete.length) editor.deleteShapes(cardsToDelete);
 
-      const currentArrows = editor
-        .getCurrentPageShapes()
-        .filter((shape): shape is TLArrowShape => shape.type === 'arrow');
-      const desiredEdgeIds = new Set(edges.map(({ id }) => shapeIdForEdge(id)));
-      const nextRenderedEdges = renderedEdgesKey(nodes, edges);
-      if (nextRenderedEdges !== lastRenderedEdges.current) {
-        for (const edge of edges) updateArchitectureArrow(editor, edge, nodes);
-        lastRenderedEdges.current = nextRenderedEdges;
-      } else {
-        for (const edge of edges) {
-          if (!editor.getShape(shapeIdForEdge(edge.id))) {
-            createArchitectureArrow(editor, edge, nodes);
+        const currentArrows = editor
+          .getCurrentPageShapes()
+          .filter((shape): shape is TLArrowShape => shape.type === 'arrow');
+        const desiredEdgeIds = new Set(edges.map(({ id }) => shapeIdForEdge(id)));
+        const nextRenderedEdges = renderedEdgesKey(nodes, edges);
+        if (nextRenderedEdges !== lastRenderedEdges.current) {
+          for (const edge of edges) updateArchitectureArrow(editor, edge, nodes);
+          lastRenderedEdges.current = nextRenderedEdges;
+        } else {
+          for (const edge of edges) {
+            if (!editor.getShape(shapeIdForEdge(edge.id))) {
+              createArchitectureArrow(editor, edge, nodes);
+            }
           }
         }
+        const arrowsToDelete = currentArrows
+          .filter(({ id }) => !desiredEdgeIds.has(id))
+          .map(({ id }) => id);
+        if (arrowsToDelete.length) editor.deleteShapes(arrowsToDelete);
+        lastReconciledContent.current = nextContent;
       }
-      const arrowsToDelete = currentArrows
-        .filter(({ id }) => !desiredEdgeIds.has(id))
-        .map(({ id }) => id);
-      if (arrowsToDelete.length) editor.deleteShapes(arrowsToDelete);
 
       hydratedDocumentId.current = documentId;
       if (documentChanged) {
