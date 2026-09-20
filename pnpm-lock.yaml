@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@tldraw/editor@5.4.2': bd851f33420b9af79ddcd8628a6add3aec43e3ee5b0e3d4c28f4df02b922421b
+
 importers:
 
   web:
@@ -42,7 +45,7 @@ importers:
         specifier: 4.12.4
         version: 4.12.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       tldraw:
-        specifier: ^5.4.2
+        specifier: 5.4.2
         version: 5.4.2(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@eslint/js':
@@ -5119,7 +5122,7 @@ snapshots:
 
   '@tldraw/driver@5.4.2(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@tldraw/editor': 5.4.2(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tldraw/editor': 5.4.2(patch_hash=bd851f33420b9af79ddcd8628a6add3aec43e3ee5b0e3d4c28f4df02b922421b)(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tldraw/utils': 5.4.2
     transitivePeerDependencies:
       - '@floating-ui/dom'
@@ -5128,7 +5131,7 @@ snapshots:
       - react
       - react-dom
 
-  '@tldraw/editor@5.4.2(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@tldraw/editor@5.4.2(patch_hash=bd851f33420b9af79ddcd8628a6add3aec43e3ee5b0e3d4c28f4df02b922421b)(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@tiptap/core': 3.31.3(@tiptap/pm@3.31.3)
       '@tiptap/pm': 3.31.3
@@ -6526,7 +6529,7 @@ snapshots:
       '@tiptap/react': 3.31.3(@floating-ui/dom@1.8.0)(@tiptap/core@3.31.3(@tiptap/pm@3.31.3))(@tiptap/pm@3.31.3)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tiptap/starter-kit': 3.31.3
       '@tldraw/driver': 5.4.2(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@tldraw/editor': 5.4.2(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tldraw/editor': 5.4.2(patch_hash=bd851f33420b9af79ddcd8628a6add3aec43e3ee5b0e3d4c28f4df02b922421b)(@floating-ui/dom@1.8.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@tldraw/state': 5.4.2
       '@tldraw/store': 5.4.2(react@19.3.0)
       '@tldraw/tlschema': 5.4.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

@@ -7,7 +7,7 @@ const goRunner = process.env.PLAYWRIGHT_GO_RUNNER ?? 'go';
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: 'pages.spec.ts',
+  testIgnore: ['pages.spec.ts', 'pages-production.spec.ts'],
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,

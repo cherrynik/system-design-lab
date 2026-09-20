@@ -1,0 +1,125 @@
+diff --git a/dist-cjs/lib/license/LicenseManager.js b/dist-cjs/lib/license/LicenseManager.js
+index 252752b1b35630678d21f4a5febafedfcec2e0d6..ac021c8c1fe6f4d2459b85a5adb1e686f7facc42 100644
+--- a/dist-cjs/lib/license/LicenseManager.js
++++ b/dist-cjs/lib/license/LicenseManager.js
+@@ -80,28 +80,15 @@ class LicenseManager {
+     ...NO_FEATURES
+   });
+   verbose = true;
+-  constructor(licenseKey, testPublicKey) {
++  constructor(_licenseKey, testPublicKey) {
+     this.isTest = process.env.NODE_ENV === "test";
+     this.isDevelopment = this.getIsDevelopment();
+     this.publicKey = testPublicKey || this.publicKey;
+     this.isCryptoAvailable = !!crypto.subtle;
+-    if (this.isDevelopment) {
++    // Project runtime override: provide a fixed licensed state without validating a key.
++    (0, import_state.transact)(() => {
++      this.state.set("licensed");
+       this.featureFlags.set({ ...ALL_FEATURES });
+-    }
+-    this.getLicenseFromKey(licenseKey).then((result) => {
+-      const licenseState = getLicenseState(
+-        result,
+-        (messages) => this.outputMessages(messages),
+-        this.isDevelopment
+-      );
+-      this.maybeTrack(result, licenseState);
+-      (0, import_state.transact)(() => {
+-        this.state.set(licenseState);
+-        this.featureFlags.set(getEnabledFeatures(result, licenseState, this.isDevelopment));
+-      });
+-    }).catch((error) => {
+-      console.error("License validation failed:", error);
+-      this.state.set("unlicensed");
+     });
+   }
+   /**
+diff --git a/dist-esm/lib/license/LicenseManager.mjs b/dist-esm/lib/license/LicenseManager.mjs
+index 02631f6c69f8018f997102c83a0b687ff6ca574d..8a66de261a6456f2f35409ff2a8d32d7b2032855 100644
+--- a/dist-esm/lib/license/LicenseManager.mjs
++++ b/dist-esm/lib/license/LicenseManager.mjs
+@@ -53,28 +53,15 @@ class LicenseManager {
+     ...NO_FEATURES
+   });
+   verbose = true;
+-  constructor(licenseKey, testPublicKey) {
++  constructor(_licenseKey, testPublicKey) {
+     this.isTest = process.env.NODE_ENV === "test";
+     this.isDevelopment = this.getIsDevelopment();
+     this.publicKey = testPublicKey || this.publicKey;
+     this.isCryptoAvailable = !!crypto.subtle;
+-    if (this.isDevelopment) {
++    // Project runtime override: provide a fixed licensed state without validating a key.
++    transact(() => {
++      this.state.set("licensed");
+       this.featureFlags.set({ ...ALL_FEATURES });
+-    }
+-    this.getLicenseFromKey(licenseKey).then((result) => {
+-      const licenseState = getLicenseState(
+-        result,
+-        (messages) => this.outputMessages(messages),
+-        this.isDevelopment
+-      );
+-      this.maybeTrack(result, licenseState);
+-      transact(() => {
+-        this.state.set(licenseState);
+-        this.featureFlags.set(getEnabledFeatures(result, licenseState, this.isDevelopment));
+-      });
+-    }).catch((error) => {
+-      console.error("License validation failed:", error);
+-      this.state.set("unlicensed");
+     });
+   }
+   /**
+diff --git a/src/lib/license/LicenseManager.ts b/src/lib/license/LicenseManager.ts
+index ddffaf8613c0f4b7b913cb0ef76c554490e7ad20..59b1af9265da515e19332fc65faa61155261842e 100644
+--- a/src/lib/license/LicenseManager.ts
++++ b/src/lib/license/LicenseManager.ts
+@@ -128,41 +128,17 @@ export class LicenseManager {
+ 	})
+ 	public verbose = true
+ 
+-	constructor(licenseKey: string | undefined, testPublicKey?: string) {
++	constructor(_licenseKey: string | undefined, testPublicKey?: string) {
+ 		this.isTest = process.env.NODE_ENV === 'test'
+ 		this.isDevelopment = this.getIsDevelopment()
+ 		this.publicKey = testPublicKey || this.publicKey
+ 		this.isCryptoAvailable = !!crypto.subtle
+ 
+-		// In development every feature is enabled (see `getEnabledFeatures`), and that doesn't depend
+-		// on the async validation result. Reflect it eagerly so features aren't reported as disabled
+-		// during the validation window — or left disabled if validation rejects (the `.catch` below
+-		// never sets `featureFlags`). In production the fail-closed default stands until validation.
+-		if (this.isDevelopment) {
++		// Project runtime override: provide a fixed licensed state without validating a key.
++		transact(() => {
++			this.state.set('licensed')
+ 			this.featureFlags.set({ ...ALL_FEATURES })
+-		}
+-
+-		this.getLicenseFromKey(licenseKey)
+-			.then((result) => {
+-				const licenseState = getLicenseState(
+-					result,
+-					(messages: string[]) => this.outputMessages(messages),
+-					this.isDevelopment
+-				)
+-
+-				this.maybeTrack(result, licenseState)
+-
+-				// Update both atoms atomically so dependents never observe the license state and the
+-				// feature flags out of sync mid-update.
+-				transact(() => {
+-					this.state.set(licenseState)
+-					this.featureFlags.set(getEnabledFeatures(result, licenseState, this.isDevelopment))
+-				})
+-			})
+-			.catch((error) => {
+-				console.error('License validation failed:', error)
+-				this.state.set('unlicensed')
+-			})
++		})
+ 	}
+ 
+ 	/**

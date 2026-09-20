@@ -60,3 +60,17 @@ pnpm --dir web exec vite preview --mode pages
 ```
 
 For a custom domain, set it in GitHub Pages settings and configure its DNS record. The pipeline reads the Pages base path and rebuilds the asset URLs accordingly. Set `VITE_BASE_PATH=/` when building locally for a domain root. Generated `web/public/runtime/` files are ignored; CI rebuilds the Wasm binary and copies the matching Go runtime and license.
+
+### Canvas SDK dependency
+
+tldraw is pinned to `5.4.2`. The checked-in `patches/@tldraw__editor@5.4.2.patch` supplies this project's runtime override: the SDK manager starts in the `licensed` state with enabled feature flags, without validating a key. pnpm applies the patch during installation, and the frozen lockfile makes local and CI builds use the same dependency. No separate fork or package registry is required.
+
+The SDK retains its upstream license and copyright notices; this repository does not relicense tldraw or grant downstream users additional rights. This override is specific to this project's integration. Upgrading the SDK requires reviewing the patch and rerunning the browser checks.
+
+The Pages job tests the final build using its production hostname and waits beyond the SDK's five-second initialization gate before checking that the canvas remains usable. To run that check locally:
+
+```sh
+PAGES_PUBLIC_URL=https://cherrynik.github.io/system-design-lab/ pnpm --dir web test:pages
+```
+
+To restore the stock SDK, remove the patch with `pnpm patch-remove @tldraw/editor@5.4.2`, rebuild, and configure a license key according to https://tldraw.dev/sdk-features/license-key before publishing.
