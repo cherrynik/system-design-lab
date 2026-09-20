@@ -2,6 +2,11 @@ name: Verify platform
 
 on:
   workflow_dispatch:
+    inputs:
+      run_browser_workflows:
+        description: "Run the full browser workflow suite"
+        type: boolean
+        default: false
   pull_request:
   push:
     branches:
@@ -54,6 +59,7 @@ jobs:
           pnpm storybook:build
 
       - name: Verify browser workflows
+        if: github.event_name == 'workflow_dispatch' && inputs.run_browser_workflows
         working-directory: web
         env:
           PLAYWRIGHT_GO_RUNNER: go

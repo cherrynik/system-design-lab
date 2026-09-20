@@ -43,7 +43,7 @@ the **Docs** tab describes its props and **Canvas** shows the interactive exampl
 make check
 ```
 
-`make check` runs backend race tests, vet, and build; frontend type checking, linting, formatting, architecture and Storybook guards, browser-based Storybook interaction and accessibility tests, coverage, production builds, and Playwright workflows. The same contract runs in GitHub Actions on every pull request and push to `main`.
+`make check` runs backend race tests, vet, and build; frontend type checking, linting, formatting, architecture and Storybook guards, browser-based Storybook interaction and accessibility tests, coverage, production builds, and Playwright workflows. GitHub Actions runs these checks on pull requests and pushes to `main`, except the full Playwright workflow suite. That suite is currently opt-in: use **Verify platform → Run workflow → Run the full browser workflow suite**. The small static Pages checks still run before deployment.
 
 ## Public demo (GitHub Pages)
 
