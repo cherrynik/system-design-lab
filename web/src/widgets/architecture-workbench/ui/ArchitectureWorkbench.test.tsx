@@ -74,6 +74,8 @@ afterEach(() => {
 describe('ArchitectureWorkbench', () => {
   it('returns from a readonly solution to the user canvas through the same surface', async () => {
     render(<WorkbenchHarness />, { wrapper: PlatformProvider });
+    expect(screen.getByRole('img', { name: 'Read-only solution' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: referenceSolutions[1].name })).toBeNull();
 
     await waitFor(() => {
       expect(canvasSurfaceSpy.mock.lastCall?.[0]).toEqual(
@@ -95,6 +97,7 @@ describe('ArchitectureWorkbench', () => {
         }),
       );
     });
-    expect(screen.queryByText('Reference solution')).toBeNull();
+    expect(screen.queryByRole('img', { name: 'Read-only solution' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'My Canvas' })).toBeNull();
   });
 });

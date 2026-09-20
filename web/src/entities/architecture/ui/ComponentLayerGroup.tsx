@@ -8,6 +8,7 @@ export function ComponentLayerGroup({
   collapsed,
   connectionStates,
   validationStates,
+  readOnly = false,
   onToggle,
   onFocus,
   onRename,
@@ -30,6 +31,7 @@ export function ComponentLayerGroup({
               fallbackLabel={node.data.label}
               connectionState={connectionStates.get(node.id) ?? emptyConnectionState}
               validationState={validationStates?.get(node.id)}
+              readOnly={readOnly}
               mode="graph"
               onFocus={onFocus}
               onRename={onRename}

@@ -99,9 +99,7 @@ export const Workspace: Story = {
     await step('Open and switch reference solutions', async () => {
       await userEvent.click(canvas.getByRole('tab', { name: 'Solutions' }));
       await userEvent.click(canvas.getByRole('button', { name: /Load Balancer Path/ }));
-      await expect(
-        await canvas.findByRole('heading', { name: 'Load Balancer Path' }),
-      ).toBeVisible();
+      await expect(await canvas.findByRole('img', { name: 'Read-only solution' })).toBeVisible();
     });
 
     await step('Validate the selected solution', async () => {

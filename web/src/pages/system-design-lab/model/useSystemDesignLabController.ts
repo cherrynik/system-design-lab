@@ -48,6 +48,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     latestVersion: versioning.latestVersion,
     selectedSolutionId: workspace.selectedSolutionId,
     nodeValidationVisible: validation.nodeValidationVisible,
+    workspaceView: workspace.workspaceView,
   });
 
   useArchitectureValidationInvalidation({
@@ -134,6 +135,9 @@ export function useSystemDesignLabController(): SystemDesignLabController {
   );
   useWorkspaceShortcuts(shortcutOptions);
 
+  let focusSidebarNode = nodeActions.focusNode;
+  if (workspace.workspaceView === 'solutions') focusSidebarNode = editor.focusShape;
+
   const sidebarProps: RequirementSidebarProps = {
     collapsed: workspace.requirementsCollapsed,
     view: workspace.workspaceView,
@@ -143,8 +147,8 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     layersExpanded: workspace.layersExpanded,
     requirementStatus: validation.requirementStatus,
     runnerStatus: validation.runnerStatus,
-    nodes: history.nodes,
-    edges: history.edges,
+    nodes: derived.activeSnapshot.nodes,
+    edges: derived.activeSnapshot.edges,
     connectionStates: derived.nodeConnectionStates,
     validationStates: derived.visibleValidationStates,
     registryOpen: workspace.registryOpen,
@@ -163,7 +167,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     onGroupChange: workspace.setGroup,
     onMenuChange: transientUi.setMenu,
     onAddNode: nodeActions.addNode,
-    onFocusNode: nodeActions.focusNode,
+    onFocusNode: focusSidebarNode,
     onInspectNode: nodeActions.inspectNode,
     onRenameNode: nodeActions.renameNode,
     onDeleteNode: nodeActions.deleteNode,

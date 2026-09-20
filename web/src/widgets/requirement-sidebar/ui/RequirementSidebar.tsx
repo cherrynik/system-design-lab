@@ -6,7 +6,7 @@ import type { RequirementSidebarProps } from './RequirementSidebar.types';
 import './requirement-sidebar.css';
 
 export function RequirementSidebar(props: RequirementSidebarProps) {
-  const { collapsed, view, solutions, selectedSolutionId, onSolutionChange } = props;
+  const { collapsed, view } = props;
   let content = null;
 
   if (!collapsed && view === 'canvas') {
@@ -14,13 +14,7 @@ export function RequirementSidebar(props: RequirementSidebarProps) {
   }
 
   if (!collapsed && view === 'solutions') {
-    content = (
-      <SolutionsSidebar
-        solutions={solutions}
-        selectedSolutionId={selectedSolutionId}
-        onSolutionChange={onSolutionChange}
-      />
-    );
+    content = <SolutionsSidebar {...props} />;
   }
 
   return (

@@ -15,6 +15,21 @@ export function ComponentsSectionHeader({
 }: ComponentsSectionHeaderProps) {
   const ToggleIcon = expanded ? FiChevronDown : FiChevronsRight;
 
+  let addButton = null;
+  if (onAddComponent) {
+    addButton = (
+      <button
+        className="add-component-button"
+        type="button"
+        onClick={onAddComponent}
+        aria-label="Add component"
+        title="Add component"
+      >
+        <FiPlus />
+      </button>
+    );
+  }
+
   return (
     <header className="components-section-header">
       <button
@@ -38,15 +53,7 @@ export function ComponentsSectionHeader({
         onViewChange={onViewChange}
         onToggleAllGroups={onToggleAllGroups}
       />
-      <button
-        className="add-component-button"
-        type="button"
-        onClick={onAddComponent}
-        aria-label="Add component"
-        title="Add component"
-      >
-        <FiPlus />
-      </button>
+      {addButton}
     </header>
   );
 }

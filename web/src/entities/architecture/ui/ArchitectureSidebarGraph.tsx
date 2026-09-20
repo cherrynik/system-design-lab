@@ -19,6 +19,7 @@ export function ArchitectureSidebarGraph({
   edges,
   connectionStates,
   validationStates,
+  readOnly = false,
   onFocus,
   onOpenMenu,
   onRename,
@@ -59,6 +60,9 @@ export function ArchitectureSidebarGraph({
     setCollapsed(new Set());
   };
 
+  let addComponent = onAddComponent;
+  if (readOnly) addComponent = undefined;
+
   let panel = null;
   if (expanded && view === 'layers') {
     panel = (
@@ -68,6 +72,7 @@ export function ArchitectureSidebarGraph({
         viewId={viewId}
         connectionStates={connectionStates}
         validationStates={validationStates}
+        readOnly={readOnly}
         onToggleGroup={toggleGroup}
         onFocus={onFocus}
         onRename={onRename}
@@ -82,6 +87,7 @@ export function ArchitectureSidebarGraph({
         viewId={viewId}
         connectionStates={connectionStates}
         validationStates={validationStates}
+        readOnly={readOnly}
         onFocus={onFocus}
         onRename={onRename}
         onOpenMenu={onOpenMenu}
@@ -98,7 +104,7 @@ export function ArchitectureSidebarGraph({
         viewId={viewId}
         allGroupsExpanded={allGroupsExpanded}
         onToggleExpanded={onToggleExpanded}
-        onAddComponent={onAddComponent}
+        onAddComponent={addComponent}
         onViewChange={setView}
         onToggleAllGroups={toggleAllGroups}
       />

@@ -106,7 +106,16 @@ export type RequirementSectionProps = {
 
 export type SolutionsSidebarProps = Pick<
   RequirementSidebarProps,
-  'solutions' | 'selectedSolutionId' | 'onSolutionChange'
+  | 'solutions'
+  | 'selectedSolutionId'
+  | 'onSolutionChange'
+  | 'nodes'
+  | 'edges'
+  | 'connectionStates'
+  | 'validationStates'
+  | 'layersExpanded'
+  | 'onLayersExpandedChange'
+  | 'onFocusNode'
 >;
 
 export type ComponentOptionProps = {

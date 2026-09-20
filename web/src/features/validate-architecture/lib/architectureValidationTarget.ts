@@ -1,4 +1,9 @@
-import { createReferenceSolutionSnapshot } from '@/entities/architecture';
+import {
+  createReferenceSolutionSnapshot,
+  getArchitectureNodeValidationIssues,
+  validateArchitectureNodes,
+} from '@/entities/architecture';
+import type { ValidateArchitectureArgs } from '../model/useArchitectureValidation.types';
 import { toArchitecturePayload } from '../api/evaluate-architecture';
 import type {
   ArchitectureValidationTarget,
@@ -32,4 +37,17 @@ export function createArchitectureValidationTarget({
     architecture: toArchitecturePayload(solutionSnapshot.nodes, solutionSnapshot.edges),
     path: getArchitectureValidationPath({ view, solution }),
   };
+}
+
+export function getArchitectureValidationNodeIssues({
+  view,
+  solution,
+  nodeValidationIssues,
+}: ValidateArchitectureArgs) {
+  if (view === 'canvas') return [...nodeValidationIssues];
+  if (!solution) return [];
+  const snapshot = createReferenceSolutionSnapshot(solution);
+  return getArchitectureNodeValidationIssues(
+    validateArchitectureNodes(snapshot.nodes, snapshot.edges),
+  );
 }

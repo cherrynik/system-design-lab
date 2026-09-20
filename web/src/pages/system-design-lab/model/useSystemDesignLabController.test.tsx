@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Editor } from 'tldraw';
 import type { ArchitectureSnapshot } from '@/entities/architecture';
 import { ARCHITECTURE_AUTOSAVE_STORAGE_KEY } from '@/shared/config';
 import { useSystemDesignLabController } from './useSystemDesignLabController';
@@ -94,6 +95,13 @@ describe('useSystemDesignLabController', () => {
     expect(result.current.workbenchProps.view).toBe('solutions');
     expect(result.current.workbenchProps.solution.id).toBe('load-balanced');
 
+    expect(result.current.sidebarProps.nodes.map((node) => node.data.label)).toEqual([
+      'Web Browser',
+      'NGINX',
+      'Go HTTP API',
+    ]);
+    expect(result.current.sidebarProps.edges).toHaveLength(2);
+    act(() => result.current.sidebarProps.onViewChange('canvas'));
     act(() => result.current.sidebarProps.onAddNode('load-balancer'));
     const added = result.current.workbenchProps.nodes.at(-1);
     expect(added).toMatchObject({
@@ -101,6 +109,27 @@ describe('useSystemDesignLabController', () => {
       data: { kind: 'load-balancer', label: 'Load Balancer' },
     });
     expect(result.current.sidebarProps.nodes.at(-1)).toBe(added);
+  });
+
+  it('focuses reference components on their canvas without changing the saved architecture', () => {
+    mockArchitectureApi();
+    const { result } = renderHook(() => useSystemDesignLabController());
+    const originalNodes = result.current.workbenchProps.nodes;
+    const originalEdges = result.current.workbenchProps.edges;
+    const editor = {
+      select: vi.fn(),
+      getShapePageBounds: vi.fn(() => ({ x: 400, y: 160, w: 224, h: 84 })),
+      zoomToBounds: vi.fn(),
+    };
+    act(() => result.current.workbenchProps.onMountEditor(editor as unknown as Editor));
+    act(() => result.current.sidebarProps.onViewChange('solutions'));
+    act(() => result.current.sidebarProps.onFocusNode('direct-service-node-2'));
+
+    expect(editor.select).toHaveBeenCalledWith('shape:direct-service-node-2');
+    expect(editor.zoomToBounds).toHaveBeenCalled();
+    expect(result.current.sidebarProps.view).toBe('solutions');
+    expect(result.current.workbenchProps.nodes).toBe(originalNodes);
+    expect(result.current.workbenchProps.edges).toBe(originalEdges);
   });
 
   it('runs validation from the shared runner and exposes results back to the sidebar', async () => {
@@ -147,6 +176,14 @@ describe('useSystemDesignLabController', () => {
 
     await waitFor(() => expect(result.current.sidebarProps.requirementStatus).toBe('Passed'));
     expect(result.current.runnerProps.lines.at(-1)?.text).toContain('PASS');
+    expect([...result.current.sidebarProps.validationStates!.keys()]).toEqual([
+      'load-balanced-node-1',
+      'load-balanced-node-2',
+      'load-balanced-node-3',
+    ]);
+    expect(result.current.sidebarProps.connectionStates.get('load-balanced-node-2')?.state).toBe(
+      'ready',
+    );
 
     act(() => result.current.sidebarProps.onViewChange('canvas'));
 

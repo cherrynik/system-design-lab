@@ -7,6 +7,7 @@ export function ComponentLayerTree({
   viewId,
   connectionStates,
   validationStates,
+  readOnly = false,
   onToggleGroup,
   onFocus,
   onRename,
@@ -41,6 +42,7 @@ export function ComponentLayerTree({
           collapsed={collapsed.has(group.kind)}
           connectionStates={connectionStates}
           validationStates={validationStates}
+          readOnly={readOnly}
           onToggle={() => onToggleGroup(group.kind)}
           onFocus={onFocus}
           onRename={onRename}

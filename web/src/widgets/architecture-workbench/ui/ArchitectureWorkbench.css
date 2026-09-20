@@ -25,7 +25,8 @@
 .solution-canvas-header {
   position: absolute;
   z-index: 40;
-  border: 1px solid color-mix(in srgb, var(--line-subtle) 76%, transparent);
+  border: 0;
+  border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
   backdrop-filter: blur(16px);
 }
@@ -64,22 +65,34 @@
 
 .solution-canvas-header {
   top: 12px;
-  left: 12px;
   right: 12px;
-  max-width: 720px;
-  padding: 9px 10px;
+  max-width: calc(100% - 24px);
+  padding: 3px;
 }
 
-.solution-canvas-header__copy {
-  min-width: 0;
+.solution-canvas-header__readonly {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
+
+.solution-canvas-header__readonly:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.solution-canvas-header__back {
+  height: 28px;
+  padding-inline: 8px;
+  font-size: 12px;
 }
 
 @media (max-width: 720px) {
   .canvas-zoom-controls {
     display: none;
-  }
-
-  .solution-canvas-header {
-    max-width: none;
   }
 }

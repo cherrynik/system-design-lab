@@ -21,16 +21,17 @@ export type ArchitectureSidebarGraphProps = {
   connectionStates: Map<string, ArchitectureNodeConnectionState>;
   validationStates?: Map<string, ArchitectureNodeValidationState>;
   onFocus: (nodeId: string) => void;
-  onOpenMenu: (nodeId: string, x: number, y: number) => void;
-  onRename: (nodeId: string, label: string) => void;
+  readOnly?: boolean;
+  onOpenMenu?: (nodeId: string, x: number, y: number) => void;
+  onRename?: (nodeId: string, label: string) => void;
   expanded: boolean;
   onToggleExpanded: () => void;
-  onAddComponent: () => void;
+  onAddComponent?: () => void;
 };
 
 export type ArchitectureSidebarItemsProps = Pick<
   ArchitectureSidebarGraphProps,
-  'connectionStates' | 'validationStates' | 'onFocus' | 'onOpenMenu' | 'onRename'
+  'connectionStates' | 'validationStates' | 'readOnly' | 'onFocus' | 'onOpenMenu' | 'onRename'
 >;
 
 export type ComponentsSectionHeaderProps = {
@@ -40,7 +41,7 @@ export type ComponentsSectionHeaderProps = {
   viewId: string;
   allGroupsExpanded: boolean;
   onToggleExpanded: () => void;
-  onAddComponent: () => void;
+  onAddComponent?: () => void;
   onViewChange: (view: ArchitectureSidebarView) => void;
   onToggleAllGroups: () => void;
 };

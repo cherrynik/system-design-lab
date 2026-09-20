@@ -13,6 +13,7 @@ export function ComponentTopologyGraph({
   viewId,
   connectionStates,
   validationStates,
+  readOnly = false,
   onFocus,
   onRename,
   onOpenMenu,
@@ -67,6 +68,7 @@ export function ComponentTopologyGraph({
               fallbackLabel={node.data.label}
               connectionState={connectionStates.get(node.id) ?? emptyConnectionState}
               validationState={validationStates?.get(node.id)}
+              readOnly={readOnly}
               mode="graph"
               onFocus={onFocus}
               onRename={onRename}

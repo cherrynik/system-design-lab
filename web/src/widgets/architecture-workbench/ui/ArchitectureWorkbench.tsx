@@ -25,12 +25,7 @@ export function ArchitectureWorkbench(props: ArchitectureWorkbenchProps) {
           onDeleteLatest={props.onDeleteLatestVersion}
         />
       )}
-      {!isCanvas && (
-        <SolutionCanvasHeader
-          solution={props.solution}
-          onBack={() => props.onViewChange('canvas')}
-        />
-      )}
+      {!isCanvas && <SolutionCanvasHeader onBack={() => props.onViewChange('canvas')} />}
 
       <div className="canvas flow-canvas" onContextMenu={(event) => event.preventDefault()}>
         <ArchitectureCanvasSurface

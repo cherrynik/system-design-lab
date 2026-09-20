@@ -13,6 +13,7 @@ export function ArchitectureLayerItem({
   connectionState,
   validationState,
   mode = 'list',
+  readOnly = false,
   onFocus,
   onOpenMenu,
   onRename,
@@ -36,6 +37,7 @@ export function ArchitectureLayerItem({
   }, [editing]);
 
   const beginRename = () => {
+    if (readOnly || !onRename) return;
     cancelled.current = false;
     setDraft(node.data.label);
     setEditing(true);
@@ -43,7 +45,7 @@ export function ArchitectureLayerItem({
 
   const finishRename = () => {
     setEditing(false);
-    if (!cancelled.current) onRename(node.id, draft);
+    if (!cancelled.current) onRename?.(node.id, draft);
   };
 
   const cancelRename = () => {
@@ -51,6 +53,21 @@ export function ArchitectureLayerItem({
     setDraft(node.data.label);
     setEditing(false);
   };
+
+  let menuButton = null;
+  if (!readOnly && onOpenMenu) {
+    menuButton = (
+      <button
+        className={cn('component-menu-trigger', compact && 'component-menu-trigger--compact')}
+        data-component-menu-trigger={node.id}
+        type="button"
+        aria-label={`Open menu for ${label}`}
+        onClick={(event) => onOpenMenu(node.id, event.clientX, event.clientY)}
+      >
+        <FiMoreHorizontal />
+      </button>
+    );
+  }
 
   return (
     <div
@@ -62,7 +79,7 @@ export function ArchitectureLayerItem({
       onContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
-        onOpenMenu(node.id, event.clientX, event.clientY);
+        if (!readOnly) onOpenMenu?.(node.id, event.clientX, event.clientY);
       }}
     >
       <div
@@ -121,15 +138,7 @@ export function ArchitectureLayerItem({
           compact={compact}
         />
       </div>
-      <button
-        className={cn('component-menu-trigger', compact && 'component-menu-trigger--compact')}
-        data-component-menu-trigger={node.id}
-        type="button"
-        aria-label={`Open menu for ${label}`}
-        onClick={(event) => onOpenMenu(node.id, event.clientX, event.clientY)}
-      >
-        <FiMoreHorizontal />
-      </button>
+      {menuButton}
     </div>
   );
 }

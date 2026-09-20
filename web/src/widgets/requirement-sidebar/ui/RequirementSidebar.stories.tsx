@@ -1,7 +1,9 @@
 import { createRef } from 'react';
 import { Monitor } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, userEvent, within } from 'storybook/test';
 import {
+  createReferenceSolutionSnapshot,
   getArchitectureNodeConnectionStates,
   referenceSolutions,
   validateArchitectureNodes,
@@ -67,6 +69,11 @@ const edges: ArchitectureEdge[] = [
 
 const connectionStates = getArchitectureNodeConnectionStates(nodes, edges);
 const validationStates = validateArchitectureNodes(nodes, edges);
+const solutionSnapshot = createReferenceSolutionSnapshot(referenceSolutions[0]);
+const solutionConnections = getArchitectureNodeConnectionStates(
+  solutionSnapshot.nodes,
+  solutionSnapshot.edges,
+);
 const storyContextMenuRef = createRef<HTMLDivElement>();
 
 const sidebarProps: RequirementSidebarProps = {
@@ -153,11 +160,25 @@ export const CollapsibleRequirement: Story = {
 export const Solutions: Story = {
   render: () => (
     <SolutionsSidebar
+      {...sidebarProps}
+      {...solutionSnapshot}
+      connectionStates={solutionConnections}
+      validationStates={undefined}
       solutions={referenceSolutions}
       selectedSolutionId="direct-service"
       onSolutionChange={noopValue}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Components, 2 components' })).toBeVisible();
+    await expect(canvas.queryByRole('button', { name: 'Add component' })).toBeNull();
+    await expect(canvas.getByRole('button', { name: 'Web Browser' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('tab', { name: 'Graph' }));
+    await expect(canvas.getByRole('tabpanel', { name: 'Graph' })).toBeVisible();
+    await userEvent.dblClick(canvas.getByRole('button', { name: 'Web Browser' }));
+    await expect(canvas.queryByRole('textbox')).toBeNull();
+  },
 };
 
 export const Option: Story = {

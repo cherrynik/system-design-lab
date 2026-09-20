@@ -146,6 +146,7 @@ describe('ArchitectureCanvasSurface', () => {
         documentId: `solution:${solution.id}`,
         nodes: solutionNodes,
         edges: solutionEdges,
+        validationStates: surfaceProps.validationStates,
       }),
     );
     expect(runtimeProps.onNodesChange).toBeUndefined();

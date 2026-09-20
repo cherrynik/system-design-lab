@@ -222,22 +222,21 @@
 
 .architecture-commits .commits-trigger {
   color: var(--text-muted);
-  border: 1px solid var(--line-subtle);
+  border: 0;
   background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
   backdrop-filter: blur(16px);
 }
 
 .architecture-commits .commits-trigger:hover {
   color: var(--text-strong);
-  border-color: var(--line-strong);
   background: var(--surface-raised);
 }
 
-.commits-popover {
+.commits-popover.mantine-Popover-dropdown {
   width: min(320px, calc(100vw - 24px));
   padding: 0;
   color: var(--text-default);
-  border-color: var(--line-subtle);
+  border: 0;
   background: color-mix(in srgb, var(--surface-overlay) 97%, transparent);
   box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(20px) saturate(125%);
@@ -245,6 +244,7 @@
 
 .commits-popover .commit-current-button {
   min-height: 24px;
+  border: 0;
   font-family: var(--font-code);
   font-size: 9px;
   font-weight: 650;
@@ -288,6 +288,7 @@
   min-height: 32px;
   padding: 2px 0;
   color: var(--text-default);
+  border: 0;
   background: transparent;
 }
 
@@ -299,9 +300,14 @@
   height: 28px;
   min-height: 28px;
   color: var(--text-strong);
-  border-color: var(--line-strong);
+  border: 0;
   background: var(--surface-panel);
   font-size: 10px;
+}
+
+.commit-history-row__content .mantine-Input-input:focus {
+  outline: 1px solid var(--focus-ring);
+  outline-offset: 0;
 }
 
 .commit-history-row__actions {
@@ -318,7 +324,7 @@
   font-size: var(--text-meta);
 }
 
-.canvas-event-toast {
+.canvas-event-toast.mantine-Notification-root {
   position: absolute;
   z-index: 45;
   left: 50%;
@@ -327,7 +333,7 @@
   max-width: min(420px, calc(100% - 28px));
   min-height: 38px;
   color: var(--text-default);
-  border: 1px solid var(--line-strong);
+  border: 0;
   background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
   box-shadow: var(--shadow-toast);
   transform: translateX(-50%);
@@ -400,7 +406,7 @@
   max-width: min(280px, calc(100vw - 16px));
   padding: 8px 10px;
   color: var(--text-default);
-  border: 1px solid var(--line-strong);
+  border: 0;
   border-radius: var(--radius-md);
   background: var(--surface-overlay);
   box-shadow: var(--shadow-overlay);

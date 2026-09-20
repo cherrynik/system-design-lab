@@ -92,4 +92,28 @@ describe('useArchitectureDerivedState', () => {
     expect(result.current.hasUncommittedChanges).toBe(true);
     expect(result.current.selectedSolution).toBe(referenceSolutions[0]);
   });
+  it('derives solution connections and validation without treating them as canvas changes', () => {
+    const { result } = renderHook(() =>
+      useArchitectureDerivedState({
+        ...connectedSnapshot,
+        edges: [],
+        selectedSolutionId: 'load-balanced',
+        workspaceView: 'solutions',
+        nodeValidationVisible: true,
+      }),
+    );
+
+    expect(result.current.activeSnapshot.nodes.map((node) => node.id)).toEqual([
+      'load-balanced-node-1',
+      'load-balanced-node-2',
+      'load-balanced-node-3',
+    ]);
+    expect(result.current.activeSnapshot.edges).toHaveLength(2);
+    expect(result.current.nodeConnectionStates.has('client')).toBe(false);
+    expect(result.current.nodeConnectionStates.get('load-balanced-node-2')?.state).toBe('ready');
+    expect(result.current.visibleValidationStates?.get('load-balanced-node-2')?.status).toBe(
+      'valid',
+    );
+    expect(result.current.nodeValidationIssues).toEqual([]);
+  });
 });

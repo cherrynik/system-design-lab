@@ -1,35 +1,42 @@
-import { Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { Group } from '@mantine/core';
 import { ArrowLeft, LockKeyhole } from 'lucide-react';
-import { Badge, Button } from '@/shared/ui';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui';
 import type { SolutionCanvasHeaderProps } from './ArchitectureWorkbench.types';
 
-export function SolutionCanvasHeader({ solution, onBack }: SolutionCanvasHeaderProps) {
+export function SolutionCanvasHeader({ onBack }: SolutionCanvasHeaderProps) {
   return (
-    <Paper className="solution-canvas-header" shadow="lg">
-      <Group justify="space-between" gap="md" wrap="nowrap">
-        <Stack gap={3} className="solution-canvas-header__copy">
-          <Group gap="xs">
-            <Badge size="xs" variant="info" leftSection={<LockKeyhole size={10} />}>
-              Reference solution
-            </Badge>
-            <Title order={2} size="sm">
-              {solution.name}
-            </Title>
-          </Group>
-          <Text size="xs" c="dimmed" lineClamp={1}>
-            {solution.description}
-          </Text>
-        </Stack>
-        <Button
-          leftSection={<ArrowLeft size={14} />}
-          size="sm"
-          color="gray"
-          variant="ghost"
-          onClick={onBack}
+    <Group
+      className="solution-canvas-header"
+      gap={4}
+      wrap="nowrap"
+      role="group"
+      aria-label="Solution navigation"
+    >
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <span
+              className="solution-canvas-header__readonly"
+              role="img"
+              aria-label="Read-only solution"
+              tabIndex={0}
+            />
+          }
         >
-          My Canvas
-        </Button>
-      </Group>
-    </Paper>
+          <LockKeyhole size={13} aria-hidden="true" />
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Read-only solution</TooltipContent>
+      </Tooltip>
+      <Button
+        className="solution-canvas-header__back"
+        leftSection={<ArrowLeft size={14} aria-hidden="true" />}
+        size="xs"
+        color="gray"
+        variant="ghost"
+        onClick={onBack}
+      >
+        My Canvas
+      </Button>
+    </Group>
   );
 }

@@ -84,9 +84,46 @@ describe('useWorkspaceShortcuts', () => {
     });
     const readonly = renderHook(() => useWorkspaceShortcuts(readonlyOptions));
 
-    expect(pressWindowKey('Delete').defaultPrevented).toBe(false);
+    expect(pressWindowKey('Delete').defaultPrevented).toBe(true);
     expect(readonlyOptions.deleteSelectedShapes).not.toHaveBeenCalled();
     readonly.unmount();
+  });
+
+  it('blocks hidden canvas mutations while viewing a solution and restores them on return', () => {
+    const options = makeOptions({ workspaceView: 'solutions' });
+    const { rerender, unmount } = renderHook(
+      ({ workspaceView }) => useWorkspaceShortcuts({ ...options, workspaceView }),
+      { initialProps: { workspaceView: 'solutions' as WorkspaceShortcutOptions['workspaceView'] } },
+    );
+
+    for (const modifiers of [{ metaKey: true }, { ctrlKey: true }]) {
+      expect(pressWindowKey('z', modifiers).defaultPrevented).toBe(true);
+      expect(pressWindowKey('z', { ...modifiers, shiftKey: true }).defaultPrevented).toBe(true);
+      expect(pressWindowKey('k', modifiers).defaultPrevented).toBe(true);
+    }
+    expect(pressWindowKey('3').defaultPrevented).toBe(true);
+    expect(options.undo).not.toHaveBeenCalled();
+    expect(options.redo).not.toHaveBeenCalled();
+    expect(options.openRegistry).not.toHaveBeenCalled();
+    expect(options.setTool).not.toHaveBeenCalled();
+
+    pressWindowKey('1');
+    pressWindowKey('2');
+    pressWindowKey('Enter', { metaKey: true });
+    expect(options.setTool).toHaveBeenNthCalledWith(1, 'hand');
+    expect(options.setTool).toHaveBeenNthCalledWith(2, 'selection');
+    expect(options.validate).toHaveBeenCalledOnce();
+
+    rerender({ workspaceView: 'canvas' });
+    pressWindowKey('z', { ctrlKey: true });
+    pressWindowKey('z', { ctrlKey: true, shiftKey: true });
+    pressWindowKey('k', { ctrlKey: true });
+    pressWindowKey('3');
+    expect(options.undo).toHaveBeenCalledOnce();
+    expect(options.redo).toHaveBeenCalledOnce();
+    expect(options.openRegistry).toHaveBeenCalledOnce();
+    expect(options.setTool).toHaveBeenLastCalledWith('connection');
+    unmount();
   });
 
   it('does not hijack shortcuts typed into an editable control', () => {

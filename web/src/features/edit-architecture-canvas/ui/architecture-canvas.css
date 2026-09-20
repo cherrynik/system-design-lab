@@ -220,30 +220,13 @@
     0 0 0 3px color-mix(in srgb, var(--signal) 14%, transparent),
     0 0 8px color-mix(in srgb, var(--signal) 40%, transparent);
 }
-.tldraw-engine .tl-watermark_SEE-LICENSE {
-  right: 12px;
-  bottom: 9px;
-}
-.tldraw-engine .tl-watermark_SEE-LICENSE button {
-  min-height: 24px;
-  padding: 4px 8px;
-  color: var(--text-faint);
-  border: 0;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--ink) 78%, transparent);
-  font:
-    9px/1.25 var(--font-code),
-    ui-monospace,
-    monospace;
-}
-
 .component-inspector {
   position: absolute;
   z-index: 12;
   width: 248px;
   padding: 10px;
   color: var(--text-default);
-  border: 1px solid var(--line-strong);
+  border: 0;
   border-radius: 8px;
   background: color-mix(in srgb, var(--surface-sidebar) 97%, transparent);
   box-shadow: var(--shadow-float);
@@ -261,16 +244,14 @@
   left: 50%;
   width: 10px;
   height: 10px;
-  border-right: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
-  background: var(--surface-sidebar);
+  background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
 }
 .component-inspector--above::after {
-  bottom: -6px;
+  bottom: -5px;
   transform: translateX(-50%) rotate(45deg);
 }
 .component-inspector--below::after {
-  top: -6px;
+  top: -5px;
   transform: translateX(-50%) rotate(225deg);
 }
 .component-inspector--flow {
@@ -425,7 +406,7 @@
   min-height: 24px !important;
   padding: 4px 8px !important;
   color: var(--text-muted) !important;
-  border: 1px solid color-mix(in srgb, var(--line-focus) 26%, transparent) !important;
+  border: 0 !important;
   border-radius: 5px !important;
   background: color-mix(in srgb, var(--surface-sidebar) 76%, transparent) !important;
   font: 500 9px/1.25 var(--font-code) !important;
@@ -445,11 +426,8 @@
   background: var(--surface-card);
 }
 .component-inspector {
-  border-color: var(--line-subtle);
   background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
-  box-shadow:
-    var(--shadow-overlay),
-    0 0 0 1px color-mix(in srgb, var(--text-strong) 2.5%, transparent);
+  box-shadow: var(--shadow-overlay);
   backdrop-filter: blur(20px) saturate(125%);
 }
 

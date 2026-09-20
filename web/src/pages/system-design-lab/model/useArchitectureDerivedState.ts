@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import {
+  createReferenceSolutionSnapshot,
   getArchitectureNodeConnectionStates,
   getArchitectureNodeValidationIssues,
   referenceSolutions,
@@ -17,14 +18,25 @@ export function useArchitectureDerivedState({
   latestVersion,
   selectedSolutionId,
   nodeValidationVisible,
+  workspaceView = 'canvas',
 }: ArchitectureDerivedStateOptions): ArchitectureDerivedState {
+  const selectedSolution = useMemo(
+    () =>
+      referenceSolutions.find((solution) => solution.id === selectedSolutionId) ??
+      referenceSolutions[0],
+    [selectedSolutionId],
+  );
+  const activeSnapshot = useMemo(() => {
+    if (workspaceView === 'solutions') return createReferenceSolutionSnapshot(selectedSolution);
+    return { nodes, edges };
+  }, [edges, nodes, selectedSolution, workspaceView]);
   const nodeConnectionStates = useMemo(
-    () => getArchitectureNodeConnectionStates(nodes, edges),
-    [edges, nodes],
+    () => getArchitectureNodeConnectionStates(activeSnapshot.nodes, activeSnapshot.edges),
+    [activeSnapshot],
   );
   const nodeValidationStates = useMemo(
-    () => validateArchitectureNodes(nodes, edges),
-    [edges, nodes],
+    () => validateArchitectureNodes(activeSnapshot.nodes, activeSnapshot.edges),
+    [activeSnapshot],
   );
   const nodeValidationIssues = useMemo(
     () => getArchitectureNodeValidationIssues(nodeValidationStates),
@@ -34,17 +46,12 @@ export function useArchitectureDerivedState({
     () => hasUncommittedArchitectureChanges({ nodes, edges }, latestVersion),
     [edges, latestVersion, nodes],
   );
-  const selectedSolution = useMemo(
-    () =>
-      referenceSolutions.find((solution) => solution.id === selectedSolutionId) ??
-      referenceSolutions[0],
-    [selectedSolutionId],
-  );
 
   let visibleValidationStates: ArchitectureDerivedState['visibleValidationStates'];
   if (nodeValidationVisible) visibleValidationStates = nodeValidationStates;
 
   return {
+    activeSnapshot,
     nodeConnectionStates,
     nodeValidationStates,
     nodeValidationIssues,

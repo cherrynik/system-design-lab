@@ -18,6 +18,7 @@ export function useWorkspaceShortcuts(options: WorkspaceShortcutOptions) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (isEditableShortcutTarget(event.target)) return;
 
+      const editableCanvas = options.workspaceView === 'canvas';
       const command = event.metaKey || event.ctrlKey;
       const historyShortcut = getArchitectureHistoryShortcut(event);
       if (event.key === 'Escape') {
@@ -27,7 +28,7 @@ export function useWorkspaceShortcuts(options: WorkspaceShortcutOptions) {
       }
       if (command && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        options.openRegistry();
+        if (editableCanvas) options.openRegistry();
         return;
       }
       if (command && event.key === 'Enter') {
@@ -38,21 +39,23 @@ export function useWorkspaceShortcuts(options: WorkspaceShortcutOptions) {
       if (historyShortcut) {
         event.preventDefault();
         event.stopPropagation();
+        if (!editableCanvas) return;
         if (historyShortcut === 'redo') options.redo();
         if (historyShortcut === 'undo') options.undo();
         return;
       }
       const deleteKey = event.key === 'Backspace' || event.key === 'Delete';
-      if (options.workspaceView === 'canvas' && deleteKey && options.hasSelectedShapes()) {
+      if (deleteKey && options.hasSelectedShapes()) {
         event.preventDefault();
         event.stopPropagation();
-        options.deleteSelectedShapes();
+        if (editableCanvas) options.deleteSelectedShapes();
         return;
       }
       const hasModifier = event.metaKey || event.ctrlKey || event.altKey;
       const nextTool = getCanvasToolForShortcut(event.key);
       if (hasModifier || !nextTool) return;
       event.preventDefault();
+      if (!editableCanvas && nextTool === 'connection') return;
       options.setTool(nextTool);
     };
 

@@ -157,4 +157,38 @@ describe('ArchitectureSidebarGraph', () => {
     expect(screen.getByText('Load Balancer')).toBeTruthy();
     expect(screen.getByText('API')).toBeTruthy();
   });
+  it('keeps readonly solution layers and graph navigable without editor actions', () => {
+    const onFocus = vi.fn();
+    const onRename = vi.fn();
+    const onOpenMenu = vi.fn();
+    render(
+      <ArchitectureSidebarGraph
+        nodes={nodes}
+        edges={edges}
+        connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
+        expanded
+        readOnly
+        onToggleExpanded={vi.fn()}
+        onAddComponent={vi.fn()}
+        onFocus={onFocus}
+        onRename={onRename}
+        onOpenMenu={onOpenMenu}
+      />,
+    );
+
+    for (const view of ['Layers', 'Graph']) {
+      fireEvent.click(screen.getByRole('tab', { name: view }));
+      const browser = screen.getByRole('button', { name: 'Browser' });
+      fireEvent.click(browser);
+      fireEvent.doubleClick(browser);
+      fireEvent.keyDown(browser, { key: 'F2' });
+      fireEvent.contextMenu(browser);
+      expect(onFocus).toHaveBeenCalledWith('client');
+      expect(screen.queryByRole('textbox')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Add component' })).toBeNull();
+      expect(screen.queryByRole('button', { name: /Open menu for/ })).toBeNull();
+    }
+    expect(onRename).not.toHaveBeenCalled();
+    expect(onOpenMenu).not.toHaveBeenCalled();
+  });
 });

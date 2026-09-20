@@ -83,6 +83,5 @@ export type CanvasZoomControlsProps = {
 };
 
 export type SolutionCanvasHeaderProps = {
-  solution: ReferenceSolution;
   onBack: () => void;
 };

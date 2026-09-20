@@ -12,8 +12,9 @@ export type ArchitectureLayerItemProps = {
   validationState?: ArchitectureNodeValidationState;
   mode?: ArchitectureLayerItemMode;
   onFocus: (nodeId: string) => void;
-  onOpenMenu: (nodeId: string, x: number, y: number) => void;
-  onRename: (nodeId: string, label: string) => void;
+  readOnly?: boolean;
+  onOpenMenu?: (nodeId: string, x: number, y: number) => void;
+  onRename?: (nodeId: string, label: string) => void;
 };
 
 export type ArchitectureLayerNameProps = {

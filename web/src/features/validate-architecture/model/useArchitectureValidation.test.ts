@@ -247,9 +247,30 @@ describe('useArchitectureValidation', () => {
       ],
       edges: [{ from: 'direct-service-node-1', to: 'direct-service-node-2' }],
     });
-    expect(result.current.nodeValidationVisible).toBe(false);
+    expect(result.current.nodeValidationVisible).toBe(true);
     expect(result.current.terminal.map((line) => line.text)).not.toContain(
       '⚠ Node validation found 1 issue',
+    );
+  });
+
+  it('reports the selected solution node issues instead of user canvas issues', async () => {
+    const evaluate = vi.fn(async () => [validResult]);
+    const { result } = renderHook(() =>
+      useArchitectureValidation({ evaluate, loadExercise: resolvedExercise() }),
+    );
+
+    await act(async () =>
+      result.current.validate({
+        snapshot,
+        view: 'solutions',
+        solution: { ...solution, connections: [] },
+        nodeValidationIssues: [],
+      }),
+    );
+
+    expect(result.current.nodeValidationVisible).toBe(true);
+    expect(result.current.terminal.map((line) => line.text)).toContain(
+      '⚠ Node validation found 2 issues',
     );
   });
 

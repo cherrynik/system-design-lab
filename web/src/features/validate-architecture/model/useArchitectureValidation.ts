@@ -6,6 +6,7 @@ import { fetchExercise } from '../api/fetch-exercise';
 import {
   createArchitectureValidationTarget,
   getArchitectureValidationPath,
+  getArchitectureValidationNodeIssues,
 } from '../lib/architectureValidationTarget';
 import { reduceArchitectureValidationResults } from './validationOutcome';
 import {
@@ -80,7 +81,7 @@ export function useArchitectureValidation({
       runningRef.current = true;
       const id = ++runIdRef.current;
       const requestId = ++requestIdRef.current;
-      const nodeIssues = args.view === 'canvas' ? [...args.nodeValidationIssues] : [];
+      const nodeIssues = getArchitectureValidationNodeIssues(args);
       const provisionalPath = getArchitectureValidationPath(args);
 
       setRunning(true);
@@ -89,7 +90,7 @@ export function useArchitectureValidation({
       setValidationError(null);
       setWarningCount(0);
       setValidatedNodeIssues(nodeIssues);
-      setNodeValidationVisible(args.view === 'canvas');
+      setNodeValidationVisible(true);
       setTerminal((current) =>
         createValidationRunStartTranscript({ current, runId: id, path: provisionalPath }),
       );

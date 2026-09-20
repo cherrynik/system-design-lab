@@ -20,6 +20,7 @@ export function ArchitectureCanvasSurface(props: ArchitectureCanvasSurfaceProps)
           documentId={`solution:${props.solution.id}`}
           nodes={snapshot.nodes}
           edges={snapshot.edges}
+          validationStates={props.validationStates}
           onMountEditor={props.onMountEditor}
         />
       </Suspense>
