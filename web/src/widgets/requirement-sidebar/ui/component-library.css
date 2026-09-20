@@ -412,7 +412,7 @@
 }
 
 .catalog-option__context {
-  color: var(--text-faint);
+  color: var(--text-muted);
   font-size: var(--text-xs);
 }
 
@@ -424,7 +424,7 @@
 
 .catalog-option__copy code {
   overflow-wrap: anywhere;
-  color: var(--text-faint);
+  color: var(--text-muted);
   font: 500 10px / 1.4 var(--font-code);
 }
 

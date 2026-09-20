@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: 'pages-test-results',
   testMatch: 'pages.spec.ts',
   forbidOnly: Boolean(process.env.CI),
   retries: 0,

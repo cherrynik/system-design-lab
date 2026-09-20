@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const apiPort = 18081;
-const webPort = 15173;
+const apiPort = Number(process.env.PLAYWRIGHT_API_PORT ?? 18081);
+const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? 15173);
 const isCI = Boolean(process.env.CI);
 const goRunner = process.env.PLAYWRIGHT_GO_RUNNER ?? 'go';
 

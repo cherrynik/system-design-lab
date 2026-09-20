@@ -45,7 +45,7 @@ test('catalog counts only implementations and keeps its size through filtering',
     expect((await dialog.boundingBox())!.height).toBeCloseTo(bounds!.height);
   }
   await categories.getByRole('button', { name: /All components/ }).click();
-  await page.screenshot({ path: 'test-results/catalog-gallery.png' });
+  await page.screenshot({ path: 'pages-test-results/catalog-gallery.png' });
   await page.getByRole('textbox', { name: 'Search components' }).fill('does-not-exist');
   await expect(page.getByText('No matching components')).toBeVisible();
   expect((await dialog.boundingBox())!.width).toBeCloseTo(bounds!.width);
@@ -53,7 +53,7 @@ test('catalog counts only implementations and keeps its size through filtering',
   await page.getByRole('textbox', { name: 'Search components' }).fill('nginx');
   expect((await dialog.boundingBox())!.width).toBeCloseTo(bounds!.width);
   expect((await dialog.boundingBox())!.height).toBeCloseTo(bounds!.height);
-  await page.screenshot({ path: 'test-results/catalog-search.png' });
+  await page.screenshot({ path: 'pages-test-results/catalog-search.png' });
   await page.getByRole('button', { name: 'Add NGINX', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('.tldraw-architecture-card')).toHaveCount(3);

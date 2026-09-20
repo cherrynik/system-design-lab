@@ -251,10 +251,10 @@ export const NarrowLayers: Story = {
     await expect(ports.getBoundingClientRect().right).toBeLessThanOrEqual(
       browser.getBoundingClientRect().left,
     );
-    await expect(within(ports as HTMLElement).getAllByRole('img')).toHaveLength(1);
+    await expect(within(ports as HTMLElement).getAllByRole('button')).toHaveLength(1);
     const service = canvas.getByRole('button', { name: 'Go HTTP API' });
     await expect(
-      within(service.previousElementSibling as HTMLElement).getAllByRole('img'),
+      service.previousElementSibling!.querySelectorAll('[data-port-direction]'),
     ).toHaveLength(2);
     await expect(getComputedStyle(canvas.getByRole('tab', { name: 'Layers' })).fontSize).toBe(
       '0px',
