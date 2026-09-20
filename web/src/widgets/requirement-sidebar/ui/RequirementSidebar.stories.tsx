@@ -317,6 +317,7 @@ export const NarrowSidebar: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await canvasElement.ownerDocument.fonts.ready;
     const panel = canvasElement.querySelector('.requirements-panel')!;
     await expect(panel.scrollWidth).toBeLessThanOrEqual(panel.clientWidth);
     const componentsTitle = panel.querySelector('.components-section-header .panel-id')!;
