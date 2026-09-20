@@ -8,6 +8,7 @@ export function useArchitectureValidationController({
   snapshot,
   workspaceView,
   selectedSolution,
+  source,
   nodeValidationIssues,
   validateArchitecture,
   running,
@@ -22,8 +23,9 @@ export function useArchitectureValidationController({
         view: workspaceView,
         solution: selectedSolution,
         nodeValidationIssues,
+        source,
       }),
-    [nodeValidationIssues, selectedSolution, snapshot, validateArchitecture, workspaceView],
+    [nodeValidationIssues, selectedSolution, snapshot, source, validateArchitecture, workspaceView],
   );
 
   useEffect(() => {

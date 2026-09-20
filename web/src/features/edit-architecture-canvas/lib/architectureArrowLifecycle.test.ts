@@ -14,6 +14,9 @@ import { createArchitectureArrow } from './createArchitectureArrow';
 import { reconcileArrowBinding } from './reconcileArrowBinding';
 import { shapeIdForEdge, shapeIdForNode } from './shapeIds';
 import { updateArchitectureArrow } from './updateArchitectureArrow';
+import { normalizeArrowSourceGap } from './normalizeArrowSourceGap';
+
+vi.mock('./normalizeArrowSourceGap', () => ({ normalizeArrowSourceGap: vi.fn() }));
 
 vi.mock('tldraw', async (importOriginal) => {
   const actual = (await importOriginal()) as typeof TldrawModule;
@@ -139,6 +142,11 @@ describe('architecture arrow lifecycle', () => {
           isPrecise: true,
         }),
       }),
+    );
+    expect(normalizeArrowSourceGap).toHaveBeenCalledWith(
+      harness.editor,
+      expect.objectContaining({ type: 'arrow' }),
+      edge.data?.sourceAnchor,
     );
     expect(harness.createBinding).toHaveBeenNthCalledWith(
       2,

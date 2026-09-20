@@ -5,11 +5,15 @@ import {
   useArchitectureAutosave,
 } from '@/features/autosave-architecture';
 import { useArchitectureHistory } from '@/features/canvas-history';
-import { useArchitectureValidation } from '@/features/validate-architecture';
+import {
+  useArchitectureValidation,
+  type ValidationAttemptSource,
+} from '@/features/validate-architecture';
 import { useArchitectureVersions } from '@/features/version-architecture';
 import type { RequirementSidebarProps } from '@/widgets/requirement-sidebar';
 import type { SystemDesignLabController } from './SystemDesignLabController.types';
 import { useArchitectureDerivedState } from './useArchitectureDerivedState';
+import { useArchitectureAttemptPreview } from './useArchitectureAttemptPreview';
 import { useArchitectureEditorController } from './useArchitectureEditorController';
 import { useArchitectureHistoryActions } from './useArchitectureHistoryActions';
 import { useArchitectureNodeActions } from './useArchitectureNodeActions';
@@ -40,6 +44,13 @@ export function useSystemDesignLabController(): SystemDesignLabController {
   const transientUi = useTransientWorkspaceUi();
   const editor = useArchitectureEditorController();
   const canvasEvents = useCanvasEvents();
+  const attempts = useArchitectureAttemptPreview({
+    selectedAttempt: validation.selectedAttempt,
+    selectAttempt: validation.selectAttempt,
+    clearValidation: validation.clear,
+    setWorkspaceView: workspace.setWorkspaceView,
+    closeTransientUi: transientUi.closeTransientUi,
+  });
   const usesCommandKey = useMemo(() => /Macintosh|Mac OS X/.test(window.navigator.userAgent), []);
 
   const derived = useArchitectureDerivedState({
@@ -49,6 +60,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     selectedSolutionId: workspace.selectedSolutionId,
     nodeValidationVisible: validation.nodeValidationVisible,
     workspaceView: workspace.workspaceView,
+    previewSnapshot: attempts.preview?.snapshot,
   });
 
   useArchitectureValidationInvalidation({
@@ -58,10 +70,15 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     invalidateValidation: validation.clear,
   });
 
+  let validationView = workspace.workspaceView;
+  let validationSource: ValidationAttemptSource | undefined;
+  if (attempts.preview) validationView = 'canvas';
+  if (attempts.preview && validation.selectedAttempt) validationSource = validation.selectedAttempt;
   const validationController = useArchitectureValidationController({
-    snapshot: history.snapshot,
-    workspaceView: workspace.workspaceView,
+    snapshot: attempts.preview?.snapshot ?? history.snapshot,
+    workspaceView: validationView,
     selectedSolution: derived.selectedSolution,
+    source: validationSource,
     nodeValidationIssues: derived.nodeValidationIssues,
     validateArchitecture: validation.validate,
     running: validation.running,
@@ -112,6 +129,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
   const shortcutOptions = useMemo(
     () => ({
       workspaceView: workspace.workspaceView,
+      readOnly: Boolean(attempts.preview),
       setTool: workspace.setTool,
       closeTransientUi: transientUi.closeTransientUi,
       openRegistry: workspace.openRegistry,
@@ -131,16 +149,21 @@ export function useSystemDesignLabController(): SystemDesignLabController {
       workspace.openRegistry,
       workspace.setTool,
       workspace.workspaceView,
+      attempts.preview,
     ],
   );
   useWorkspaceShortcuts(shortcutOptions);
 
   let focusSidebarNode = nodeActions.focusNode;
-  if (workspace.workspaceView === 'solutions') focusSidebarNode = editor.focusShape;
+  if (workspace.workspaceView === 'solutions' || attempts.preview)
+    focusSidebarNode = editor.focusShape;
+  let sidebarView = workspace.workspaceView;
+  if (attempts.preview) sidebarView = 'canvas';
 
   const sidebarProps: RequirementSidebarProps = {
     collapsed: workspace.requirementsCollapsed,
-    view: workspace.workspaceView,
+    view: sidebarView,
+    readOnly: Boolean(attempts.preview),
     solutions: referenceSolutions,
     selectedSolutionId: workspace.selectedSolutionId,
     requirementsExpanded: workspace.requirementsExpanded,
@@ -158,7 +181,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     menu: transientUi.menu,
     contextMenuRef: transientUi.contextMenuRef,
     onCollapsedChange: workspace.setRequirementsCollapsed,
-    onViewChange: workspace.setWorkspaceView,
+    onViewChange: attempts.changeWorkspaceView,
     onSolutionChange: workspace.setSelectedSolutionId,
     onRequirementsExpandedChange: workspace.setRequirementsExpanded,
     onLayersExpandedChange: workspace.setLayersExpanded,
@@ -177,6 +200,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
     sidebarCollapsed: workspace.requirementsCollapsed,
     sidebarProps,
     workbenchProps: {
+      preview: attempts.preview,
       view: workspace.workspaceView,
       solution: derived.selectedSolution,
       nodes: history.nodes,
@@ -193,7 +217,7 @@ export function useSystemDesignLabController(): SystemDesignLabController {
       canUndo: history.canUndo,
       canRedo: history.canRedo,
       usesCommandKey,
-      onViewChange: workspace.setWorkspaceView,
+      onViewChange: attempts.changeWorkspaceView,
       onVersionsOpenChange: workspace.setVersionsOpen,
       onCommit: versionActions.commitArchitecture,
       onRestore: versionActions.restoreArchitectureVersion,
@@ -209,13 +233,16 @@ export function useSystemDesignLabController(): SystemDesignLabController {
       onRedo: historyActions.redoArchitectureChange,
     },
     runnerProps: {
+      attempts: validation.attempts,
+      selectedAttemptId: validation.selectedAttemptId,
+      onSelectAttempt: attempts.viewAttempt,
       error: validation.validationError ?? validation.exerciseError,
       lines: validation.terminal,
       running: validation.running,
       status: validation.runnerStatus,
       usesCommandKey,
       outputRef: validationController.terminalRef,
-      onClear: validation.clear,
+      onClear: attempts.clearOutput,
       onValidate: () => void validationController.validate(),
     },
   };

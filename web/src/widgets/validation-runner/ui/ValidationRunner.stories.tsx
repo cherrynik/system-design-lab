@@ -1,6 +1,8 @@
 import { createRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, fn, userEvent, within } from 'storybook/test';
 import { ValidationRunner } from './ValidationRunner';
+import { warningAttempt, validationAttempts } from './validation-attempts.fixtures';
 
 const storyOutputRef = createRef<HTMLDivElement>();
 
@@ -18,7 +20,11 @@ const meta = {
     onClear: () => undefined,
     onValidate: () => undefined,
   },
-  render: (args) => <ValidationRunner {...args} outputRef={storyOutputRef} />,
+  render: (args) => (
+    <div style={{ width: 'min(840px, 100%)', height: 280 }}>
+      <ValidationRunner {...args} outputRef={storyOutputRef} />
+    </div>
+  ),
 } satisfies Meta<typeof ValidationRunner>;
 
 export default meta;
@@ -51,5 +57,29 @@ export const Failed: Story = {
     status: 'error',
     error: 'The architecture could not be evaluated.',
     lines: [{ kind: 'error', text: 'No request path reaches an HTTP handler.' }],
+  },
+};
+
+export const WithAttempts: Story = {
+  args: {
+    attempts: validationAttempts,
+    selectedAttemptId: 2,
+    status: warningAttempt.status,
+    lines: warningAttempt.terminal,
+    onSelectAttempt: fn(),
+  },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('tab', { name: 'Attempts' }));
+    await expect(canvas.getByRole('button', { name: 'View Attempt #2' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    await userEvent.click(canvas.getByRole('button', { name: 'View Attempt #1' }));
+    await expect(args.onSelectAttempt).toHaveBeenCalledWith(1);
+    await expect(canvas.getByRole('tab', { name: 'Output' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   },
 };

@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ArchitectureNodeValidationIssue } from '@/entities/architecture';
-import type { ValidationResult } from '@/entities/exercise';
-import { evaluateArchitecture } from '../api/evaluate-architecture';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { evaluateArchitecture, toArchitecturePayload } from '../api/evaluate-architecture';
 import { fetchExercise } from '../api/fetch-exercise';
+import { getValidationAttemptPath } from './validationAttemptSource';
+import { createValidationAttempt } from './createValidationAttempt';
 import {
-  createArchitectureValidationTarget,
-  getArchitectureValidationPath,
-  getArchitectureValidationNodeIssues,
-} from '../lib/architectureValidationTarget';
+  getValidationAttemptStorage,
+  readValidationAttemptHistory,
+  writeValidationAttemptHistory,
+} from './validationAttemptHistory';
 import { reduceArchitectureValidationResults } from './validationOutcome';
 import {
   deriveArchitectureRequirementStatus,
@@ -16,17 +16,14 @@ import {
 import {
   createValidationErrorLine,
   createValidationResultTranscript,
-  createValidationRunStartTranscript,
   replacePendingValidationTranscript,
 } from './validationTranscript';
 import { useExerciseLoader } from './useExerciseLoader';
+import type { ValidationAttempt } from './validationAttempt.types';
 import type {
-  ArchitectureRequirementStatus,
-  ArchitectureRunnerStatus,
   UseArchitectureValidationOptions,
   UseArchitectureValidationResult,
   ValidateArchitectureArgs,
-  ValidationTerminalLine,
 } from './useArchitectureValidation.types';
 
 export type {
@@ -43,24 +40,21 @@ export type {
 export function useArchitectureValidation({
   evaluate = evaluateArchitecture,
   loadExercise = fetchExercise,
+  attemptStorage,
 }: UseArchitectureValidationOptions = {}): UseArchitectureValidationResult {
   const { exercise, exerciseStatus, exerciseError, exerciseRef } = useExerciseLoader({
     loadExercise,
   });
-  const [results, setResults] = useState<ValidationResult[]>([]);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [terminal, setTerminal] = useState<ValidationTerminalLine[]>([]);
-  const [running, setRunning] = useState(false);
-  const [nodeValidationVisible, setNodeValidationVisible] = useState(false);
-  const [validatedNodeIssues, setValidatedNodeIssues] = useState<
-    readonly ArchitectureNodeValidationIssue[]
-  >([]);
-  const [warningCount, setWarningCount] = useState(0);
-  const [lastRunId, setLastRunId] = useState<number | null>(null);
+  const [storage] = useState(() => {
+    if (attemptStorage !== undefined) return attemptStorage;
+    return getValidationAttemptStorage();
+  });
+  const [history, setHistory] = useState(() => readValidationAttemptHistory(storage));
+  const [selectedAttemptId, setSelectedAttemptId] = useState<number | null>(null);
+  const [activeRunId, setActiveRunId] = useState<number | null>(null);
+  const historyRef = useRef(history);
   const evaluateRef = useRef(evaluate);
-  const runningRef = useRef(false);
-  const runIdRef = useRef(0);
-  const requestIdRef = useRef(0);
+  const activeRunIdRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -74,113 +68,119 @@ export function useArchitectureValidation({
     evaluateRef.current = evaluate;
   }, [evaluate]);
 
+  const archiveAttempt = useCallback(
+    (attempt: ValidationAttempt) => {
+      const current = historyRef.current;
+      const next = {
+        attempts: [attempt, ...current.attempts.filter((item) => item.id !== attempt.id)].sort(
+          (a, b) => b.id - a.id,
+        ),
+        nextId: Math.max(current.nextId, attempt.id + 1),
+      };
+      historyRef.current = next;
+      writeValidationAttemptHistory(storage, next);
+      if (mountedRef.current) setHistory(next);
+    },
+    [storage],
+  );
+
   const validate = useCallback(
     async (args: ValidateArchitectureArgs) => {
-      if (runningRef.current) return;
+      if (activeRunIdRef.current !== null) return;
 
-      runningRef.current = true;
-      const id = ++runIdRef.current;
-      const requestId = ++requestIdRef.current;
-      const nodeIssues = getArchitectureValidationNodeIssues(args);
-      const provisionalPath = getArchitectureValidationPath(args);
-
-      setRunning(true);
-      setLastRunId(id);
-      setResults([]);
-      setValidationError(null);
-      setWarningCount(0);
-      setValidatedNodeIssues(nodeIssues);
-      setNodeValidationVisible(true);
-      setTerminal((current) =>
-        createValidationRunStartTranscript({ current, runId: id, path: provisionalPath }),
-      );
+      const attempt = createValidationAttempt(historyRef.current.nextId, args);
+      const id = attempt.id;
+      const path = getValidationAttemptPath(attempt);
+      const requirementTitle = exerciseRef.current?.requirement.title;
+      activeRunIdRef.current = id;
+      setActiveRunId(id);
+      setSelectedAttemptId(id);
+      archiveAttempt(attempt);
 
       try {
-        const { architecture, path } = createArchitectureValidationTarget(args);
-        const nextResults = await evaluateRef.current(architecture);
-        if (!mountedRef.current || requestIdRef.current !== requestId) return;
-
+        if (args.view === 'solutions' && !args.solution) {
+          throw new Error('Select a solution before validating.');
+        }
+        const architecture = toArchitecturePayload(attempt.snapshot.nodes, attempt.snapshot.edges);
+        const results = structuredClone(await evaluateRef.current(architecture));
         const outcome = reduceArchitectureValidationResults({
           architecture,
-          results: nextResults,
-          nodeIssues,
+          results,
+          nodeIssues: attempt.nodeIssues,
         });
-        const lines = createValidationResultTranscript({
-          outcome,
-          path,
-          requirementTitle: exerciseRef.current?.requirement.title,
+        const terminal = replacePendingValidationTranscript({
+          current: attempt.terminal,
+          runId: id,
+          replacement: createValidationResultTranscript({ outcome, path, requirementTitle }),
         });
-
-        setTerminal((current) =>
-          replacePendingValidationTranscript({ current, runId: id, replacement: lines }),
-        );
-        setResults(nextResults);
-        setWarningCount(outcome.warningCount);
+        const status = deriveArchitectureRunnerStatus({
+          running: false,
+          lastRunId: id,
+          validationError: null,
+          results,
+          validatedNodeIssues: attempt.nodeIssues,
+          warningCount: outcome.warningCount,
+        });
+        archiveAttempt({
+          ...attempt,
+          status: status === 'idle' ? 'ready' : status,
+          results,
+          terminal,
+          warningCount: outcome.warningCount,
+        });
       } catch (error: unknown) {
-        if (!mountedRef.current || requestIdRef.current !== requestId) return;
         const message = error instanceof Error ? error.message : 'Validation failed';
-        setValidationError(message);
-        setTerminal((current) =>
-          replacePendingValidationTranscript({
-            current,
+        archiveAttempt({
+          ...attempt,
+          status: 'error',
+          validationError: message,
+          terminal: replacePendingValidationTranscript({
+            current: attempt.terminal,
             runId: id,
             replacement: [createValidationErrorLine(id, message)],
           }),
-        );
+        });
       } finally {
-        if (mountedRef.current && requestIdRef.current === requestId) {
-          runningRef.current = false;
-          setRunning(false);
+        if (activeRunIdRef.current === id) {
+          activeRunIdRef.current = null;
+          if (mountedRef.current) setActiveRunId(null);
         }
       }
     },
-    [exerciseRef],
+    [archiveAttempt, exerciseRef],
   );
 
-  const clear = useCallback(() => {
-    requestIdRef.current += 1;
-    runningRef.current = false;
-    setRunning(false);
-    setResults([]);
-    setValidationError(null);
-    setTerminal([]);
-    setNodeValidationVisible(false);
-    setValidatedNodeIssues([]);
-    setWarningCount(0);
-    setLastRunId(null);
+  const selectAttempt = useCallback((id: number) => {
+    if (historyRef.current.attempts.some((attempt) => attempt.id === id)) setSelectedAttemptId(id);
   }, []);
 
-  const runnerStatus = useMemo<ArchitectureRunnerStatus>(
-    () =>
-      deriveArchitectureRunnerStatus({
-        running,
-        lastRunId,
-        validationError,
-        results,
-        validatedNodeIssues,
-        warningCount,
-      }),
-    [lastRunId, results, running, validatedNodeIssues, validationError, warningCount],
-  );
+  const clear = useCallback(() => {
+    activeRunIdRef.current = null;
+    setActiveRunId(null);
+    setSelectedAttemptId(null);
+  }, []);
 
-  const requirementStatus = useMemo<ArchitectureRequirementStatus>(
-    () => deriveArchitectureRequirementStatus(runnerStatus),
-    [runnerStatus],
-  );
+  const selectedAttempt =
+    history.attempts.find((attempt) => attempt.id === selectedAttemptId) ?? null;
+  const runnerStatus = selectedAttempt?.status ?? 'idle';
 
   return {
     exercise,
     exerciseStatus,
     exerciseError,
-    results,
-    validationError,
-    terminal,
-    running,
-    nodeValidationVisible,
-    lastRunId,
-    warningCount,
+    results: selectedAttempt?.results ?? [],
+    validationError: selectedAttempt?.validationError ?? null,
+    terminal: selectedAttempt?.terminal ?? [],
+    running: activeRunId !== null,
+    nodeValidationVisible: selectedAttempt !== null,
+    lastRunId: selectedAttemptId,
+    warningCount: selectedAttempt?.warningCount ?? 0,
     runnerStatus,
-    requirementStatus,
+    requirementStatus: deriveArchitectureRequirementStatus(runnerStatus),
+    attempts: history.attempts,
+    selectedAttemptId,
+    selectedAttempt,
+    selectAttempt,
     validate,
     clear,
   };

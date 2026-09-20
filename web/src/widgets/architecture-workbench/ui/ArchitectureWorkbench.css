@@ -115,6 +115,14 @@
   font-size: 12px;
 }
 
+.solution-canvas-header__label {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-soft);
+  white-space: nowrap;
+  padding-inline-end: 4px;
+}
+
 @media (max-width: 720px) {
   .canvas-zoom-controls {
     display: none;

@@ -1,16 +1,14 @@
 import {
   getArrowBindings,
   getArrowTerminalsInArrowSpace,
-  renderPlaintextFromRichText,
-  toRichText,
   type Editor,
   type TLArrowShape,
 } from 'tldraw';
-import { getArrowProtocol } from '@/entities/architecture';
 import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture';
 import { edgeAnchor } from './anchors';
 import { getArchitecturePortBinding } from './getArchitecturePortBinding';
 import { recordId } from './shapeIds';
+import { syncArchitectureArrowProtocol } from './syncArchitectureArrowProtocol';
 import { ARCHITECTURE_CARD_TYPE } from '../model/constants';
 import type { ArchitectureEditorState } from '../model/architectureEditorState.types';
 import type { ArchitectureCardShape } from '../model/architectureCanvas.types';
@@ -22,36 +20,6 @@ function createAnchorNode(id: string, point: { x: number; y: number }): Architec
     position: point,
     data: { kind: 'service', variantId: 'anchor', label: '', isAnchor: true },
   };
-}
-
-function readProtocol(
-  editor: Editor,
-  arrow: TLArrowShape,
-  startCard?: ArchitectureCardShape,
-  endCard?: ArchitectureCardShape,
-) {
-  const currentLabel = renderPlaintextFromRichText(editor, arrow.props.richText).trim();
-  let defaultProtocol = '';
-  if (startCard && endCard) defaultProtocol = getArrowProtocol(startCard.props.kind);
-  const isEditing = editor.getEditingShapeId() === arrow.id;
-  let protocol = currentLabel;
-  if (!protocol && !isEditing) protocol = defaultProtocol;
-  if (!currentLabel && protocol) {
-    editor.updateShape<TLArrowShape>({
-      id: arrow.id,
-      type: 'arrow',
-      props: {
-        richText: toRichText(protocol),
-        color: 'light-blue',
-        labelColor: 'light-blue',
-        font: 'mono',
-        size: 's',
-        kind: 'arc',
-        arrowheadEnd: 'arrow',
-      },
-    });
-  }
-  return protocol;
 }
 
 function readBend(arrow: TLArrowShape) {
@@ -85,7 +53,16 @@ function readArchitectureEdge(
     const point = transform.applyToPoint(terminals.end);
     nodes.push(createAnchorNode(targetId, point));
   }
-  const protocol = readProtocol(editor, arrow, startCard, endCard);
+  const { protocol, protocolMode } = syncArchitectureArrowProtocol(editor, arrow, startCard);
+  let sourceAnchor = bindings.start?.props.isPrecise
+    ? edgeAnchor(bindings.start.props.normalizedAnchor)
+    : undefined;
+  if (port) {
+    sourceAnchor = port.props.anchor;
+    // Hydration adds a visual gap without changing the saved document or creating an undo step.
+    if (port.props.originalAnchor !== undefined)
+      sourceAnchor = port.props.originalAnchor ?? undefined;
+  }
   return {
     id: edgeId,
     source: sourceId,
@@ -95,12 +72,9 @@ function readArchitectureEdge(
     label: protocol,
     data: {
       protocol,
+      protocolMode,
       bend: readBend(arrow),
-      sourceAnchor:
-        port?.props.anchor ??
-        (bindings.start?.props.isPrecise
-          ? edgeAnchor(bindings.start.props.normalizedAnchor)
-          : undefined),
+      sourceAnchor,
       targetAnchor: bindings.end?.props.isPrecise
         ? edgeAnchor(bindings.end.props.normalizedAnchor)
         : undefined,

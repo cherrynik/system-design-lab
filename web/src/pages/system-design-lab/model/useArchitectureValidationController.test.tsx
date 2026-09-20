@@ -46,6 +46,25 @@ describe('useArchitectureValidationController', () => {
       view: 'solutions',
       solution: referenceSolutions[0],
       nodeValidationIssues: [issue],
+      source: undefined,
+    });
+  });
+
+  it('forwards captured provenance while validating the supplied historical snapshot', async () => {
+    const source = {
+      view: 'solutions' as const,
+      solutionId: 'original',
+      solutionLabel: 'Original solution',
+    };
+    const options = createOptions({ source });
+    const { result } = renderHook(() => useArchitectureValidationController(options));
+    await act(async () => result.current.validate());
+    expect(options.validateArchitecture).toHaveBeenCalledWith({
+      snapshot,
+      view: 'canvas',
+      solution: referenceSolutions[0],
+      nodeValidationIssues: [issue],
+      source,
     });
   });
 

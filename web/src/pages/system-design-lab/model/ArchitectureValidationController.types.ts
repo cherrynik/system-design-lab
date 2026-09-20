@@ -7,6 +7,7 @@ import type {
 import type {
   ValidateArchitectureArgs,
   ValidationTerminalLine,
+  ValidationAttemptSource,
 } from '@/features/validate-architecture';
 import type { WorkspaceView } from '@/widgets/architecture-workbench';
 
@@ -14,6 +15,7 @@ export type ArchitectureValidationControllerOptions = {
   snapshot: ArchitectureSnapshot;
   workspaceView: WorkspaceView;
   selectedSolution: ReferenceSolution;
+  source?: ValidationAttemptSource;
   nodeValidationIssues: readonly ArchitectureNodeValidationIssue[];
   validateArchitecture: (args: ValidateArchitectureArgs) => Promise<void>;
   running: boolean;

@@ -234,4 +234,76 @@ describe('useSystemDesignLabController', () => {
     expect(result.current.sidebarProps.requirementStatus).toBe('Not checked');
     expect(result.current.runnerProps.lines).toEqual([]);
   });
+
+  it('previews an immutable attempt without replacing My Canvas and can validate that snapshot again', async () => {
+    mockArchitectureApi();
+    const { result } = renderHook(() => useSystemDesignLabController());
+
+    act(() => result.current.runnerProps.onValidate());
+    await waitFor(() => expect(result.current.runnerProps.status).toBe('warning'));
+    expect(result.current.runnerProps.attempts).toHaveLength(1);
+    expect(result.current.workbenchProps.preview).toBeUndefined();
+
+    act(() => result.current.sidebarProps.onAddNode('load-balancer'));
+    expect(result.current.workbenchProps.nodes).toHaveLength(3);
+    expect(result.current.runnerProps.lines).toEqual([]);
+    expect(result.current.runnerProps.attempts).toHaveLength(1);
+
+    act(() => result.current.runnerProps.onSelectAttempt!(1));
+    expect(result.current.workbenchProps.preview).toMatchObject({
+      id: 'attempt:1',
+      label: 'Attempt #1',
+    });
+    expect(result.current.workbenchProps.preview?.snapshot.nodes).toHaveLength(2);
+    expect(result.current.sidebarProps.nodes).toHaveLength(2);
+    expect(result.current.sidebarProps.readOnly).toBe(true);
+    expect(result.current.workbenchProps.nodes).toHaveLength(3);
+    expect(result.current.runnerProps.lines.at(-1)?.text).toContain('PASS');
+
+    act(() => result.current.runnerProps.onValidate());
+    await waitFor(() => expect(result.current.runnerProps.running).toBe(false));
+    expect(result.current.runnerProps.attempts).toHaveLength(2);
+    expect(result.current.runnerProps.attempts?.[0].snapshot.nodes).toHaveLength(2);
+    expect(result.current.workbenchProps.preview?.id).toBe('attempt:2');
+
+    act(() => result.current.workbenchProps.onViewChange('canvas'));
+    expect(result.current.workbenchProps.preview).toBeUndefined();
+    expect(result.current.sidebarProps.readOnly).toBe(false);
+    expect(result.current.sidebarProps.nodes).toHaveLength(3);
+    expect(result.current.runnerProps.attempts).toHaveLength(2);
+  });
+
+  it('shows a captured solution attempt in the same readonly canvas and sidebar', async () => {
+    mockArchitectureApi();
+    const { result } = renderHook(() => useSystemDesignLabController());
+    act(() => {
+      result.current.sidebarProps.onViewChange('solutions');
+      result.current.sidebarProps.onSolutionChange('load-balanced');
+    });
+    act(() => result.current.runnerProps.onValidate());
+    await waitFor(() => expect(result.current.runnerProps.status).toBe('ready'));
+    act(() => result.current.sidebarProps.onViewChange('canvas'));
+    act(() => result.current.runnerProps.onSelectAttempt!(1));
+
+    expect(result.current.workbenchProps.preview?.snapshot.nodes).toHaveLength(3);
+    expect(result.current.sidebarProps.nodes.map((node) => node.data.label)).toEqual([
+      'Web Browser',
+      'NGINX',
+      'Go HTTP API',
+    ]);
+    expect(result.current.runnerProps.attempts?.[0].solutionId).toBe('load-balanced');
+    expect(result.current.workbenchProps.nodes).toHaveLength(2);
+    act(() => result.current.runnerProps.onValidate());
+    await waitFor(() => expect(result.current.runnerProps.running).toBe(false));
+    expect(result.current.runnerProps.attempts?.[0]).toMatchObject({
+      id: 2,
+      view: 'solutions',
+      solutionId: 'load-balanced',
+    });
+    expect(result.current.runnerProps.attempts?.[0].snapshot.nodes).toHaveLength(3);
+    act(() => result.current.runnerProps.onClear());
+    expect(result.current.workbenchProps.preview).toBeUndefined();
+    expect(result.current.sidebarProps.nodes).toHaveLength(2);
+    expect(result.current.runnerProps.attempts).toHaveLength(2);
+  });
 });

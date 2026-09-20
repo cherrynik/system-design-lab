@@ -19,6 +19,7 @@ export function useArchitectureDerivedState({
   selectedSolutionId,
   nodeValidationVisible,
   workspaceView = 'canvas',
+  previewSnapshot,
 }: ArchitectureDerivedStateOptions): ArchitectureDerivedState {
   const selectedSolution = useMemo(
     () =>
@@ -27,9 +28,10 @@ export function useArchitectureDerivedState({
     [selectedSolutionId],
   );
   const activeSnapshot = useMemo(() => {
+    if (previewSnapshot) return previewSnapshot;
     if (workspaceView === 'solutions') return createReferenceSolutionSnapshot(selectedSolution);
     return { nodes, edges };
-  }, [edges, nodes, selectedSolution, workspaceView]);
+  }, [edges, nodes, previewSnapshot, selectedSolution, workspaceView]);
   const nodeConnectionStates = useMemo(
     () => getArchitectureNodeConnectionStates(activeSnapshot.nodes, activeSnapshot.edges),
     [activeSnapshot],

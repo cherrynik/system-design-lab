@@ -275,6 +275,43 @@ describe('architecture persistence parsing', () => {
     });
   });
 
+  it.each([undefined, 'auto', 'manual'])(
+    'preserves protocol intent %s, including a blank label',
+    (protocolMode) => {
+      const snapshot = {
+        nodes: [],
+        edges: [
+          {
+            id: 'request',
+            type: 'architecture',
+            source: 'client',
+            target: 'service',
+            data: { protocol: '', protocolMode },
+          },
+        ],
+      };
+      expect(parseArchitectureSnapshot(JSON.stringify(snapshot))?.edges[0].data).toEqual(
+        snapshot.edges[0].data,
+      );
+    },
+  );
+
+  it.each(['unknown', null, 1])('rejects invalid protocol intent %s', (protocolMode) => {
+    const snapshot = {
+      nodes: [],
+      edges: [
+        {
+          id: 'request',
+          type: 'architecture',
+          source: 'client',
+          target: 'service',
+          data: { protocol: '', protocolMode },
+        },
+      ],
+    };
+    expect(parseArchitectureSnapshot(JSON.stringify(snapshot))).toBeNull();
+  });
+
   it.each([undefined, 0, 11, 10.5])('preserves port gap %s through autosave and commits', (gap) => {
     const edge = {
       id: 'port-connection',

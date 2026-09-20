@@ -35,3 +35,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Interactive: Story = {};
 export const ReferenceSolution: Story = { args: { view: 'solutions' } };
+export const ValidationAttempt: Story = {
+  args: { preview: { id: 'attempt:1', label: 'Attempt #1', snapshot } },
+};

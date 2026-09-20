@@ -62,6 +62,8 @@ function createEditorHarness(addCreatedShape = true) {
       }),
     })),
     getCurrentPageShapes: vi.fn(() => shapes),
+    getShape: vi.fn((id: TLShapeId) => shapes.find((shape) => shape.id === id)),
+    getEditingShapeId: vi.fn(() => null),
     createShape,
     createBinding,
     updateBinding,

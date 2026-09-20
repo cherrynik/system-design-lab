@@ -9,7 +9,7 @@ import { SolutionCanvasHeader } from './SolutionCanvasHeader';
 import './ArchitectureWorkbench.css';
 
 export function ArchitectureWorkbench(props: ArchitectureWorkbenchProps) {
-  const isCanvas = props.view === 'canvas';
+  const isCanvas = props.view === 'canvas' && !props.preview;
   const showEvent = isCanvas && Boolean(props.event);
 
   return (
@@ -26,10 +26,16 @@ export function ArchitectureWorkbench(props: ArchitectureWorkbenchProps) {
           onDeleteLatest={props.onDeleteLatestVersion}
         />
       )}
-      {!isCanvas && <SolutionCanvasHeader onBack={() => props.onViewChange('canvas')} />}
+      {!isCanvas && (
+        <SolutionCanvasHeader
+          snapshotLabel={props.preview?.label}
+          onBack={() => props.onViewChange('canvas')}
+        />
+      )}
 
       <div className="canvas flow-canvas" onContextMenu={(event) => event.preventDefault()}>
         <ArchitectureCanvasSurface
+          preview={props.preview}
           view={props.view}
           solution={props.solution}
           nodes={props.nodes}

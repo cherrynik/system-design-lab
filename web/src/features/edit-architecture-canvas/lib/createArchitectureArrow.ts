@@ -3,6 +3,8 @@ import type { ArchitectureEdge, ArchitectureNode, EdgeAnchor } from '@/entities/
 import { normalizedAnchor } from './anchors';
 import { architectureNodeCenter } from './architectureArrowGeometry';
 import { architectureArrowProps } from './architectureArrowProps';
+import { architectureArrowMeta } from './architectureArrowMeta';
+import { normalizeArrowSourceGap } from './normalizeArrowSourceGap';
 import { shapeIdForEdge, shapeIdForNode } from './shapeIds';
 
 function createArrowBinding(
@@ -52,8 +54,11 @@ export function createArchitectureArrow(
     type: 'arrow',
     x: start.x,
     y: start.y,
+    meta: architectureArrowMeta(edge),
     props: architectureArrowProps(edge, start, end),
   });
   createArrowBinding(editor, arrowId, 'start', source, edge.data?.sourceAnchor);
   createArrowBinding(editor, arrowId, 'end', target, edge.data?.targetAnchor);
+  const arrow = editor.getShape<TLArrowShape>(arrowId);
+  if (arrow) normalizeArrowSourceGap(editor, arrow, edge.data?.sourceAnchor ?? null);
 }

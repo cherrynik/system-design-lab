@@ -57,3 +57,15 @@ export const NarrowCanvas: Story = {
     await expect(canvas.getByRole('button', { name: 'My Canvas' })).toBeVisible();
   },
 };
+
+export const ValidationAttempt: Story = {
+  args: { snapshotLabel: 'Attempt #12' },
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('group', { name: 'Attempt navigation' })).toBeVisible();
+    await expect(canvas.getByText('Attempt #12')).toBeVisible();
+    await expect(canvas.getByRole('img', { name: 'Read-only validation attempt' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'My Canvas' }));
+    await expect(args.onBack).toHaveBeenCalled();
+  },
+};

@@ -5,12 +5,16 @@ import type { Editor, TLArrowShape, TLShapeId } from 'tldraw';
 import type { ArchitectureNode } from '@/entities/architecture';
 import { renderedEdgesKey } from '../lib/contentKeys';
 import { readArchitectureEditorState } from '../lib/readArchitectureEditorState';
+import { syncArchitectureArrowSemantics } from '../lib/syncArchitectureArrowSemantics';
 import type { ArchitectureCanvasStoreSyncOptions } from '../model/architectureCanvasRuntime.types';
 import type { ArchitectureCanvasTool } from '../model/architectureCanvas.types';
 import { useArchitectureCanvasStoreSync } from './useArchitectureCanvasStoreSync';
 
 vi.mock('../lib/readArchitectureEditorState', () => ({
   readArchitectureEditorState: vi.fn(),
+}));
+vi.mock('../lib/syncArchitectureArrowSemantics', () => ({
+  syncArchitectureArrowSemantics: vi.fn(),
 }));
 
 type StoreListener = (entry: {
@@ -153,6 +157,7 @@ describe('useArchitectureCanvasStoreSync', () => {
     });
     expect(onNodesChange).toHaveBeenCalledOnce();
     expect(frames.size).toBe(1);
+    expect(syncArchitectureArrowSemantics).toHaveBeenCalledWith(harness.editor, null);
 
     harness.setDragging(false);
     act(flushFrame);
@@ -223,6 +228,10 @@ describe('useArchitectureCanvasStoreSync', () => {
       flushFrame();
     });
     expect(readArchitectureEditorState).not.toHaveBeenCalled();
+    expect(syncArchitectureArrowSemantics).toHaveBeenCalledWith(
+      harness.editor,
+      options.pendingHotspotStartRef.current,
+    );
     options.pendingHotspotStartRef.current = null;
     act(flushFrame);
     expect(options.onEdgesChange).toHaveBeenCalledOnce();

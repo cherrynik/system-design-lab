@@ -10,6 +10,8 @@ import type {
 import type { ArchitectureCanvasMode } from '../model/architectureCanvas.types';
 import { shapeIdForEdge, shapeIdForNode } from '../lib/shapeIds';
 import { useArchitectureCanvasReconciler } from './useArchitectureCanvasReconciler';
+
+vi.mock('../lib/normalizeArrowSourceGap', () => ({ normalizeArrowSourceGap: vi.fn() }));
 import { useArchitectureShapeGuard } from './useArchitectureShapeGuard';
 import { useArchitectureCanvasTool } from './useArchitectureCanvasTool';
 

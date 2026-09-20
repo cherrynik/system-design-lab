@@ -16,6 +16,7 @@ export type ArchitectureDerivedStateOptions = {
   selectedSolutionId: string;
   nodeValidationVisible: boolean;
   workspaceView?: 'canvas' | 'solutions';
+  previewSnapshot?: ArchitectureSnapshot;
 };
 
 export type ArchitectureDerivedState = {

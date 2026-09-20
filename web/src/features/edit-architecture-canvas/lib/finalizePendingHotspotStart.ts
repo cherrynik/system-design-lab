@@ -1,4 +1,6 @@
-import { getArrowBindings, toRichText, type Editor, type TLArrowShape } from 'tldraw';
+import { getArrowBindings, type Editor, type TLArrowShape } from 'tldraw';
+import { syncArchitectureArrowProtocol } from './syncArchitectureArrowProtocol';
+import type { ArchitectureCardShape } from '../model/architectureCanvas.types';
 import type { PendingHotspotStart } from '../model/architectureCanvas.types';
 
 export function finalizePendingHotspotStart(editor: Editor, pending: PendingHotspotStart) {
@@ -31,8 +33,12 @@ export function finalizePendingHotspotStart(editor: Editor, pending: PendingHots
       arrowheadStart: 'none',
       arrowheadEnd: 'arrow',
       font: 'mono',
-      richText: toRichText(''),
     },
   });
+  syncArchitectureArrowProtocol(
+    editor,
+    createdArrow,
+    editor.getShape<ArchitectureCardShape>(pending.shapeId),
+  );
   return true;
 }

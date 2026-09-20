@@ -90,7 +90,7 @@ export function createValidationRunStartTranscript({
     ...separator,
     {
       kind: 'info',
-      text: `── validation run ${String(runId).padStart(2, '0')} ──`,
+      text: `Attempt #${runId}`,
       runId,
     },
     { kind: 'command', text: `$ archlab validate ${path}`, runId },

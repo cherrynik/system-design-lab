@@ -30,6 +30,7 @@ export type {
   ValidationTranscriptReplacementOptions,
 } from './model/validationTranscript.types';
 export { useArchitectureValidation } from './model/useArchitectureValidation';
+export type { ValidationAttempt, ValidationAttemptSource } from './model/validationAttempt.types';
 export { useExerciseLoader } from './model/useExerciseLoader';
 export type {
   UseExerciseLoaderOptions,

@@ -95,6 +95,12 @@ function isArchitectureNode(value: unknown): value is ArchitectureNode {
 
 function isArchitectureEdgeData(value: unknown): value is NonNullable<ArchitectureEdge['data']> {
   if (!isRecord(value) || typeof value.protocol !== 'string') return false;
+  if (
+    value.protocolMode !== undefined &&
+    value.protocolMode !== 'auto' &&
+    value.protocolMode !== 'manual'
+  )
+    return false;
   if (value.bend !== undefined) {
     if (
       !isRecord(value.bend) ||

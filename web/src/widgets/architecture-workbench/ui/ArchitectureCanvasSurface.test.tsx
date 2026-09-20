@@ -174,6 +174,40 @@ describe('ArchitectureCanvasSurface', () => {
     );
     expect(screen.getByTestId('architecture-canvas-runtime')).toBe(solutionRuntime);
 
+    const attemptSnapshot = {
+      nodes: [{ ...interactiveNodes[0], id: 'archived-client' }],
+      edges: [],
+    };
+    canvasRenderSpy.mockClear();
+    rerender(
+      <ArchitectureCanvasSurface
+        {...surfaceProps}
+        view="canvas"
+        preview={{ id: 'attempt:3', label: 'Attempt #3', snapshot: attemptSnapshot }}
+      />,
+    );
+    await waitFor(() => expect(canvasRenderSpy).toHaveBeenCalled());
+    const attemptProps = canvasRenderSpy.mock.lastCall?.[0] as Record<string, unknown>;
+    expect(attemptProps).toEqual(
+      expect.objectContaining({
+        mode: 'readonly',
+        documentId: 'attempt:3',
+        cameraId: 'validation-attempts',
+        nodes: attemptSnapshot.nodes,
+        edges: attemptSnapshot.edges,
+      }),
+    );
+    for (const callback of [
+      'onNodesChange',
+      'onEdgesChange',
+      'onToolChange',
+      'onUpdateVariant',
+      'onNodeRenamed',
+    ]) {
+      expect(attemptProps[callback]).toBeUndefined();
+    }
+    expect(screen.getByTestId('architecture-canvas-runtime')).toBe(initialRuntime);
+
     canvasRenderSpy.mockClear();
     rerender(<ArchitectureCanvasSurface {...surfaceProps} view="canvas" />);
     await waitFor(() => expect(canvasRenderSpy).toHaveBeenCalled());

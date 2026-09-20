@@ -26,7 +26,7 @@ describe('validation terminal transcript', () => {
 
     expect(transcript.slice(-4)).toEqual([
       { kind: 'info', text: '' },
-      { kind: 'info', text: '── validation run 02 ──', runId: 2 },
+      { kind: 'info', text: 'Attempt #2', runId: 2 },
       {
         kind: 'command',
         text: '$ archlab validate ./solutions/load-balanced',

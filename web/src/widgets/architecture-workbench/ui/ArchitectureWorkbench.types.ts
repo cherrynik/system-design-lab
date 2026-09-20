@@ -5,6 +5,7 @@ import type {
   ArchitectureNode,
   ArchitectureNodeValidationState,
   ArchitectureVersion,
+  ArchitectureSnapshot,
   ReferenceSolution,
 } from '@/entities/architecture';
 import type { ArchitectureCanvasTool } from '@/features/edit-architecture-canvas';
@@ -18,7 +19,14 @@ export type CanvasEvent = {
   action?: 'undo' | 'redo';
 };
 
+export type ArchitectureCanvasPreview = {
+  id: string;
+  label: string;
+  snapshot: ArchitectureSnapshot;
+};
+
 export type ArchitectureWorkbenchProps = {
+  preview?: ArchitectureCanvasPreview;
   view: WorkspaceView;
   solution: ReferenceSolution;
   nodes: ArchitectureNode[];
@@ -54,6 +62,7 @@ export type ArchitectureWorkbenchProps = {
 export type ArchitectureCanvasSurfaceProps = Pick<
   ArchitectureWorkbenchProps,
   | 'edges'
+  | 'preview'
   | 'inspectorId'
   | 'nodes'
   | 'onCloseInspector'
@@ -87,4 +96,5 @@ export type CanvasZoomControlsProps = {
 
 export type SolutionCanvasHeaderProps = {
   onBack: () => void;
+  snapshotLabel?: string;
 };

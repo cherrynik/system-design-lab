@@ -2,6 +2,7 @@ import { useEffect, useRef, type MutableRefObject } from 'react';
 import { canvasToolForTldrawTool } from '../lib/tools';
 import { renderedEdgesKey } from '../lib/contentKeys';
 import { readArchitectureEditorState } from '../lib/readArchitectureEditorState';
+import { syncArchitectureArrowSemantics } from '../lib/syncArchitectureArrowSemantics';
 import type { ArchitectureCanvasStoreSyncOptions } from '../model/architectureCanvasRuntime.types';
 
 export function useArchitectureCanvasStoreSync(
@@ -51,6 +52,7 @@ export function useArchitectureCanvasStoreSync(
       if (!affectsArchitecture) return;
       if (syncFrame.current) cancelAnimationFrame(syncFrame.current);
       const syncWhenIdle = () => {
+        syncArchitectureArrowSemantics(editor, options.pendingHotspotStartRef.current);
         if (editor.inputs.getIsDragging() || options.pendingHotspotStartRef.current) {
           syncFrame.current = requestAnimationFrame(syncWhenIdle);
           return;

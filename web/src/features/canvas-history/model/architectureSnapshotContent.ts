@@ -26,6 +26,7 @@ export function architectureSnapshotContent({ nodes, edges }: ArchitectureSnapsh
         source,
         target,
         protocol: data?.protocol ?? label ?? '',
+        protocolMode: data?.protocolMode ?? 'manual',
         bendAlong: data?.bend?.along ?? 0.5,
         bendNormal: data?.bend?.normal ?? 0,
         sourceAnchor: anchorContent(data?.sourceAnchor),

@@ -23,6 +23,13 @@ export class ArchitecturePortBindingUtil extends BindingUtil<ArchitecturePortBin
       offset: T.number,
       gap: T.number.optional(),
     }),
+    originalAnchor: T.object({
+      side: T.literalEnum('top', 'right', 'bottom', 'left'),
+      offset: T.number,
+      gap: T.number.optional(),
+    })
+      .nullable()
+      .optional(),
   };
 
   override getDefaultProps(): ArchitecturePortBinding['props'] {

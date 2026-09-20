@@ -18,7 +18,7 @@ export function useWorkspaceShortcuts(options: WorkspaceShortcutOptions) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (isEditableShortcutTarget(event.target)) return;
 
-      const editableCanvas = options.workspaceView === 'canvas';
+      const editableCanvas = options.workspaceView === 'canvas' && !options.readOnly;
       const command = event.metaKey || event.ctrlKey;
       const historyShortcut = getArchitectureHistoryShortcut(event);
       if (event.key === 'Escape') {

@@ -29,6 +29,7 @@ export type ComponentOptionData = {
 };
 
 export type RequirementSidebarProps = {
+  readOnly?: boolean;
   collapsed: boolean;
   view: RequirementSidebarView;
   solutions: ReferenceSolution[];

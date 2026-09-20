@@ -24,6 +24,7 @@ export type ArchitectureEdge = {
   type: 'architecture';
   data?: {
     protocol: string;
+    protocolMode?: 'auto' | 'manual';
     bend?: { along: number; normal: number };
     sourceAnchor?: EdgeAnchor;
     targetAnchor?: EdgeAnchor;

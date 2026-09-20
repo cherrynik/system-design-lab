@@ -133,6 +133,24 @@ describe('architecture history', () => {
     const state = pushArchitectureHistory(createArchitectureHistory(border), outside);
     expect(redoArchitectureHistory(undoArchitectureHistory(state)).present).toEqual(outside);
   });
+
+  it('records changing an automatic protocol to a manual label even when the text matches', () => {
+    const automatic = {
+      ...connected,
+      edges: [
+        { ...connected.edges[0], data: { protocol: 'HTTPS', protocolMode: 'auto' as const } },
+      ],
+    };
+    const manual = {
+      ...connected,
+      edges: [
+        { ...connected.edges[0], data: { protocol: 'HTTPS', protocolMode: 'manual' as const } },
+      ],
+    };
+    expect(architectureSnapshotsMatch(automatic, manual)).toBe(false);
+    const changed = pushArchitectureHistory(createArchitectureHistory(automatic), manual);
+    expect(undoArchitectureHistory(changed).present).toEqual(automatic);
+  });
 });
 
 describe('architecture history shortcuts', () => {

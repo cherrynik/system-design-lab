@@ -3,7 +3,7 @@ import type { EdgeAnchor } from '@/entities/architecture';
 
 declare module 'tldraw' {
   interface TLGlobalBindingPropsMap {
-    'architecture-port': { anchor: EdgeAnchor };
+    'architecture-port': { anchor: EdgeAnchor; originalAnchor?: EdgeAnchor | null };
   }
 }
 

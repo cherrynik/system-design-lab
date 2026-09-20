@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import type { ValidationTerminalLine } from '@/features/validate-architecture';
+import type { ValidationAttempt, ValidationTerminalLine } from '@/features/validate-architecture';
 
 export type ValidationRunnerStatus = 'idle' | 'running' | 'ready' | 'warning' | 'error';
 
@@ -12,6 +12,9 @@ export type ValidationRunnerProps = {
   outputRef: RefObject<HTMLDivElement | null>;
   onClear: () => void;
   onValidate: () => void;
+  attempts?: readonly ValidationAttempt[];
+  selectedAttemptId?: number | null;
+  onSelectAttempt?: (id: number) => void;
 };
 
 export type ValidationRunnerHeaderProps = Pick<

@@ -126,13 +126,18 @@ describe('readArchitectureEditorState', () => {
         label: 'HTTPS',
         data: {
           protocol: 'HTTPS',
+          protocolMode: 'manual',
           bend: { along: 0.65, normal: 20 },
           sourceAnchor: { side: 'right', offset: 0.4 },
           targetAnchor: { side: 'top', offset: 0.3 },
         },
       }),
     ]);
-    expect(editor.updateShape).not.toHaveBeenCalled();
+    expect(editor.updateShape).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: expect.objectContaining({ architectureProtocolMode: 'manual' }),
+      }),
+    );
   });
 
   it('materializes free arrow terminals as exact anchor nodes', () => {
@@ -166,7 +171,7 @@ describe('readArchitectureEditorState', () => {
     });
   });
 
-  it('applies the source component protocol only after editing is complete', () => {
+  it('applies a source protocol and preserves an explicitly edited blank label', () => {
     const browser = card('browser-shape', 'browser', 'client', 0, 0);
     const api = card('api-shape', 'api', 'service', 300, 0);
     const request = arrow({ bend: 0, labelPosition: 0.5 });
@@ -187,15 +192,21 @@ describe('readArchitectureEditorState', () => {
     expect(editor.updateShape).toHaveBeenCalledWith(
       expect.objectContaining({
         id: request.id,
-        props: expect.objectContaining({ color: 'light-blue', arrowheadEnd: 'arrow' }),
+        props: expect.objectContaining({ richText: expect.any(Object) }),
       }),
     );
 
     vi.mocked(editor.getEditingShapeId).mockReturnValue(request.id);
+    request.meta = { architectureProtocolMode: 'auto', architectureAutoProtocol: 'HTTPS' };
     vi.mocked(editor.updateShape).mockClear();
     const editingState = readArchitectureEditorState(editor);
     expect(editingState.edges[0]?.data?.protocol).toBe('');
-    expect(editor.updateShape).not.toHaveBeenCalled();
+    expect(editor.updateShape).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: expect.objectContaining({ architectureProtocolMode: 'manual' }),
+        props: {},
+      }),
+    );
   });
   it('serializes a hotspot port as its source card with its exact external gap', () => {
     const browser = card('browser-shape', 'browser', 'client', 40, 80);
@@ -227,6 +238,24 @@ describe('readArchitectureEditorState', () => {
       label: 'HTTPS',
       data: { sourceAnchor: anchor },
     });
+
+    vi.mocked(editor.getBindingsFromShape).mockReturnValue([
+      {
+        type: 'architecture-port',
+        toId: browser.id,
+        props: { anchor, originalAnchor: null },
+      } as ArchitecturePortBinding,
+    ]);
+    expect(readArchitectureEditorState(editor).edges[0].data?.sourceAnchor).toBeUndefined();
+    const originalAnchor = { side: 'right' as const, offset: 0.43 };
+    vi.mocked(editor.getBindingsFromShape).mockReturnValue([
+      {
+        type: 'architecture-port',
+        toId: browser.id,
+        props: { anchor, originalAnchor },
+      } as ArchitecturePortBinding,
+    ]);
+    expect(readArchitectureEditorState(editor).edges[0].data?.sourceAnchor).toEqual(originalAnchor);
 
     vi.mocked(getArrowBindings).mockReturnValue({
       start: { toId: api.id, props: { isPrecise: true, normalizedAnchor: { x: 0.3, y: 0 } } },

@@ -54,3 +54,6 @@ type Story = StoryObj<typeof meta>;
 
 export const MyCanvas: Story = {};
 export const Solution: Story = { args: { view: 'solutions' } };
+export const ValidationAttempt: Story = {
+  args: { preview: { id: 'attempt:1', label: 'Attempt #1', snapshot } },
+};
