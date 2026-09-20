@@ -64,7 +64,7 @@ test('Layers ports follow connections, deletion, undo and the active solution', 
   expect(inputBounds!.x).toBeLessThan(outputBounds!.x);
   await input.hover();
   await expect(
-    page.getByRole('tooltip', { name: 'Input: 1 connection from Client' }),
+    page.getByRole('tooltip', { name: /^Input: 1 connection from Client/ }),
   ).toBeVisible();
 
   await components.getByRole('button', { name: 'Open menu for Service', exact: true }).click();

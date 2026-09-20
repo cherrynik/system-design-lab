@@ -440,3 +440,9 @@
   border: 1px solid var(--line-subtle);
   border-radius: var(--radius-lg);
 }
+
+.tldraw-architecture-card--connection-preview {
+  outline: 2px solid var(--connection-preview);
+  outline-offset: 3px;
+  background: color-mix(in srgb, var(--connection-preview) 12%, var(--surface-card));
+}

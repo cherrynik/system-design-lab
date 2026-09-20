@@ -45,7 +45,7 @@ describe('ArchitectureConnectionPorts', () => {
 
     expect(
       screen
-        .getByRole('img', { name: 'Input: 1 connection from Web Browser' })
+        .getByRole('button', { name: 'Input: 1 connection from Web Browser' })
         .getAttribute('data-port-state'),
     ).toBe('connected');
     expect(
@@ -60,7 +60,7 @@ describe('ArchitectureConnectionPorts', () => {
     );
     expect(
       screen
-        .getByRole('img', { name: 'Output: 1 connection to Go HTTP API' })
+        .getByRole('button', { name: 'Output: 1 connection to Go HTTP API' })
         .getAttribute('data-port-state'),
     ).toBe('connected');
   });
@@ -125,7 +125,7 @@ describe('ArchitectureConnectionPorts', () => {
     );
 
     expect(
-      screen.getByRole('img', { name: 'Output: 2 connections to Go HTTP API, Worker' }),
+      screen.getByRole('button', { name: 'Output: 2 connections to Go HTTP API, Worker' }),
     ).toBeTruthy();
   });
 
@@ -146,7 +146,7 @@ describe('ArchitectureConnectionPorts', () => {
     expect(screen.getByRole('img', { name: 'Input: Not connected' })).toBeTruthy();
     expect(
       screen
-        .getByRole('img', { name: 'Output: 1 connection to Web Browser' })
+        .getByRole('button', { name: 'Output: 1 connection to Web Browser' })
         .getAttribute('data-port-state'),
     ).toBe('connected');
   });

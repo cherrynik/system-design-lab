@@ -23,6 +23,7 @@
   --grid-dot: #6887b0;
   --signal: #68d5ff;
   --component-accent: var(--signal);
+  --connection-preview: var(--text-soft);
   --component-client: var(--component-accent);
   --component-load-balancer: var(--component-accent);
   --component-service: var(--component-accent);

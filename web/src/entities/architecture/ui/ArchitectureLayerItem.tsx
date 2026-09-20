@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FiMoreHorizontal } from 'react-icons/fi';
+import { useConnectionNavigation } from '../model/useConnectionNavigation';
 import { cn } from '@/shared/lib';
 import { getArchitectureVariant } from '../model/catalog';
 import { ArchitectureConnectionPorts } from './ArchitectureConnectionPorts';
@@ -19,6 +20,7 @@ export function ArchitectureLayerItem({
   onOpenMenu,
   onRename,
 }: ArchitectureLayerItemProps) {
+  const { highlightedNodeIds } = useConnectionNavigation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(node.data.label);
   const cancelled = useRef(false);
@@ -78,6 +80,7 @@ export function ArchitectureLayerItem({
         compact && 'layer-row--graph',
         showPorts && 'layer-row--ports',
         node.selected && 'layer-row--selected',
+        highlightedNodeIds.has(node.id) && 'layer-row--connection-preview',
       )}
       onContextMenu={(event) => {
         event.preventDefault();

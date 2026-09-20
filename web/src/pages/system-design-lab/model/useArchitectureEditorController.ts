@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import type { Editor, TLShapeId } from 'tldraw';
+import { Box, type Editor, type TLShapeId } from 'tldraw';
 import type { ArchitectureEditorController } from './ArchitectureEditorController.types';
 
 const toCanvasShapeId = (id: string) => `shape:${id}` as TLShapeId;
@@ -19,6 +19,24 @@ export function useArchitectureEditorController(): ArchitectureEditorController 
     editor.select(shapeId);
     if (!bounds) return;
     editor.zoomToBounds(bounds, {
+      animation: { duration: 220 },
+      inset: 140,
+      targetZoom: 1,
+    });
+  }, []);
+
+  const focusShapes = useCallback((nodeIds: readonly string[]) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const targets = [...new Set(nodeIds)].flatMap((id) => {
+      const shapeId = toCanvasShapeId(id);
+      const bounds = editor.getShapePageBounds(shapeId);
+      if (!bounds) return [];
+      return [{ shapeId, bounds }];
+    });
+    if (!targets.length) return;
+    editor.select(...targets.map((target) => target.shapeId));
+    editor.zoomToBounds(Box.Common(targets.map((target) => target.bounds)), {
       animation: { duration: 220 },
       inset: 140,
       targetZoom: 1,
@@ -48,6 +66,7 @@ export function useArchitectureEditorController(): ArchitectureEditorController 
     editorRef,
     mountEditor,
     focusShape,
+    focusShapes,
     selectShape,
     zoomToFit,
     hasSelectedShapes,

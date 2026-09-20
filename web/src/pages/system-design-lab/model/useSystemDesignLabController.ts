@@ -198,6 +198,10 @@ export function useSystemDesignLabController(): SystemDesignLabController {
 
   return {
     sidebarCollapsed: workspace.requirementsCollapsed,
+    connectionNavigation: {
+      scope: attempts.preview?.id ?? `${workspace.workspaceView}:${workspace.selectedSolutionId}`,
+      onFocus: editor.focusShapes,
+    },
     sidebarProps,
     workbenchProps: {
       preview: attempts.preview,

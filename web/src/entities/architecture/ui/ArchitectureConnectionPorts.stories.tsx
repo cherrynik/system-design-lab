@@ -49,7 +49,7 @@ export const Partial: Story = {
   args: { connectionState: partial.get('balancer')! },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const input = canvas.getByRole('img', { name: 'Input: 1 connection from Web Browser' });
+    const input = canvas.getByRole('button', { name: 'Input: 1 connection from Web Browser' });
     await expect(input).toHaveAttribute('data-port-state', 'connected');
     await userEvent.hover(input);
     await expect(await within(document.body).findByRole('tooltip')).toHaveTextContent(
@@ -70,8 +70,8 @@ export const OutputOnly: Story = {
   args: { kind: 'client', connectionState: connected.get('client')! },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByRole('img')).toHaveLength(1);
-    const output = canvas.getByRole('img', { name: 'Output: 1 connection to NGINX' });
+    await expect(canvas.getAllByRole('button')).toHaveLength(1);
+    const output = canvas.getByRole('button', { name: 'Output: 1 connection to NGINX' });
     await expect(output).toHaveAttribute('data-port-direction', 'outgoing');
     await expect(output.previousElementSibling).toHaveAttribute('aria-hidden', 'true');
   },
@@ -81,8 +81,8 @@ export const InputOnly: Story = {
   args: { kind: 'service', connectionState: connected.get('service')! },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getAllByRole('img')).toHaveLength(1);
-    const input = canvas.getByRole('img', { name: 'Input: 1 connection from NGINX' });
+    await expect(canvas.getAllByRole('button')).toHaveLength(1);
+    const input = canvas.getByRole('button', { name: 'Input: 1 connection from NGINX' });
     await expect(input).toHaveAttribute('data-port-direction', 'incoming');
     await expect(input.nextElementSibling).toHaveAttribute('aria-hidden', 'true');
   },

@@ -1,5 +1,9 @@
 import { HTMLContainer, useEditor, useValue } from 'tldraw';
-import { architectureMeta, getArchitectureVariant } from '@/entities/architecture';
+import {
+  architectureMeta,
+  getArchitectureVariant,
+  useConnectionNavigation,
+} from '@/entities/architecture';
 import { startEditingArchitectureCard } from '../lib/cardEditing';
 import type { ArchitectureCardContentProps } from '../model/architectureCanvasComponents.types';
 import { hotspotSides } from '../model/hotspots';
@@ -10,6 +14,7 @@ import { ArchitectureValidationBadge } from './ArchitectureValidationBadge';
 
 export function ArchitectureCardContent({ shape }: ArchitectureCardContentProps) {
   const editor = useEditor();
+  const { highlightedNodeIds } = useConnectionNavigation();
   const actions = useArchitectureCanvasActions();
   const variant = getArchitectureVariant(shape.props.kind, shape.props.variantId);
   const Icon = variant.icon;
@@ -47,6 +52,8 @@ export function ArchitectureCardContent({ shape }: ArchitectureCardContentProps)
     `tldraw-architecture-card--${shape.props.kind}`,
     `tldraw-architecture-card--validation-${shape.props.validation}`,
   ];
+  if (highlightedNodeIds.has(shape.props.nodeId))
+    classes.push('tldraw-architecture-card--connection-preview');
   if (isSelected) classes.push('tldraw-architecture-card--selected');
   if (isBindingTarget) classes.push('tldraw-architecture-card--binding-target');
   if (isConnectionTool) classes.push('tldraw-architecture-card--connection-tool');

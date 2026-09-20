@@ -65,3 +65,7 @@ export type {
   ArchitectureSidebarGraphProps,
   ArchitectureSidebarView,
 } from './ui/ArchitectureSidebarGraph.types';
+
+export { useConnectionNavigation } from './model/useConnectionNavigation';
+export { ArchitectureConnectionNavigationProvider } from './ui/ArchitectureConnectionNavigationProvider';
+export type { ArchitectureConnectionNavigationProviderProps } from './ui/ArchitectureConnectionNavigationProvider.types';

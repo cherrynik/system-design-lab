@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { Editor } from 'tldraw';
+import { Box, type Editor } from 'tldraw';
 import { useArchitectureEditorController } from './useArchitectureEditorController';
 
 function createEditor() {
@@ -70,6 +70,30 @@ describe('useArchitectureEditorController', () => {
     act(() => result.current.focusShape('missing'));
 
     expect(editor.select).toHaveBeenCalledWith('shape:missing');
+    expect(editor.zoomToBounds).not.toHaveBeenCalled();
+  });
+  it('focuses all connected components together and skips stale targets', () => {
+    const editor = createEditor();
+    vi.mocked(editor.getShapePageBounds).mockImplementation((shape) => {
+      if (shape === 'shape:left') return new Box(20, 30, 240, 120);
+      if (shape === 'shape:right') return new Box(720, 330, 240, 120);
+      return undefined;
+    });
+    const { result } = renderHook(() => useArchitectureEditorController());
+    expect(() => result.current.focusShapes(['left'])).not.toThrow();
+    act(() => result.current.mountEditor(editor));
+    act(() => result.current.focusShapes(['left', 'right', 'left', 'missing']));
+    expect(editor.select).toHaveBeenCalledWith('shape:left', 'shape:right');
+    expect(editor.zoomToBounds).toHaveBeenCalledWith(new Box(20, 30, 940, 420), {
+      animation: { duration: 220 },
+      inset: 140,
+      targetZoom: 1,
+    });
+    vi.mocked(editor.select).mockClear();
+    vi.mocked(editor.zoomToBounds).mockClear();
+    act(() => result.current.focusShapes(['missing']));
+    act(() => result.current.focusShapes([]));
+    expect(editor.select).not.toHaveBeenCalled();
     expect(editor.zoomToBounds).not.toHaveBeenCalled();
   });
 });

@@ -179,8 +179,8 @@ describe('ArchitectureSidebarGraph', () => {
     );
 
     expect(screen.getAllByRole('group', { name: 'Connection ports' })).toHaveLength(3);
-    expect(screen.getByRole('img', { name: 'Input: 1 connection from Browser' })).toBeTruthy();
-    expect(screen.getByRole('img', { name: 'Output: 1 connection to API' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Input: 1 connection from Browser' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Output: 1 connection to API' })).toBeTruthy();
 
     for (const view of ['Layers', 'Graph']) {
       fireEvent.click(screen.getByRole('tab', { name: view }));
