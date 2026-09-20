@@ -72,6 +72,43 @@
   background: transparent;
 }
 
+.layer-row--ports {
+  grid-template-columns: minmax(0, 1fr) 28px 22px;
+}
+
+.layer-connection-ports {
+  display: grid;
+  grid-template-columns: repeat(2, 14px);
+  align-items: center;
+  width: 28px;
+}
+
+.layer-connection-port {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  color: var(--signal);
+}
+
+.layer-connection-port:focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: 1px;
+}
+
+.layer-connection-port__dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.layer-connection-port[data-port-state='connected'] .layer-connection-port__dot {
+  background: currentColor;
+}
+
 .layer-item {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr);

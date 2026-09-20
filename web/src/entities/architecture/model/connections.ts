@@ -19,6 +19,12 @@ const requiredDirections: Record<ArchitectureNodeKind, ArchitectureConnectionDir
   service: ['incoming'],
 };
 
+export function getRequiredArchitectureConnectionDirections(
+  kind: ArchitectureNodeKind,
+): readonly ArchitectureConnectionDirection[] {
+  return requiredDirections[kind];
+}
+
 export function getArchitectureNodeConnectionStates(
   nodes: ArchitectureNode[],
   edges: ArchitectureEdge[],
@@ -40,8 +46,9 @@ export function getArchitectureNodeConnectionStates(
     components.map((node) => {
       const nodeIncoming = incoming.get(node.id) ?? [];
       const nodeOutgoing = outgoing.get(node.id) ?? [];
-      const missing = requiredDirections[node.data.kind].filter((direction) =>
-        direction === 'incoming' ? nodeIncoming.length === 0 : nodeOutgoing.length === 0,
+      const missing = getRequiredArchitectureConnectionDirections(node.data.kind).filter(
+        (direction) =>
+          direction === 'incoming' ? nodeIncoming.length === 0 : nodeOutgoing.length === 0,
       );
       const connectionCount = nodeIncoming.length + nodeOutgoing.length;
       return [

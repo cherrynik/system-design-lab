@@ -3,7 +3,7 @@ import { useEditor } from 'tldraw';
 import { createKeyboardHotspotArrow } from '../lib/createKeyboardHotspotArrow';
 import { finalizePendingHotspotStart } from '../lib/finalizePendingHotspotStart';
 import type { ArchitectureCardHotspotProps } from '../model/architectureCanvasComponents.types';
-import { hotspotAnchor } from '../model/hotspots';
+import { portAnchorFromPoint } from '../lib/portAnchors';
 import { useArchitectureCanvasActions } from '../model/ArchitectureCanvasActionsContext';
 
 export function ArchitectureCardHotspot({
@@ -19,7 +19,14 @@ export function ArchitectureCardHotspot({
     if (event.button !== 0 || disabled) return;
     const pending = {
       shapeId: shape.id,
-      anchor: hotspotAnchor[side],
+      anchor: portAnchorFromPoint(
+        shape,
+        side,
+        editor.getPointInShapeSpace(
+          shape,
+          editor.screenToPage({ x: event.clientX, y: event.clientY }),
+        ),
+      ),
       existingArrowIds: new Set(
         editor
           .getCurrentPageShapes()

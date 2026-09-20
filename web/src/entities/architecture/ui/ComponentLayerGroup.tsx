@@ -32,7 +32,7 @@ export function ComponentLayerGroup({
               connectionState={connectionStates.get(node.id) ?? emptyConnectionState}
               validationState={validationStates?.get(node.id)}
               readOnly={readOnly}
-              mode="graph"
+              mode="layers"
               onFocus={onFocus}
               onRename={onRename}
               onOpenMenu={onOpenMenu}

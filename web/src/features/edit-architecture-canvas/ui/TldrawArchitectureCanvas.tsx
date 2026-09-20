@@ -14,7 +14,11 @@ import { setArchitectureArrowStyles } from '../lib/arrowStyles';
 import { normalizeArchitectureCanvasProps } from '../lib/normalizeArchitectureCanvasProps';
 import { ArchitectureCanvasActionsContext } from '../model/ArchitectureCanvasActionsContext';
 import type { TldrawArchitectureCanvasProps } from '../model/architectureCanvas.types';
-import { architectureShapeUtils, architectureTldrawComponents } from './tldrawConfig';
+import {
+  architectureBindingUtils,
+  architectureShapeUtils,
+  architectureTldrawComponents,
+} from './tldrawConfig';
 
 export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -39,6 +43,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
       editor,
       mode: runtime.mode,
       toolRef,
+      pendingHotspotStartRef: actionsRuntime.pendingHotspotStartRef,
       onNodesChange: runtime.storeCallbacks.onNodesChange,
       onEdgesChange: runtime.storeCallbacks.onEdgesChange,
       onToolChange: runtime.storeCallbacks.onToolChange,
@@ -50,6 +55,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
       runtime.storeCallbacks.onNodesChange,
       runtime.storeCallbacks.onToolChange,
       toolRef,
+      actionsRuntime.pendingHotspotStartRef,
     ],
   );
   useArchitectureCanvasStoreSync(storeSyncOptions, reconciliation.lastRenderedEdges);
@@ -68,6 +74,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
           hideUi
           components={architectureTldrawComponents}
           shapeUtils={architectureShapeUtils}
+          bindingUtils={architectureBindingUtils}
           onMount={(nextEditor) => {
             nextEditor.user.updateUserPreferences({
               colorScheme: 'dark',

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Editor, TLArrowShape } from 'tldraw';
+import type { Editor, TLArrowShape, TLShapeId } from 'tldraw';
 import type { ArchitectureNode } from '@/entities/architecture';
 import { renderedEdgesKey } from '../lib/contentKeys';
 import { readArchitectureEditorState } from '../lib/readArchitectureEditorState';
@@ -112,6 +112,7 @@ describe('useArchitectureCanvasStoreSync', () => {
     const options: ArchitectureCanvasStoreSyncOptions = {
       editor: harness.editor,
       mode: 'interactive',
+      pendingHotspotStartRef: { current: null },
       onNodesChange,
       onEdgesChange,
       onToolChange,
@@ -167,6 +168,7 @@ describe('useArchitectureCanvasStoreSync', () => {
     const options: ArchitectureCanvasStoreSyncOptions = {
       editor: harness.editor,
       mode: 'interactive',
+      pendingHotspotStartRef: { current: null },
       onNodesChange: vi.fn(),
       onEdgesChange: vi.fn(),
       onToolChange,
@@ -196,11 +198,42 @@ describe('useArchitectureCanvasStoreSync', () => {
     expect(harness.unsubscribe).toHaveBeenCalledOnce();
   });
 
+  it('waits for hotspot finalization before emitting a history snapshot', () => {
+    const harness = createEditorHarness();
+    const options: ArchitectureCanvasStoreSyncOptions = {
+      editor: harness.editor,
+      mode: 'interactive',
+      pendingHotspotStartRef: {
+        current: {
+          shapeId: 'shape:client' as TLShapeId,
+          anchor: { side: 'right', offset: 0.5, gap: 11 },
+          existingArrowIds: new Set(),
+        },
+      },
+      onNodesChange: vi.fn(),
+      onEdgesChange: vi.fn(),
+      onToolChange: vi.fn(),
+      toolRef: { current: 'selection' },
+    };
+    vi.mocked(readArchitectureEditorState).mockReturnValue({ nodes: [], edges: [], arrows: [] });
+    renderHook(() => useArchitectureCanvasStoreSync(options, { current: null }));
+    act(() => {
+      harness.emit();
+      flushFrame();
+      flushFrame();
+    });
+    expect(readArchitectureEditorState).not.toHaveBeenCalled();
+    options.pendingHotspotStartRef.current = null;
+    act(flushFrame);
+    expect(options.onEdgesChange).toHaveBeenCalledOnce();
+  });
+
   it('does not subscribe a readonly canvas to interactive store updates', () => {
     const harness = createEditorHarness();
     const options: ArchitectureCanvasStoreSyncOptions = {
       editor: harness.editor,
       mode: 'readonly',
+      pendingHotspotStartRef: { current: null },
       onNodesChange: vi.fn(),
       onEdgesChange: vi.fn(),
       onToolChange: vi.fn(),

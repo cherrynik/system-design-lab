@@ -9,6 +9,7 @@ import {
 } from 'tldraw';
 import type * as TldrawModule from 'tldraw';
 import type { ArchitectureCardShape } from '../model/architectureCanvas.types';
+import type { ArchitecturePortBinding } from '../model/architecturePort.types';
 import { readArchitectureEditorState } from './readArchitectureEditorState';
 
 vi.mock('tldraw', async (importOriginal) => {
@@ -66,6 +67,7 @@ function arrow(overrides: Partial<TLArrowShape['props']> = {}): TLArrowShape {
 
 function editorFor(shapes: TLShape[], selectedIds: string[] = []) {
   return {
+    getBindingsFromShape: vi.fn(() => []),
     getCurrentPageShapes: vi.fn(() => shapes),
     getSelectedShapeIds: vi.fn(() => selectedIds),
     getEditingShapeId: vi.fn(() => null),
@@ -194,5 +196,47 @@ describe('readArchitectureEditorState', () => {
     const editingState = readArchitectureEditorState(editor);
     expect(editingState.edges[0]?.data?.protocol).toBe('');
     expect(editor.updateShape).not.toHaveBeenCalled();
+  });
+  it('serializes a hotspot port as its source card with its exact external gap', () => {
+    const browser = card('browser-shape', 'browser', 'client', 40, 80);
+    const api = card('api-shape', 'api', 'service', 400, 160);
+    const request = arrow();
+    const editor = editorFor([browser, api, request]);
+    const anchor = { side: 'right' as const, offset: 0.43, gap: 10.5 };
+    vi.mocked(editor.getBindingsFromShape).mockReturnValue([
+      {
+        type: 'architecture-port',
+        toId: browser.id,
+        props: { anchor },
+      } as ArchitecturePortBinding,
+    ]);
+    vi.mocked(getArrowBindings).mockReturnValue({
+      start: undefined,
+      end: { toId: api.id, props: { isPrecise: false } },
+    } as ReturnType<typeof getArrowBindings>);
+    vi.mocked(getArrowTerminalsInArrowSpace).mockReturnValue({
+      start: { x: 0, y: 0 },
+      end: { x: 300, y: 80 },
+    } as ReturnType<typeof getArrowTerminalsInArrowSpace>);
+    vi.mocked(renderPlaintextFromRichText).mockReturnValue('');
+    const state = readArchitectureEditorState(editor);
+    expect(state.nodes).toHaveLength(2);
+    expect(state.edges[0]).toMatchObject({
+      source: 'browser',
+      target: 'api',
+      label: 'HTTPS',
+      data: { sourceAnchor: anchor },
+    });
+
+    vi.mocked(getArrowBindings).mockReturnValue({
+      start: { toId: api.id, props: { isPrecise: true, normalizedAnchor: { x: 0.3, y: 0 } } },
+      end: undefined,
+    } as ReturnType<typeof getArrowBindings>);
+    const rebound = readArchitectureEditorState(editor);
+    expect(rebound.edges[0]).toMatchObject({
+      source: 'api',
+      data: { sourceAnchor: { side: 'top', offset: 0.3 } },
+    });
+    expect(rebound.edges[0].data?.sourceAnchor?.gap).toBeUndefined();
   });
 });

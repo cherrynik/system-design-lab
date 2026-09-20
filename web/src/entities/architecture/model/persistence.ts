@@ -65,13 +65,14 @@ function isFiniteNumber(value: unknown): value is number {
 
 function isEdgeAnchor(value: unknown): value is EdgeAnchor {
   if (!isRecord(value)) return false;
-  const { side, offset } = value;
+  const { side, offset, gap } = value;
   return (
     typeof side === 'string' &&
     edgeAnchorSides.has(side as EdgeAnchor['side']) &&
     isFiniteNumber(offset) &&
     offset >= 0 &&
-    offset <= 1
+    offset <= 1 &&
+    (gap === undefined || (isFiniteNumber(gap) && gap >= 0))
   );
 }
 

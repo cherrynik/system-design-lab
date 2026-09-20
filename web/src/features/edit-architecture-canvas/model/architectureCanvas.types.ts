@@ -1,6 +1,7 @@
 import type { Editor, TLShape } from 'tldraw';
 import type {
   ArchitectureEdge,
+  EdgeAnchor,
   ArchitectureNode,
   ArchitectureNodeKind,
   ArchitectureNodeValidationState,
@@ -28,7 +29,7 @@ export type HotspotSide = 'top' | 'right' | 'bottom' | 'left';
 
 export type PendingHotspotStart = {
   shapeId: ArchitectureCardShape['id'];
-  anchor: { x: number; y: number };
+  anchor: EdgeAnchor;
   existingArrowIds: Set<string>;
 };
 

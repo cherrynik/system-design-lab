@@ -13,6 +13,15 @@ function createArrowBinding(
   anchor?: EdgeAnchor,
 ) {
   if (node.data.isAnchor) return;
+  if (terminal === 'start' && anchor?.gap !== undefined) {
+    editor.createBinding({
+      type: 'architecture-port',
+      fromId: arrowId,
+      toId: shapeIdForNode(node.id),
+      props: { anchor },
+    });
+    return;
+  }
   editor.createBinding({
     type: 'arrow',
     fromId: arrowId,

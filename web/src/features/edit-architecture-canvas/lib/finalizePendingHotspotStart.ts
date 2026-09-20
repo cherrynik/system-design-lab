@@ -11,25 +11,13 @@ export function finalizePendingHotspotStart(editor: Editor, pending: PendingHots
   if (!createdArrow) return false;
 
   const startBinding = getArrowBindings(editor, createdArrow).start;
-  if (startBinding) {
-    editor.updateBinding({
-      ...startBinding,
-      props: { ...startBinding.props, normalizedAnchor: pending.anchor, isPrecise: true },
-    });
-  } else {
-    editor.createBinding({
-      type: 'arrow',
-      fromId: createdArrow.id,
-      toId: pending.shapeId,
-      props: {
-        terminal: 'start',
-        normalizedAnchor: pending.anchor,
-        isPrecise: true,
-        isExact: false,
-        snap: 'none',
-      },
-    });
-  }
+  if (startBinding) editor.deleteBinding(startBinding.id);
+  editor.createBinding({
+    type: 'architecture-port',
+    fromId: createdArrow.id,
+    toId: pending.shapeId,
+    props: { anchor: pending.anchor },
+  });
   editor.updateShape<TLArrowShape>({
     id: createdArrow.id,
     type: 'arrow',

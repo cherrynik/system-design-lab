@@ -67,4 +67,48 @@ describe('useArchitectureHistory', () => {
     act(() => result.current.redo());
     expect(result.current.nodes).toEqual([client, service]);
   });
+
+  it('undoes a deletion in one step after a normalized canvas echo and preserves redo', async () => {
+    const spareService = { ...service, id: 'spare-service' };
+    const initial = { nodes: [client, service, spareService], edges: [connection] };
+    const { result } = renderHook(() => useArchitectureHistory(initial));
+
+    act(() =>
+      result.current.applyChange((current) => ({
+        ...current,
+        nodes: current.nodes.filter(({ id }) => id !== spareService.id),
+      })),
+    );
+    act(() => {
+      result.current.syncCanvasNodes([service, { ...client, selected: true }]);
+      result.current.syncCanvasEdges([
+        {
+          id: connection.id,
+          type: 'architecture',
+          target: connection.target,
+          source: connection.source,
+          label: 'HTTPS',
+          selected: false,
+          data: { protocol: 'HTTPS', bend: undefined },
+        },
+      ]);
+    });
+    await act(() => Promise.resolve());
+
+    act(() => result.current.undo());
+    expect(result.current.nodes).toEqual(initial.nodes);
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(true);
+
+    act(() => {
+      result.current.syncCanvasNodes([...initial.nodes].reverse());
+      result.current.syncCanvasEdges([{ ...connection, label: 'HTTPS' }]);
+    });
+    await act(() => Promise.resolve());
+    expect(result.current.canRedo).toBe(true);
+
+    act(() => result.current.redo());
+    expect(result.current.nodes.map(({ id }) => id).sort()).toEqual(['client', 'service']);
+    expect(result.current.edges[0].data?.protocol).toBe('HTTPS');
+  });
 });

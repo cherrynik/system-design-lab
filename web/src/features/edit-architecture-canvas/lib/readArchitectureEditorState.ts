@@ -9,6 +9,7 @@ import {
 import { getArrowProtocol } from '@/entities/architecture';
 import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture';
 import { edgeAnchor } from './anchors';
+import { getArchitecturePortBinding } from './getArchitecturePortBinding';
 import { recordId } from './shapeIds';
 import { ARCHITECTURE_CARD_TYPE } from '../model/constants';
 import type { ArchitectureEditorState } from '../model/architectureEditorState.types';
@@ -70,7 +71,9 @@ function readArchitectureEdge(
   const terminals = getArrowTerminalsInArrowSpace(editor, arrow, bindings);
   const transform = editor.getShapePageTransform(arrow);
   const edgeId = recordId(arrow.id);
-  const startCard = bindings.start ? cardById.get(bindings.start.toId) : undefined;
+  const port = bindings.start ? undefined : getArchitecturePortBinding(editor, arrow.id);
+  const startBinding = bindings.start ?? port;
+  const startCard = startBinding ? cardById.get(startBinding.toId) : undefined;
   const endCard = bindings.end ? cardById.get(bindings.end.toId) : undefined;
   const sourceId = startCard?.props.nodeId ?? `anchor-${edgeId}-start`;
   const targetId = endCard?.props.nodeId ?? `anchor-${edgeId}-end`;
@@ -93,9 +96,11 @@ function readArchitectureEdge(
     data: {
       protocol,
       bend: readBend(arrow),
-      sourceAnchor: bindings.start?.props.isPrecise
-        ? edgeAnchor(bindings.start.props.normalizedAnchor)
-        : undefined,
+      sourceAnchor:
+        port?.props.anchor ??
+        (bindings.start?.props.isPrecise
+          ? edgeAnchor(bindings.start.props.normalizedAnchor)
+          : undefined),
       targetAnchor: bindings.end?.props.isPrecise
         ? edgeAnchor(bindings.end.props.normalizedAnchor)
         : undefined,

@@ -43,4 +43,5 @@ export type ArchitectureCanvasStoreSyncOptions = ArchitectureCanvasCallbacks & {
   editor: Editor | null;
   mode: ArchitectureCanvasMode;
   toolRef: MutableRefObject<ArchitectureCanvasTool>;
+  pendingHotspotStartRef: MutableRefObject<PendingHotspotStart | null>;
 };

@@ -3,7 +3,7 @@ import type { ArchitectureNodeConnectionState } from '../model/connections.types
 import type { ArchitectureNodeValidationState } from '../model/nodeValidation.types';
 import type { ArchitectureNode } from '../model/architecture.types';
 
-export type ArchitectureLayerItemMode = 'list' | 'graph';
+export type ArchitectureLayerItemMode = 'list' | 'layers' | 'graph';
 
 export type ArchitectureLayerItemProps = {
   node: ArchitectureNode;

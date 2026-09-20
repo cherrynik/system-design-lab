@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FiMoreHorizontal } from 'react-icons/fi';
 import { cn } from '@/shared/lib';
 import { getArchitectureVariant } from '../model/catalog';
+import { ArchitectureConnectionPorts } from './ArchitectureConnectionPorts';
 import { ArchitectureLayerName } from './ArchitectureLayerName';
 import type { ArchitectureLayerItemProps } from './ArchitectureLayerItem.types';
 import { ArchitectureValidationBadge } from './ArchitectureValidationBadge';
@@ -27,7 +28,8 @@ export function ArchitectureLayerItem({
   const label = node.data.label || fallbackLabel;
   const itemRole = editing ? undefined : 'button';
   const itemTabIndex = editing ? -1 : 0;
-  const compact = mode === 'graph';
+  const compact = mode !== 'list';
+  const showPorts = mode === 'layers';
   const hasValidationIssue = Boolean(validationState && validationState.status !== 'valid');
 
   useEffect(() => {
@@ -73,7 +75,8 @@ export function ArchitectureLayerItem({
     <div
       className={cn(
         'layer-row',
-        mode === 'graph' && 'layer-row--graph',
+        compact && 'layer-row--graph',
+        showPorts && 'layer-row--ports',
         node.selected && 'layer-row--selected',
       )}
       onContextMenu={(event) => {
@@ -138,6 +141,9 @@ export function ArchitectureLayerItem({
           compact={compact}
         />
       </div>
+      {showPorts && (
+        <ArchitectureConnectionPorts kind={node.data.kind} connectionState={connectionState} />
+      )}
       {menuButton}
     </div>
   );

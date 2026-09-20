@@ -275,6 +275,49 @@ describe('architecture persistence parsing', () => {
     });
   });
 
+  it.each([undefined, 0, 11, 10.5])('preserves port gap %s through autosave and commits', (gap) => {
+    const edge = {
+      id: 'port-connection',
+      type: 'architecture',
+      source: 'client',
+      target: 'service',
+      data: {
+        protocol: 'HTTPS',
+        sourceAnchor: { side: 'right', offset: 0.5, gap },
+      },
+    };
+    const snapshot = { nodes: [], edges: [edge] };
+    const parsed = parseArchitectureSnapshot(JSON.stringify(snapshot));
+    expect(parsed?.edges[0].data?.sourceAnchor).toEqual(edge.data.sourceAnchor);
+    localStorage.setItem(
+      VERSIONS_KEY,
+      JSON.stringify([
+        { ...snapshot, id: 'commit', name: 'Connected client', createdAt: '2026-09-20T00:00:00Z' },
+      ]),
+    );
+    expect(readArchitectureVersions()[0]?.edges[0].data?.sourceAnchor).toEqual(
+      edge.data.sourceAnchor,
+    );
+  });
+
+  it.each([-1, NaN, Infinity, '11', null])('rejects malformed port gap %s', (gap) => {
+    for (const terminal of ['sourceAnchor', 'targetAnchor']) {
+      const snapshot = {
+        nodes: [],
+        edges: [
+          {
+            id: 'port-connection',
+            type: 'architecture',
+            source: 'client',
+            target: 'service',
+            data: { protocol: 'HTTPS', [terminal]: { side: 'right', offset: 0.5, gap } },
+          },
+        ],
+      };
+      expect(parseArchitectureSnapshot(JSON.stringify(snapshot))).toBeNull();
+    }
+  });
+
   it('falls back to the initial architecture when the saved snapshot is malformed', () => {
     localStorage.setItem('system-design-lab:react-flow-migrated', '1');
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ nodes: [null], edges: [] }));

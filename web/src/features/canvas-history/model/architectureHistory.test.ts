@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import type { ArchitectureNode } from '../../../entities/architecture';
+import type { ArchitectureEdge, ArchitectureNode } from '../../../entities/architecture';
 import {
   architectureSnapshotsMatch,
   createArchitectureHistory,
@@ -89,6 +89,49 @@ describe('architecture history', () => {
     const state = replaceArchitecturePresent(createArchitectureHistory(initial), added);
     expect(state.present).toEqual(added);
     expect(state.past).toHaveLength(0);
+  });
+
+  it.each<NonNullable<ArchitectureEdge['data']>>([
+    { protocol: 'HTTP' },
+    { protocol: 'HTTPS', bend: { along: 0.4, normal: 80 } },
+    { protocol: 'HTTPS', sourceAnchor: { side: 'right', offset: 0.5 } },
+    { protocol: 'HTTPS', targetAnchor: { side: 'left', offset: 0.3 } },
+  ])('records a meaningful connection edit: %j', (data) => {
+    const edited = { ...connected, edges: [{ ...connected.edges[0], data }] };
+    expect(architectureSnapshotsMatch(connected, edited)).toBe(false);
+    const state = pushArchitectureHistory(createArchitectureHistory(connected), edited);
+    expect(undoArchitectureHistory(state).present).toEqual(connected);
+  });
+
+  it('keeps the external hotspot distance in connection history', () => {
+    const border = {
+      ...connected,
+      edges: [
+        {
+          ...connected.edges[0],
+          data: {
+            protocol: 'HTTPS',
+            sourceAnchor: { side: 'right' as const, offset: 0.5 },
+          },
+        },
+      ],
+    };
+    const outside = {
+      ...border,
+      edges: [
+        {
+          ...border.edges[0],
+          data: {
+            protocol: 'HTTPS',
+            sourceAnchor: { side: 'right' as const, offset: 0.5, gap: 11 },
+          },
+        },
+      ],
+    };
+
+    expect(architectureSnapshotsMatch(border, outside)).toBe(false);
+    const state = pushArchitectureHistory(createArchitectureHistory(border), outside);
+    expect(redoArchitectureHistory(undoArchitectureHistory(state)).present).toEqual(outside);
   });
 });
 

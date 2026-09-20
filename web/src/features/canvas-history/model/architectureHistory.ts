@@ -1,20 +1,16 @@
 import type { ArchitectureSnapshot } from '../../../entities/architecture';
 import type { ArchitectureHistoryState } from './architectureHistory.types';
+import { architectureSnapshotContent } from './architectureSnapshotContent';
 
 const HISTORY_LIMIT = 100;
 
 export type { ArchitectureHistoryState } from './architectureHistory.types';
 
-const withoutSelection = ({ nodes, edges }: ArchitectureSnapshot) => ({
-  nodes: nodes.map(({ selected: _selected, ...node }) => node),
-  edges: edges.map(({ selected: _selected, ...edge }) => edge),
-});
-
 export function architectureSnapshotsMatch(
   left: ArchitectureSnapshot,
   right: ArchitectureSnapshot,
 ) {
-  return JSON.stringify(withoutSelection(left)) === JSON.stringify(withoutSelection(right));
+  return architectureSnapshotContent(left) === architectureSnapshotContent(right);
 }
 
 export function createArchitectureHistory(present: ArchitectureSnapshot): ArchitectureHistoryState {

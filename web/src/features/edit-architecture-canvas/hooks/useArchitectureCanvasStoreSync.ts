@@ -51,7 +51,7 @@ export function useArchitectureCanvasStoreSync(
       if (!affectsArchitecture) return;
       if (syncFrame.current) cancelAnimationFrame(syncFrame.current);
       const syncWhenIdle = () => {
-        if (editor.inputs.getIsDragging()) {
+        if (editor.inputs.getIsDragging() || options.pendingHotspotStartRef.current) {
           syncFrame.current = requestAnimationFrame(syncWhenIdle);
           return;
         }

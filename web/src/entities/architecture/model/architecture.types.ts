@@ -1,5 +1,9 @@
 export type ArchitectureNodeKind = 'client' | 'load-balancer' | 'service';
-export type EdgeAnchor = { side: 'top' | 'right' | 'bottom' | 'left'; offset: number };
+export type EdgeAnchor = {
+  side: 'top' | 'right' | 'bottom' | 'left';
+  offset: number;
+  gap?: number;
+};
 export type ArchitectureNodeData = {
   kind: ArchitectureNodeKind;
   variantId: string;

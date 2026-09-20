@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { renderWithPlatform as render } from '@/shared/testing/renderWithPlatform';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getArchitectureNodeConnectionStates } from '../model/connections';
 import type { ArchitectureNodeConnectionState } from '../model/connections';
 import type {
   ArchitectureEdge,
@@ -165,7 +167,7 @@ describe('ArchitectureSidebarGraph', () => {
       <ArchitectureSidebarGraph
         nodes={nodes}
         edges={edges}
-        connectionStates={new Map(nodes.map(({ id }) => [id, ready]))}
+        connectionStates={getArchitectureNodeConnectionStates(nodes, edges)}
         expanded
         readOnly
         onToggleExpanded={vi.fn()}
@@ -175,6 +177,10 @@ describe('ArchitectureSidebarGraph', () => {
         onOpenMenu={onOpenMenu}
       />,
     );
+
+    expect(screen.getAllByRole('group', { name: 'Connection ports' })).toHaveLength(3);
+    expect(screen.getByRole('img', { name: 'Input: 1 connection from Browser' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Output: 1 connection to API' })).toBeTruthy();
 
     for (const view of ['Layers', 'Graph']) {
       fireEvent.click(screen.getByRole('tab', { name: view }));
@@ -190,5 +196,6 @@ describe('ArchitectureSidebarGraph', () => {
     }
     expect(onRename).not.toHaveBeenCalled();
     expect(onOpenMenu).not.toHaveBeenCalled();
+    expect(screen.queryByRole('group', { name: 'Connection ports' })).toBeNull();
   });
 });

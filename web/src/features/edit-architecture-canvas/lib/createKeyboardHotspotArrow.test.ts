@@ -49,15 +49,23 @@ function createEditorHarness(addCreatedShape = true) {
   });
   const createBinding = vi.fn();
   const updateBinding = vi.fn();
+  const deleteBinding = vi.fn();
   const updateShape = vi.fn();
   const deleteShape = vi.fn();
   const select = vi.fn();
   const setCurrentTool = vi.fn();
   const editor = {
+    getShapePageTransform: vi.fn((shape: TLShape) => ({
+      applyToPoint: (point: { x: number; y: number }) => ({
+        x: point.x + shape.x,
+        y: point.y + shape.y,
+      }),
+    })),
     getCurrentPageShapes: vi.fn(() => shapes),
     createShape,
     createBinding,
     updateBinding,
+    deleteBinding,
     updateShape,
     deleteShape,
     select,
@@ -68,6 +76,7 @@ function createEditorHarness(addCreatedShape = true) {
     createShape,
     createBinding,
     updateBinding,
+    deleteBinding,
     updateShape,
     deleteShape,
     select,
@@ -100,61 +109,56 @@ describe('createKeyboardHotspotArrow', () => {
   });
 
   it.each([
-    ['top', { x: 210, y: 200 }, { x: 0, y: -72 }, { x: 0.5, y: 0 }],
-    ['right', { x: 320, y: 243 }, { x: 72, y: 0 }, { x: 1, y: 0.5 }],
-    ['bottom', { x: 210, y: 286 }, { x: 0, y: 72 }, { x: 0.5, y: 1 }],
-    ['left', { x: 100, y: 243 }, { x: -72, y: 0 }, { x: 0, y: 0.5 }],
-  ] as const)(
-    'creates a free %s arrow from the selected card hotspot',
-    (side, origin, end, anchor) => {
-      const harness = createEditorHarness();
+    ['top', { x: 210, y: 189 }, { x: 0, y: -72 }],
+    ['right', { x: 331, y: 243 }, { x: 72, y: 0 }],
+    ['bottom', { x: 210, y: 297 }, { x: 0, y: 72 }],
+    ['left', { x: 89, y: 243 }, { x: -72, y: 0 }],
+  ] as const)('creates a free %s arrow from the selected card hotspot', (side, origin, end) => {
+    const harness = createEditorHarness();
 
-      createKeyboardHotspotArrow(harness.editor, architectureCard(), side);
+    createKeyboardHotspotArrow(harness.editor, architectureCard(), side);
 
-      const createdArrow = harness.createShape.mock.calls[0]?.[0] as TLArrowShape;
-      expect(createdArrow).toMatchObject({
-        type: 'arrow',
-        x: origin.x,
-        y: origin.y,
+    const createdArrow = harness.createShape.mock.calls[0]?.[0] as TLArrowShape;
+    expect(createdArrow).toMatchObject({
+      type: 'arrow',
+      x: origin.x,
+      y: origin.y,
+      props: expect.objectContaining({
+        kind: 'arc',
+        start: { x: 0, y: 0 },
+        end,
+        color: 'light-blue',
+        size: 's',
+        arrowheadEnd: 'arrow',
+      }),
+    });
+    expect(harness.createBinding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromId: createdArrow.id,
+        toId: 'shape:service',
         props: expect.objectContaining({
-          kind: 'arc',
-          start: { x: 0, y: 0 },
-          end,
-          color: 'light-blue',
-          size: 's',
-          arrowheadEnd: 'arrow',
+          anchor: { side, offset: 0.5, gap: 11 },
         }),
-      });
-      expect(harness.createBinding).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fromId: createdArrow.id,
-          toId: 'shape:service',
-          props: expect.objectContaining({
-            terminal: 'start',
-            normalizedAnchor: anchor,
-            isPrecise: true,
-          }),
-        }),
-      );
-      expect(harness.select).toHaveBeenCalledWith(createdArrow.id);
-      expect(harness.setCurrentTool).toHaveBeenCalledWith('select');
-    },
-  );
+      }),
+    );
+    expect(harness.select).toHaveBeenCalledWith(createdArrow.id);
+    expect(harness.setCurrentTool).toHaveBeenCalledWith('select');
+  });
 
-  it('updates an existing start binding when tldraw created one automatically', () => {
+  it('replaces an automatic native start binding with the external hotspot port', () => {
     const harness = createEditorHarness();
     const binding = existingBinding();
     vi.mocked(getArrowBindings).mockReturnValue({ start: binding, end: undefined });
 
     createKeyboardHotspotArrow(harness.editor, architectureCard(), 'right');
 
-    expect(harness.updateBinding).toHaveBeenCalledWith(
+    expect(harness.deleteBinding).toHaveBeenCalledWith(binding.id);
+    expect(harness.createBinding).toHaveBeenCalledWith(
       expect.objectContaining({
-        id: binding.id,
-        props: expect.objectContaining({ normalizedAnchor: { x: 1, y: 0.5 }, isPrecise: true }),
+        type: 'architecture-port',
+        props: { anchor: { side: 'right', offset: 0.5, gap: 11 } },
       }),
     );
-    expect(harness.createBinding).not.toHaveBeenCalled();
   });
 
   it('removes an orphan when tldraw does not register the created arrow', () => {
