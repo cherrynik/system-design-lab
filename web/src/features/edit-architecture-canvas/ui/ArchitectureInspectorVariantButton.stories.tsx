@@ -44,10 +44,11 @@ type Story = StoryObj;
 export const Options: Story = {
   play: async ({ canvasElement }) => {
     const nginxVariant = await within(canvasElement).findByRole('button', {
-      name: 'NGINX Load balancer / reverse proxy',
+      name: 'NGINX',
     });
 
     await expect(nginxVariant).toBeVisible();
     await expect(nginxVariant).toHaveClass('inspector-variant--active');
+    await expect(nginxVariant).toHaveAttribute('aria-pressed', 'true');
   },
 };

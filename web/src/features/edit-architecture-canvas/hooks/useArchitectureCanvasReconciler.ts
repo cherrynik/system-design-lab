@@ -20,19 +20,15 @@ import type {
   ArchitectureCardShape,
 } from '../model/architectureCanvas.types';
 
-const solutionCameraTransitionDuration = 160;
-
-function fitDocument(editor: Editor, animate: boolean) {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      if (animate) {
-        editor.zoomToFit({ animation: { duration: solutionCameraTransitionDuration } });
-      } else {
-        editor.zoomToFit();
-      }
-      editor.clearHistory();
+function fitInitialDocument(editor: Editor) {
+  let frame = 0;
+  frame = requestAnimationFrame(() => {
+    frame = requestAnimationFrame(() => {
+      editor.zoomToFit();
     });
   });
+
+  return () => cancelAnimationFrame(frame);
 }
 
 export function useArchitectureCanvasReconciler(
@@ -45,7 +41,18 @@ export function useArchitectureCanvasReconciler(
 ) {
   const lastRenderedEdges = useRef<string | null>(null);
   const hydratedDocumentId = useRef<string | null>(null);
+  const cancelInitialFit = useRef<(() => void) | null>(null);
   const isReconciling = useRef(false);
+
+  useEffect(
+    () => () => {
+      cancelInitialFit.current?.();
+      cancelInitialFit.current = null;
+      hydratedDocumentId.current = null;
+      lastRenderedEdges.current = null;
+    },
+    [editor],
+  );
 
   useEffect(() => {
     if (!editor) return;
@@ -145,8 +152,13 @@ export function useArchitectureCanvasReconciler(
       if (arrowsToDelete.length) editor.deleteShapes(arrowsToDelete);
 
       hydratedDocumentId.current = documentId;
-      if (documentChanged && componentNodes.length) {
-        fitDocument(editor, hasHydratedDocument);
+      if (documentChanged) {
+        cancelInitialFit.current?.();
+        cancelInitialFit.current = null;
+        if (!hasHydratedDocument && componentNodes.length) {
+          cancelInitialFit.current = fitInitialDocument(editor);
+        }
+        editor.clearHistory();
       }
     } finally {
       isReconciling.current = false;

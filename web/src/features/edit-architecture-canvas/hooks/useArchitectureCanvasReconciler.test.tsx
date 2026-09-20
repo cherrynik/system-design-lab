@@ -131,6 +131,7 @@ describe('useArchitectureCanvasReconciler', () => {
       callback(0);
       return 1;
     });
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
   });
 
   afterEach(() => {
@@ -162,7 +163,7 @@ describe('useArchitectureCanvasReconciler', () => {
     expect(harness.events).toContain('clear-history');
   });
 
-  it('reconciles a changed readonly document without leaving stale shapes', () => {
+  it('reconciles a changed readonly document without refitting the camera or leaving stale shapes', () => {
     const harness = createEditorHarness();
     const firstNode = architectureNode('client', 'Client');
     const secondNode = architectureNode('gateway', 'Gateway', 320, 40);
@@ -184,11 +185,55 @@ describe('useArchitectureCanvasReconciler', () => {
       y: 40,
       props: { nodeId: 'gateway', label: 'Gateway', isReadonly: true },
     });
-    expect(harness.editor.zoomToFit).toHaveBeenCalledTimes(2);
-    expect(harness.editor.zoomToFit).toHaveBeenNthCalledWith(2, {
-      animation: { duration: 160 },
-    });
+    expect(harness.editor.zoomToFit).toHaveBeenCalledTimes(1);
     expect(harness.editor.clearHistory).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels a pending initial fit when another solution opens before the next frame', () => {
+    const frames = new Map<number, FrameRequestCallback>();
+    let nextFrame = 0;
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      const frame = ++nextFrame;
+      frames.set(frame, callback);
+      return frame;
+    });
+    vi.stubGlobal('cancelAnimationFrame', (frame: number) => frames.delete(frame));
+    const harness = createEditorHarness();
+    const firstNode = architectureNode('client', 'Client');
+    const secondNode = architectureNode('gateway', 'Gateway', 320, 40);
+    const { rerender, unmount } = renderHook(
+      ({ documentId, nodes }) => useReadonlyArchitectureDocument(harness.editor, documentId, nodes),
+      { initialProps: { documentId: 'solution:first', nodes: [firstNode] } },
+    );
+    const firstFrame = frames.get(1)!;
+    frames.delete(1);
+    firstFrame(0);
+
+    rerender({ documentId: 'solution:second', nodes: [secondNode] });
+
+    expect(frames.size).toBe(0);
+    expect(harness.editor.zoomToFit).not.toHaveBeenCalled();
+    expect(harness.shapes.has(shapeIdForNode(secondNode.id))).toBe(true);
+    unmount();
+    expect(frames.size).toBe(0);
+  });
+
+  it('cancels the initial camera fit when the canvas unmounts', () => {
+    const harness = createEditorHarness();
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn(() => 42),
+    );
+    const { unmount } = renderHook(() =>
+      useReadonlyArchitectureDocument(harness.editor, 'solution:first', [
+        architectureNode('client', 'Client'),
+      ]),
+    );
+
+    unmount();
+
+    expect(cancelAnimationFrame).toHaveBeenCalledWith(42);
+    expect(harness.editor.zoomToFit).not.toHaveBeenCalled();
   });
 
   it('updates an existing card and removes shapes absent from the current document', () => {

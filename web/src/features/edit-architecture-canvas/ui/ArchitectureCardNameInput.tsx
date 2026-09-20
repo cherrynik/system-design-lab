@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { resolveArchitectureCardLabel } from '@/entities/architecture';
 import { ARCHITECTURE_CARD_TYPE } from '../model/constants';
 import type { ArchitectureCardNameInputProps } from '../model/architectureCanvasComponents.types';
@@ -9,9 +9,28 @@ export function ArchitectureCardNameInput({
   onRename,
 }: ArchitectureCardNameInputProps) {
   const [draft, setDraft] = useState(shape.props.label);
+  const inputRef = useRef<HTMLInputElement>(null);
   const renameCancelledRef = useRef(false);
+  const renameFinishedRef = useRef(false);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const ownerDocument = input.ownerDocument;
+    const blurBeforeCanvasPointerDown = (event: PointerEvent) => {
+      if (event.target === input) return;
+      // tldraw can unmount this input on pointerdown before the browser fires blur.
+      input.blur();
+    };
+    ownerDocument.addEventListener('pointerdown', blurBeforeCanvasPointerDown, true);
+    return () => {
+      ownerDocument.removeEventListener('pointerdown', blurBeforeCanvasPointerDown, true);
+    };
+  }, []);
 
   const finishRename = () => {
+    if (renameFinishedRef.current) return;
+    renameFinishedRef.current = true;
     const label = resolveArchitectureCardLabel(
       shape.props.label,
       draft,
@@ -26,11 +45,12 @@ export function ArchitectureCardNameInput({
         props: { label },
       });
     }
-    if (editor.getEditingShapeId() === shape.id) editor.setEditingShape(null);
+    if (editor.getEditingShapeId() === shape.id) editor.complete();
   };
 
   return (
     <input
+      ref={inputRef}
       autoFocus
       className="tldraw-node-name-input"
       aria-label={`Rename ${shape.props.label}`}

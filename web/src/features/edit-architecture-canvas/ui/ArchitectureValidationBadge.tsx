@@ -1,4 +1,5 @@
 import { FiAlertTriangle, FiX } from 'react-icons/fi';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui';
 import type { ArchitectureValidationBadgeProps } from '../model/architectureCanvasComponents.types';
 
 export function ArchitectureValidationBadge({ status, message }: ArchitectureValidationBadgeProps) {
@@ -8,14 +9,17 @@ export function ArchitectureValidationBadge({ status, message }: ArchitectureVal
   const accessibleMessage = message || 'Node validation issue';
 
   return (
-    <span
-      className={`tldraw-node-validation node-validation-tooltip tldraw-node-validation--${status}`}
-      role="img"
-      data-tooltip={accessibleMessage}
-      aria-label={accessibleMessage}
-      tabIndex={0}
-    >
-      <Icon aria-hidden="true" focusable="false" />
-    </span>
+    <Tooltip withinPortal floatingStrategy="fixed" className="node-validation-tooltip" multiline>
+      <TooltipTrigger
+        render={<span />}
+        className={`tldraw-node-validation tldraw-node-validation--${status}`}
+        role="img"
+        aria-label={accessibleMessage}
+        tabIndex={0}
+      >
+        <Icon aria-hidden="true" focusable="false" />
+      </TooltipTrigger>
+      <TooltipContent>{accessibleMessage}</TooltipContent>
+    </Tooltip>
   );
 }

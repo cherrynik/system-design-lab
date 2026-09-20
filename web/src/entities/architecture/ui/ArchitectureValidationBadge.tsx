@@ -1,5 +1,6 @@
 import { FiAlertTriangle, FiXCircle } from 'react-icons/fi';
 import { cn } from '@/shared/lib';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui';
 import type { ArchitectureValidationBadgeProps } from './ArchitectureLayerItem.types';
 
 export function ArchitectureValidationBadge({
@@ -15,18 +16,21 @@ export function ArchitectureValidationBadge({
     .join('\n\n');
 
   return (
-    <span
-      className={cn(
-        'layer-item__validation node-validation-tooltip',
-        `layer-item__validation--${validationState.status}`,
-        compact && 'layer-item__validation--compact',
-      )}
-      role="img"
-      aria-label={`${label}: ${validationState.issues.length} validation ${issueLabel}. ${tooltipText}`}
-      data-tooltip={tooltipText}
-      tabIndex={0}
-    >
-      <Icon aria-hidden="true" focusable="false" />
-    </span>
+    <Tooltip withinPortal floatingStrategy="fixed" className="node-validation-tooltip" multiline>
+      <TooltipTrigger
+        render={<span />}
+        className={cn(
+          'layer-item__validation',
+          `layer-item__validation--${validationState.status}`,
+          compact && 'layer-item__validation--compact',
+        )}
+        role="img"
+        aria-label={`${label}: ${validationState.issues.length} validation ${issueLabel}. ${tooltipText}`}
+        tabIndex={0}
+      >
+        <Icon aria-hidden="true" focusable="false" />
+      </TooltipTrigger>
+      <TooltipContent>{tooltipText}</TooltipContent>
+    </Tooltip>
   );
 }

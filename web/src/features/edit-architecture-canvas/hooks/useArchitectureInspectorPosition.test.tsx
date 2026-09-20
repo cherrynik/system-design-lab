@@ -64,8 +64,8 @@ describe('useArchitectureInspectorPosition', () => {
     expect(result.current).toMatchObject({
       shape: architectureCard(),
       placement: 'below',
-      x: 147,
-      y: 164,
+      x: 136,
+      y: 158,
     });
     expect(editor.getShape).toHaveBeenCalledWith(shapeIdForNode('service'));
   });
@@ -78,8 +78,8 @@ describe('useArchitectureInspectorPosition', () => {
 
     expect(result.current).toMatchObject({
       placement: 'above',
-      x: 353,
-      y: 462,
+      x: 364,
+      y: 468,
     });
   });
 

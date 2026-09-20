@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { getArchitectureVariant } from '@/entities/architecture';
 import type { ArchitectureInspectorVariantButtonProps } from '../model/architectureCanvasComponents.types';
 import { useArchitectureCanvasActions } from '../model/ArchitectureCanvasActionsContext';
@@ -15,12 +16,16 @@ export function ArchitectureInspectorVariantButton({
   if (active) className = 'inspector-variant--active';
 
   return (
-    <button className={className} onClick={() => actions.updateVariant(nodeId, variant.id)}>
+    <button
+      type="button"
+      className={className}
+      aria-pressed={active}
+      title={variant.description}
+      onClick={() => actions.updateVariant(nodeId, variant.id)}
+    >
       <VariantIcon aria-hidden="true" focusable="false" />
-      <span>
-        <strong>{variant.label}</strong>
-        <small>{variant.description}</small>
-      </span>
+      <span>{variant.label}</span>
+      <Check className="inspector-variant__check" aria-hidden="true" focusable="false" />
     </button>
   );
 }

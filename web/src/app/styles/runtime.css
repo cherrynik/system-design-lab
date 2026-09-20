@@ -389,3 +389,19 @@
     right: 10px;
   }
 }
+
+.node-validation-tooltip.mantine-Tooltip-tooltip {
+  --tooltip-bg: var(--surface-overlay);
+  --tooltip-color: var(--text-default);
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 8px 10px;
+  color: var(--text-default);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-overlay);
+  font: var(--text-meta) / 1.55 var(--font-ui);
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

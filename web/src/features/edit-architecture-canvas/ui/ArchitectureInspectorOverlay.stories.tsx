@@ -43,6 +43,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Open: Story = {
   play: async ({ canvasElement }) => {
-    await expect(await within(canvasElement).findByText('COMPONENT INSPECTOR')).toBeVisible();
+    const inspector = await within(canvasElement).findByRole('dialog', {
+      name: `Inspect ${inspectedNode.data.label}`,
+    });
+    await expect(inspector).toBeVisible();
+    await expect(within(inspector).getByRole('group', { name: 'Implementation' })).toBeVisible();
+    await expect(inspector.getBoundingClientRect().height).toBeLessThan(240);
   },
 };

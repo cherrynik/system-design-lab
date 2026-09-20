@@ -1,11 +1,12 @@
 import { useRef } from 'react';
-import { FiX } from 'react-icons/fi';
+import { X } from 'lucide-react';
 import {
   architectureMeta,
   architectureVariants,
   getArchitectureVariant,
 } from '@/entities/architecture';
 import { useArchitectureInspectorPosition } from '../hooks/useArchitectureInspectorPosition';
+import { useArchitectureInspectorDismiss } from '../hooks/useArchitectureInspectorDismiss';
 import { useMeasuredElementHeight } from '../hooks/useMeasuredElementHeight';
 import { INSPECTOR_FALLBACK_HEIGHT } from '../model/constants';
 import { useArchitectureCanvasActions } from '../model/ArchitectureCanvasActionsContext';
@@ -13,42 +14,47 @@ import { ArchitectureInspectorVariantButton } from './ArchitectureInspectorVaria
 
 export function ArchitectureInspectorOverlay() {
   const actions = useArchitectureCanvasActions();
-  const inspectorRef = useRef<HTMLElement>(null);
+  const inspectorRef = useRef<HTMLDivElement>(null);
   const inspectorHeight = useMeasuredElementHeight(
     inspectorRef,
     INSPECTOR_FALLBACK_HEIGHT,
     actions.inspectorId,
   );
   const state = useArchitectureInspectorPosition(actions.inspectorId, inspectorHeight);
+  useArchitectureInspectorDismiss(
+    inspectorRef,
+    Boolean(state) && actions.mode === 'interactive',
+    actions.closeInspector,
+  );
   if (!state || actions.mode === 'readonly') return null;
 
   const variant = getArchitectureVariant(state.shape.props.kind, state.shape.props.variantId);
   const Icon = variant.icon;
   return (
-    <aside
+    <div
       ref={inspectorRef}
+      role="dialog"
+      aria-label={`Inspect ${state.shape.props.label}`}
       className={`component-inspector component-inspector--${state.placement} component-inspector--canvas-overlay`}
       style={{ left: state.x, top: state.y }}
+      onPointerDown={(event) => event.stopPropagation()}
     >
       <div className="component-inspector__header">
-        <span className="panel-id">COMPONENT INSPECTOR</span>
-        <button onClick={actions.closeInspector} aria-label="Close inspector">
-          <FiX aria-hidden="true" focusable="false" />
-        </button>
-      </div>
-      <div className="component-inspector__identity">
         <Icon
           aria-hidden="true"
           focusable="false"
           className={`component-logo component-logo--${state.shape.props.kind}`}
         />
-        <span>
-          <strong>{variant.label}</strong>
+        <span className="component-inspector__identity">
+          <strong title={state.shape.props.label}>{state.shape.props.label}</strong>
           <small>{architectureMeta[state.shape.props.kind].role}</small>
         </span>
+        <button type="button" onClick={actions.closeInspector} aria-label="Close inspector">
+          <X aria-hidden="true" focusable="false" />
+        </button>
       </div>
-      <span className="inspector-label">IMPLEMENTATION</span>
-      <div className="inspector-variants">
+      <span className="inspector-label">Implementation</span>
+      <div className="inspector-variants" role="group" aria-label="Implementation">
         {architectureVariants[state.shape.props.kind].map((candidate) => (
           <ArchitectureInspectorVariantButton
             key={candidate.id}
@@ -59,12 +65,12 @@ export function ArchitectureInspectorOverlay() {
           />
         ))}
       </div>
-      <span className="inspector-label">CAPABILITIES</span>
-      <div className="inspector-capabilities">
+      <span className="inspector-label">Capabilities</span>
+      <div className="inspector-capabilities" aria-label="Capabilities">
         {variant.capabilities.map((capability) => (
           <code key={capability}>{capability}</code>
         ))}
       </div>
-    </aside>
+    </div>
   );
 }

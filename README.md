@@ -32,6 +32,11 @@ make storybook
 
 Storybook opens on `http://localhost:6006`.
 
+Start with **Design system / Foundations** for the interface rules and tokens. **Primitives**
+contains shared controls, and **Workspace** contains the canvas, inspector, sidebar, and
+validation runner with their states. Use the search in Storybook to jump to a component;
+the **Docs** tab describes its props and **Canvas** shows the interactive example.
+
 ## Verify
 
 ```bash

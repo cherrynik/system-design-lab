@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { createReferenceSolutionSnapshot, referenceSolutions } from '@/entities/architecture';
 import type { ArchitectureNodeValidationState } from '@/entities/architecture';
 import { ArchitectureValidationBadge } from './ArchitectureValidationBadge';
@@ -56,5 +56,31 @@ export const Warning: Story = {
 
     await expect(warningBadge).toBeVisible();
     await expect(warningBadge).toHaveClass('tldraw-node-validation--warning');
+  },
+};
+
+export const AtViewportEdge: Story = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <div
+      style={{ position: 'fixed', top: 0, right: 0, width: 260, height: 100, overflow: 'hidden' }}
+    >
+      <ArchitectureValidationBadge
+        status="warning"
+        message="Load balancer has a single downstream route. Add another service path."
+      />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const badge = within(canvasElement).getByRole('img');
+    await userEvent.hover(badge);
+    const tooltip = await within(canvasElement.ownerDocument.body).findByRole('tooltip');
+    await waitFor(() => expect(tooltip).toBeVisible());
+    await expect(canvasElement.contains(tooltip)).toBe(false);
+    const bounds = tooltip.getBoundingClientRect();
+    await expect(bounds.top).toBeGreaterThanOrEqual(0);
+    await expect(bounds.right).toBeLessThanOrEqual(window.innerWidth);
+    await expect(bounds.top).toBeGreaterThan(badge.getBoundingClientRect().bottom);
+    await userEvent.unhover(badge);
   },
 };

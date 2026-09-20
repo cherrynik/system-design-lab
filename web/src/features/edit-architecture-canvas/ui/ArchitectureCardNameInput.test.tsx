@@ -30,7 +30,7 @@ function editorFor(shape: ArchitectureCardShape) {
   return {
     updateShape: vi.fn(),
     getEditingShapeId: vi.fn(() => shape.id),
-    setEditingShape: vi.fn(),
+    complete: vi.fn(),
   } as unknown as Editor;
 }
 
@@ -51,7 +51,7 @@ describe('ArchitectureCardNameInput', () => {
       type: 'architecture-card',
       props: { label: 'Orders API' },
     });
-    expect(editor.setEditingShape).toHaveBeenCalledWith(null);
+    expect(editor.complete).toHaveBeenCalledOnce();
   });
 
   it('leaves the original label untouched when rename is cancelled', () => {
@@ -66,7 +66,7 @@ describe('ArchitectureCardNameInput', () => {
 
     expect(onRename).not.toHaveBeenCalled();
     expect(editor.updateShape).not.toHaveBeenCalled();
-    expect(editor.setEditingShape).toHaveBeenCalledWith(null);
+    expect(editor.complete).toHaveBeenCalledOnce();
   });
 
   it('does not replace a useful name with whitespace', () => {
@@ -81,6 +81,56 @@ describe('ArchitectureCardNameInput', () => {
 
     expect(onRename).not.toHaveBeenCalled();
     expect(editor.updateShape).not.toHaveBeenCalled();
-    expect(editor.setEditingShape).toHaveBeenCalledWith(null);
+    expect(editor.complete).toHaveBeenCalledOnce();
+  });
+
+  it('commits before an outside pointerdown unmounts the editor', () => {
+    const shape = architectureCard();
+    const editor = editorFor(shape);
+    const onRename = vi.fn();
+    const { unmount } = render(
+      <ArchitectureCardNameInput shape={shape} editor={editor} onRename={onRename} />,
+    );
+    const input = screen.getByRole('textbox', { name: 'Rename Service' });
+    fireEvent.change(input, { target: { value: 'Orders API' } });
+
+    fireEvent.pointerDown(document.body);
+    unmount();
+
+    expect(onRename).toHaveBeenCalledExactlyOnceWith('service', 'Orders API');
+    expect(editor.updateShape).toHaveBeenCalledOnce();
+    expect(editor.complete).toHaveBeenCalledOnce();
+  });
+
+  it('keeps editing while selecting text inside the input', () => {
+    const shape = architectureCard();
+    const editor = editorFor(shape);
+    const onRename = vi.fn();
+    render(<ArchitectureCardNameInput shape={shape} editor={editor} onRename={onRename} />);
+    const input = screen.getByRole('textbox', { name: 'Rename Service' });
+    fireEvent.change(input, { target: { value: 'Orders API' } });
+    fireEvent.pointerDown(input);
+
+    expect(document.activeElement).toBe(input);
+    expect(onRename).not.toHaveBeenCalled();
+    expect(editor.complete).not.toHaveBeenCalled();
+  });
+
+  it('commits only once when completing the editor triggers a second blur', () => {
+    const shape = architectureCard();
+    const editor = editorFor(shape);
+    const onRename = vi.fn();
+    render(<ArchitectureCardNameInput shape={shape} editor={editor} onRename={onRename} />);
+    const input = screen.getByRole('textbox', { name: 'Rename Service' });
+    vi.mocked(editor.complete).mockImplementation(() => {
+      fireEvent.blur(input);
+      return editor;
+    });
+    fireEvent.change(input, { target: { value: 'Orders API' } });
+    fireEvent.blur(input);
+
+    expect(onRename).toHaveBeenCalledExactlyOnceWith('service', 'Orders API');
+    expect(editor.updateShape).toHaveBeenCalledOnce();
+    expect(editor.complete).toHaveBeenCalledOnce();
   });
 });

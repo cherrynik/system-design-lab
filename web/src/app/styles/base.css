@@ -151,60 +151,6 @@
   .component-logo--service {
     color: var(--component-service);
   }
-
-  .node-validation-tooltip {
-    position: relative;
-  }
-
-  .node-validation-tooltip::before,
-  .node-validation-tooltip::after {
-    position: absolute;
-    z-index: 90;
-    opacity: 0;
-    pointer-events: none;
-    transition:
-      opacity 120ms ease,
-      transform 120ms ease;
-  }
-
-  .node-validation-tooltip::after {
-    content: attr(data-tooltip);
-    right: -4px;
-    bottom: calc(100% + 8px);
-    width: max-content;
-    max-width: 240px;
-    padding: 8px 10px;
-    color: var(--text-default);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--surface-overlay) 96%, transparent);
-    box-shadow: var(--shadow-overlay);
-    font: var(--text-meta) / 1.55 var(--font-code);
-    text-align: left;
-    white-space: pre-line;
-    transform: translateY(3px);
-  }
-
-  .node-validation-tooltip::before {
-    content: '';
-    right: 5px;
-    bottom: calc(100% + 4px);
-    width: 7px;
-    height: 7px;
-    border-right: 1px solid var(--line-strong);
-    border-bottom: 1px solid var(--line-strong);
-    background: var(--surface-overlay);
-    transform: rotate(45deg);
-  }
-
-  .node-validation-tooltip:is(:hover, :focus-visible)::before,
-  .node-validation-tooltip:is(:hover, :focus-visible)::after {
-    opacity: 1;
-  }
-
-  .node-validation-tooltip:is(:hover, :focus-visible)::after {
-    transform: translateY(0);
-  }
 }
 
 @media (max-width: 780px) {
