@@ -7,7 +7,6 @@
     min-height: 0;
     overflow: hidden;
     color: var(--text-default);
-    border: var(--shell-border-width) solid var(--shell-border);
     border-radius: var(--radius-shell);
     background: var(--ink);
     box-shadow: var(--shadow-shell);

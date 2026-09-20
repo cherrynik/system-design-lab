@@ -63,8 +63,6 @@
   --radius-shell: 1rem;
 
   --shell-gutter: 0.625rem;
-  --shell-border-width: 1px;
-  --shell-border: color-mix(in srgb, var(--line-strong) 72%, transparent);
 
   --focus-ring: var(--signal);
   --shadow-card: 0 10px 26px rgb(0 0 0 / 0.24);

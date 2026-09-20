@@ -219,7 +219,6 @@
   :root,
   .dark {
     --shell-gutter: 0rem;
-    --shell-border-width: 0px;
     --radius-shell: 0rem;
   }
 }

@@ -164,6 +164,7 @@ test('desktop retains the side-by-side workspace', async ({ page }) => {
 
   const layout = await page.evaluate(() => {
     const shell = document.querySelector('.app-shell')!.getBoundingClientRect();
+    const shellStyle = window.getComputedStyle(document.querySelector('.app-shell')!);
     const requirements = document.querySelector('.requirements-panel')!.getBoundingClientRect();
     const workbench = document.querySelector('.workbench')!.getBoundingClientRect();
     return {
@@ -173,7 +174,8 @@ test('desktop retains the side-by-side workspace', async ({ page }) => {
         right: shell.right,
         bottom: shell.bottom,
         left: shell.left,
-        borderRadius: window.getComputedStyle(document.querySelector('.app-shell')!).borderRadius,
+        borderRadius: shellStyle.borderRadius,
+        borderWidth: shellStyle.borderTopWidth,
       },
       requirementsRight: requirements.right,
       workbenchLeft: workbench.left,
@@ -187,7 +189,8 @@ test('desktop retains the side-by-side workspace', async ({ page }) => {
   expect(layout.shell.right).toBeLessThan(viewport.width);
   expect(layout.shell.bottom).toBeLessThan(viewport.height);
   expect(layout.shell.borderRadius).toBe('16px');
+  expect(layout.shell.borderWidth).toBe('0px');
   expect(layout.requirementsRight).toBe(layout.workbenchLeft);
-  expect(layout.workbenchTop).toBe(layout.shell.top + 1);
+  expect(layout.workbenchTop).toBe(layout.shell.top);
   await expectInsideViewport(page, '.validate-button');
 });
