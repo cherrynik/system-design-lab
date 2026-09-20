@@ -63,8 +63,17 @@
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
   --radius-shell: 1rem;
+  --floating-radius: var(--radius-lg);
+  --floating-padding: 5px;
 
   --shell-gutter: 0.625rem;
+  --workspace-top-controls-inset: 12px;
+  --workspace-top-controls-height: 42px;
+  --workspace-top-control-size: 34px;
+  --workspace-top-control-offset: calc(
+    var(--workspace-top-controls-inset) +
+      (var(--workspace-top-controls-height) - var(--workspace-top-control-size)) / 2
+  );
 
   --focus-ring: var(--signal);
   --shadow-card: 0 10px 26px rgb(0 0 0 / 0.24);

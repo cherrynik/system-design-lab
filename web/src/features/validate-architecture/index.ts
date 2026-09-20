@@ -48,3 +48,5 @@ export type {
   ValidateArchitectureArgs,
   ValidationTerminalLine,
 } from './model/useArchitectureValidation.types';
+
+export { useLiveValidation } from './model/useLiveValidation';

@@ -65,19 +65,49 @@ describe('ArchitectureConnectionPorts', () => {
     ).toBe('connected');
   });
 
-  it.each([
-    { id: 'client', kind: 'client' as const, direction: 'outgoing', hiddenSlot: 0 },
-    { id: 'service', kind: 'service' as const, direction: 'incoming', hiddenSlot: 1 },
-  ])('keeps the empty slot aligned for $kind', ({ id, kind, direction, hiddenSlot }) => {
-    render(<ArchitectureConnectionPorts kind={kind} connectionState={connectionState(id, [])} />, {
+  it.each([{ id: 'client', kind: 'client' as const, direction: 'outgoing', hiddenSlot: 0 }])(
+    'keeps the empty slot aligned for $kind',
+    ({ id, kind, direction, hiddenSlot }) => {
+      render(
+        <ArchitectureConnectionPorts kind={kind} connectionState={connectionState(id, [])} />,
+        {
+          wrapper: PlatformProvider,
+        },
+      );
+
+      const group = screen.getByRole('group', { name: 'Connection ports' });
+      expect(group.children).toHaveLength(2);
+      expect(group.children[hiddenSlot].getAttribute('aria-hidden')).toBe('true');
+      expect(screen.getAllByRole('img')).toHaveLength(1);
+      expect(screen.getByRole('img').getAttribute('data-port-direction')).toBe(direction);
+    },
+  );
+
+  it('shows both service capabilities before either is connected without requiring an output', () => {
+    const state = connectionState('service', []);
+    render(<ArchitectureConnectionPorts kind="service" connectionState={state} />, {
       wrapper: PlatformProvider,
     });
 
-    const group = screen.getByRole('group', { name: 'Connection ports' });
-    expect(group.children).toHaveLength(2);
-    expect(group.children[hiddenSlot].getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getAllByRole('img')).toHaveLength(2);
+    expect(screen.getByRole('img', { name: 'Input: Not connected' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Output: Not connected' })).toBeTruthy();
+    expect(state.missing).toEqual(['incoming']);
+  });
+
+  it('never adds an input capability to a browser even if an incoming edge exists', () => {
+    const returnEdge = { ...connectionPortEdges[1], source: 'service', target: 'client' };
+    render(
+      <ArchitectureConnectionPorts
+        kind="client"
+        connectionState={connectionState('client', [returnEdge])}
+      />,
+      { wrapper: PlatformProvider },
+    );
+
     expect(screen.getAllByRole('img')).toHaveLength(1);
-    expect(screen.getByRole('img').getAttribute('data-port-direction')).toBe(direction);
+    expect(screen.getByRole('img', { name: 'Output: Not connected' })).toBeTruthy();
+    expect(screen.queryByRole('img', { name: /^Input:/ })).toBeNull();
   });
 
   it('does not mark a free arrow endpoint as a completed output connection', () => {
@@ -129,7 +159,7 @@ describe('ArchitectureConnectionPorts', () => {
     ).toBeTruthy();
   });
 
-  it('shows an actual connection in a direction not required by the component contract', () => {
+  it('fills the optional service output when connected', () => {
     const returnEdge: ArchitectureEdge = {
       ...connectionPortEdges[1],
       source: 'service',

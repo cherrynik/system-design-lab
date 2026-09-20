@@ -51,6 +51,7 @@ function makeOptions(snapshot: ArchitectureSnapshot) {
   );
   const options: ArchitectureNodeActionsOptions = {
     nodes: snapshot.nodes,
+    edges: snapshot.edges,
     applyChange,
     replacePresent,
     focusShape: vi.fn(),
@@ -75,6 +76,48 @@ afterEach(() => {
 });
 
 describe('useArchitectureNodeActions', () => {
+  it('adds at the dropped endpoint and connects the existing arrow as a single history change', () => {
+    const initial = initialSnapshot();
+    initial.edges[0].target = 'anchor';
+    const harness = makeOptions(initial);
+    const { result } = renderHook(() => useArchitectureNodeActions(harness.options));
+    act(() =>
+      result.current.addNode('service', 'go-http-api', {
+        point: { x: 710, y: 243 },
+        connectionId: 'edge',
+      }),
+    );
+    const added = harness.snapshot().nodes.at(-1)!;
+    expect(added.position).toEqual({ x: 600, y: 200 });
+    expect(added.data.variantId).toBe('go-http-api');
+    expect(harness.snapshot().edges).toHaveLength(1);
+    expect(harness.snapshot().edges[0]).toMatchObject({
+      id: 'edge',
+      source: 'client',
+      target: added.id,
+      data: { protocol: 'HTTPS' },
+    });
+    expect(harness.options.applyChange).toHaveBeenCalledTimes(1);
+    act(() => vi.runAllTimers());
+    expect(harness.options.focusShape).not.toHaveBeenCalled();
+  });
+
+  it.each(['deleted', 'reconnected'])('ignores a stale offer after the arrow is %s', (change) => {
+    const initial = initialSnapshot();
+    if (change === 'deleted') initial.edges = [];
+    const harness = makeOptions(initial);
+    const { result } = renderHook(() => useArchitectureNodeActions(harness.options));
+    act(() =>
+      result.current.addNode('service', 'go-http-api', {
+        point: { x: 710, y: 243 },
+        connectionId: 'edge',
+      }),
+    );
+    expect(harness.snapshot()).toEqual(initial);
+    expect(harness.options.applyChange).not.toHaveBeenCalled();
+    expect(harness.options.showEvent).not.toHaveBeenCalled();
+  });
+
   it('adds the next named component on the placement grid and focuses it', () => {
     const harness = makeOptions(initialSnapshot());
     const { result } = renderHook(() => useArchitectureNodeActions(harness.options));

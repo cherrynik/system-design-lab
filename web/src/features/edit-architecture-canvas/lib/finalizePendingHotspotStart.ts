@@ -1,8 +1,8 @@
 import { getArrowBindings, type Editor, type TLArrowShape } from 'tldraw';
 import { syncArchitectureArrowProtocol } from './syncArchitectureArrowProtocol';
-import type { ArchitectureCardShape } from '../model/architectureCanvas.types';
-import type { PendingHotspotStart } from '../model/architectureCanvas.types';
+import type { ArchitectureCardShape, PendingHotspotStart } from '../model/architectureCanvas.types';
 
+/** Hotspots start the native arrow tool. Routing and terminal geometry remain owned by tldraw. */
 export function finalizePendingHotspotStart(editor: Editor, pending: PendingHotspotStart) {
   const createdArrow = [...editor.getCurrentPageShapes()]
     .reverse()
@@ -11,30 +11,21 @@ export function finalizePendingHotspotStart(editor: Editor, pending: PendingHots
         shape.type === 'arrow' && !pending.existingArrowIds.has(shape.id),
     );
   if (!createdArrow) return false;
-
   const startBinding = getArrowBindings(editor, createdArrow).start;
-  if (startBinding) editor.deleteBinding(startBinding.id);
-  editor.createBinding({
-    type: 'architecture-port',
-    fromId: createdArrow.id,
-    toId: pending.shapeId,
-    props: { anchor: pending.anchor },
-  });
-  editor.updateShape<TLArrowShape>({
-    id: createdArrow.id,
-    type: 'arrow',
-    props: {
-      kind: 'arc',
-      dash: 'solid',
-      size: 's',
-      fill: 'none',
-      color: 'light-blue',
-      labelColor: 'light-blue',
-      arrowheadStart: 'none',
-      arrowheadEnd: 'arrow',
-      font: 'mono',
-    },
-  });
+  if (!startBinding) {
+    editor.createBinding({
+      type: 'arrow',
+      fromId: createdArrow.id,
+      toId: pending.shapeId,
+      props: {
+        terminal: 'start',
+        normalizedAnchor: { x: 0.5, y: 0.5 },
+        isPrecise: false,
+        isExact: false,
+        snap: 'none',
+      },
+    });
+  }
   syncArchitectureArrowProtocol(
     editor,
     createdArrow,

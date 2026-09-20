@@ -5,3 +5,4 @@ export type {
   CanvasTool,
   WorkspaceView,
 } from './ui/ArchitectureWorkbench.types';
+export type { ArchitectureNodePlacement } from './ui/ArchitectureWorkbench.types';

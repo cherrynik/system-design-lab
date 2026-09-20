@@ -1,6 +1,5 @@
 import { createShapeId, toRichText, type Editor, type TLArrowShape } from 'tldraw';
 import { finalizePendingHotspotStart } from './finalizePendingHotspotStart';
-import { HOTSPOT_GAP, portAnchorPoint } from './portAnchors';
 import type {
   ArchitectureCardShape,
   HotspotSide,
@@ -25,13 +24,16 @@ export function createKeyboardHotspotArrow(
       .filter(({ type }) => type === 'arrow')
       .map(({ id }) => id),
   );
-  const anchor = { side, offset: 0.5, gap: HOTSPOT_GAP };
-  const start = editor.getShapePageTransform(shape).applyToPoint(portAnchorPoint(shape, anchor));
-  const offset = keyboardArrowOffset[side];
+  const start = editor
+    .getShapePageTransform(shape)
+    .applyToPoint({ x: shape.props.w / 2, y: shape.props.h / 2 });
+  const direction = keyboardArrowOffset[side];
+  const offset = { x: direction.x, y: direction.y };
+  if (offset.x) offset.x += (Math.sign(offset.x) * shape.props.w) / 2;
+  if (offset.y) offset.y += (Math.sign(offset.y) * shape.props.h) / 2;
   const arrowId = createShapeId();
   const pending: PendingHotspotStart = {
     shapeId: shape.id,
-    anchor,
     existingArrowIds,
   };
 

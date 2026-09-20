@@ -43,8 +43,20 @@ export const platformTheme = createTheme({
     },
     Menu: {
       defaultProps: {
-        radius: 'sm',
-        shadow: 'md',
+        floatingStrategy: 'fixed',
+        preventPositionChangeWhenVisible: false,
+        middlewares: { flip: true, shift: { crossAxis: true, padding: 12, limiter: undefined } },
+        offset: 4,
+        zIndex: 180,
+        withInitialFocusPlaceholder: false,
+        classNames: {
+          dropdown: 'platform-floating-surface',
+          item: 'platform-menu-row',
+          itemLabel: 'platform-menu-row__label',
+          itemSection: 'platform-menu-row__section',
+          label: 'platform-menu-label',
+          divider: 'platform-menu-divider',
+        },
       },
     },
     Modal: {
@@ -55,8 +67,11 @@ export const platformTheme = createTheme({
     },
     Popover: {
       defaultProps: {
-        radius: 'sm',
-        shadow: 'md',
+        floatingStrategy: 'fixed',
+        preventPositionChangeWhenVisible: false,
+        middlewares: { flip: true, shift: { crossAxis: true, padding: 12, limiter: undefined } },
+        zIndex: 180,
+        classNames: { dropdown: 'platform-floating-surface' },
       },
     },
     Tooltip: {

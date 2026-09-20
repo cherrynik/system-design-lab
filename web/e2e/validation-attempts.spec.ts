@@ -21,7 +21,16 @@ async function viewAttempt(page: Page, attempt: number) {
   await expect(page.getByRole('group', { name: 'Attempt navigation' })).toContainText(
     `Attempt #${attempt}`,
   );
-  await expect(page.locator('.terminal-output')).toContainText(`Attempt #${attempt}`);
+  await expect(page.getByRole('tab', { name: 'Attempts', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(
+    page.getByRole('button', { name: `View Attempt #${attempt}`, exact: true }),
+  ).toHaveAttribute('aria-current', 'true');
+  await expect(
+    page.getByRole('button', { name: 'View Current attempt', exact: true }),
+  ).not.toHaveAttribute('aria-current', 'true');
 }
 
 async function settledCameraTransform(page: Page) {
@@ -75,6 +84,7 @@ test('browses saved attempt canvases without changing My Canvas or its camera', 
   await expect(page.getByRole('button', { name: 'Components, 2 components' })).toBeVisible();
   await expect(page.getByRole('toolbar', { name: 'Canvas tools' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Add component', exact: true })).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
   await expect(page.locator('.terminal-output')).toContainText('FAIL');
   await expect(page.locator('.terminal-output')).not.toContainText('Attempt #2');
   await page.keyboard.press('Delete');
@@ -84,11 +94,20 @@ test('browses saved attempt canvases without changing My Canvas or its camera', 
 
   await viewAttempt(page, 2);
   expect(await cards.locator('strong').allTextContents()).toEqual(solutionLabels);
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
   await expect(page.locator('.terminal-output')).toContainText('PASS');
   await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   await settledCameraTransform(page);
 
-  await page.getByRole('button', { name: 'My Canvas', exact: true }).click();
+  await page.getByRole('tab', { name: 'Attempts', exact: true }).click();
+  await page.getByRole('button', { name: 'View Current attempt', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Attempts', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(
+    page.getByRole('button', { name: 'View Current attempt', exact: true }),
+  ).toHaveAttribute('aria-current', 'true');
   await expect(page.getByRole('toolbar', { name: 'Canvas tools' })).toBeVisible();
   expect(await cards.locator('strong').allTextContents()).toEqual(ownLabels);
   expect(await settledCameraTransform(page)).toBe(ownCamera);
@@ -97,6 +116,11 @@ test('browses saved attempt canvases without changing My Canvas or its camera', 
     return snapshot.nodes.map((node: { data: { label: string } }) => node.data.label);
   }, autosaveKey);
   expect([...savedLabels].sort()).toEqual([...ownLabels].sort());
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
+  await expect(page.locator('.terminal-output')).toContainText(
+    'Run validation to inspect the active topology.',
+  );
+  await expect(page.locator('.terminal-output')).not.toContainText(/Attempt #[12]/);
 
   await page.reload();
   await expect(cards).toHaveCount(3);
@@ -104,10 +128,14 @@ test('browses saved attempt canvases without changing My Canvas or its camera', 
   await expect(cards).toHaveCount(2);
   await page.getByRole('tab', { name: 'Attempts', exact: true }).click();
   await page.keyboard.press('ControlOrMeta+Enter');
-  await expect(page.getByRole('tab', { name: 'Output', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('tab', { name: 'Attempts', exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   );
+  await expect(page.getByRole('button', { name: 'View Attempt #3', exact: true })).toContainText(
+    'Failed',
+  );
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
   await expect(page.locator('.terminal-output')).toContainText('Attempt #3');
   await expect(page.locator('.terminal-output')).toContainText('FAIL');
   await expect(page.getByRole('group', { name: 'Attempt navigation' })).toContainText('Attempt #3');
@@ -116,8 +144,8 @@ test('browses saved attempt canvases without changing My Canvas or its camera', 
   await expect(cards).toHaveCount(3);
   await page.getByRole('tab', { name: 'Attempts', exact: true }).click();
   await expect(
-    page.getByRole('list', { name: 'Validation attempts' }).getByRole('button'),
-  ).toHaveCount(3);
+    page.getByRole('region', { name: 'Validation attempts' }).getByRole('button'),
+  ).toHaveCount(4);
   await expect
     .poll(() =>
       page.evaluate((key) => {
@@ -125,6 +153,54 @@ test('browses saved attempt canvases without changing My Canvas or its camera', 
       }, attemptsKey),
     )
     .toBe(3);
+});
+
+test('keeps Attempts selected while button and keyboard validation run and finish', async ({
+  page,
+}) => {
+  await openApp(page);
+  const attemptsTab = page.getByRole('tab', { name: 'Attempts', exact: true });
+  await attemptsTab.click();
+
+  for (const [index, trigger] of ['button', 'shortcut'].entries()) {
+    await test.step(`Validate from Attempts with ${trigger}`, async () => {
+      let releaseEvaluation = () => {};
+      const evaluationReleased = new Promise<void>((resolve) => {
+        releaseEvaluation = resolve;
+      });
+      await page.route(
+        '**/api/evaluate',
+        async (route) => {
+          await evaluationReleased;
+          await route.continue();
+        },
+        { times: 1 },
+      );
+
+      const attempt = page.getByRole('button', {
+        name: `View Attempt #${index + 1}`,
+        exact: true,
+      });
+      try {
+        if (trigger === 'button') await page.getByRole('button', { name: /^Validate/ }).click();
+        else await page.keyboard.press('ControlOrMeta+Enter');
+
+        await expect(attemptsTab).toHaveAttribute('aria-selected', 'true');
+        await expect(attempt).toContainText('Running');
+        await expect(page.getByRole('button', { name: /^Running/ })).toBeDisabled();
+      } finally {
+        releaseEvaluation();
+      }
+
+      await expect(attempt).toContainText('Failed');
+      await expect(page.getByRole('button', { name: /^Validate/ })).toBeEnabled();
+      await expect(attemptsTab).toHaveAttribute('aria-selected', 'true');
+    });
+  }
+
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
+  await expect(page.locator('.terminal-output')).toContainText('Attempt #2');
+  await expect(page.locator('.terminal-output')).toContainText('FAIL');
 });
 
 test('keeps a failed network attempt available after a successful retry', async ({ page }) => {
@@ -137,6 +213,7 @@ test('keeps a failed network attempt available after a successful retry', async 
   await page.unroute('**/api/evaluate');
   await validate(page, 2);
   await viewAttempt(page, 1);
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
   await expect(page.locator('.terminal-output')).toContainText('could not be evaluated');
   await expect(page.locator('.tldraw-architecture-card')).toHaveCount(2);
 });
@@ -152,6 +229,56 @@ test('keeps attempts usable on a narrow screen', async ({ page }) => {
   expect(headerBounds).not.toBeNull();
   expect(buttonBounds).not.toBeNull();
   expect(buttonBounds!.x + buttonBounds!.width).toBeLessThanOrEqual(390);
-  await page.getByRole('button', { name: 'My Canvas', exact: true }).click();
+  const currentAttempt = page.getByRole('button', { name: 'View Current attempt', exact: true });
+  await expect(currentAttempt).toBeVisible();
+  const currentBounds = await currentAttempt.boundingBox();
+  expect(currentBounds!.x + currentBounds!.width).toBeLessThanOrEqual(390);
+  await currentAttempt.click();
+  await expect(page.getByRole('tab', { name: 'Attempts', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
   await expect(page.getByRole('toolbar', { name: 'Canvas tools' })).toBeVisible();
+});
+
+test('returns from Solutions or an archive to the current canvas camera and its matching output', async ({
+  page,
+}) => {
+  await openApp(page);
+  await validate(page, 1);
+  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  const ownCamera = await settledCameraTransform(page);
+
+  await page.getByRole('tab', { name: 'Solutions', exact: true }).click();
+  await validate(page, 2);
+  await page.getByRole('tab', { name: 'Attempts', exact: true }).click();
+  const currentAttempt = page.getByRole('button', { name: 'View Current attempt', exact: true });
+  await expect(currentAttempt).not.toHaveAttribute('aria-current', 'true');
+  await expect(
+    page.getByRole('region', { name: 'Validation attempts' }).getByRole('button').first(),
+  ).toHaveAccessibleName('View Current attempt');
+
+  await currentAttempt.click();
+  await expect(currentAttempt).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByRole('tab', { name: 'Attempts', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(await settledCameraTransform(page)).toBe(ownCamera);
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
+  await expect(page.locator('.terminal-output')).toContainText('Attempt #1');
+  await expect(page.locator('.terminal-output')).not.toContainText('Attempt #2');
+
+  await viewAttempt(page, 2);
+  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  await settledCameraTransform(page);
+  await currentAttempt.click();
+  await expect(page.getByRole('tab', { name: 'Attempts', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(await settledCameraTransform(page)).toBe(ownCamera);
+  await page.getByRole('tab', { name: 'Output', exact: true }).click();
+  await expect(page.locator('.terminal-output')).toContainText('Attempt #1');
+  await expect(page.locator('.terminal-output')).not.toContainText('Attempt #2');
 });

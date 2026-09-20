@@ -112,6 +112,20 @@ function isArchitectureEdgeData(value: unknown): value is NonNullable<Architectu
   }
   if (value.sourceAnchor !== undefined && !isEdgeAnchor(value.sourceAnchor)) return false;
   if (value.targetAnchor !== undefined && !isEdgeAnchor(value.targetAnchor)) return false;
+  for (const attachment of [value.sourceAttachment, value.targetAttachment]) {
+    if (attachment === undefined) continue;
+    if (
+      !isRecord(attachment) ||
+      !isRecord(attachment.normalizedAnchor) ||
+      !isFiniteNumber(attachment.normalizedAnchor.x) ||
+      !isFiniteNumber(attachment.normalizedAnchor.y) ||
+      typeof attachment.isPrecise !== 'boolean' ||
+      typeof attachment.isExact !== 'boolean' ||
+      typeof attachment.snap !== 'string' ||
+      !['none', 'center', 'edge', 'edge-point'].includes(attachment.snap)
+    )
+      return false;
+  }
   return true;
 }
 

@@ -3,10 +3,7 @@
   height: min(86dvh, 820px);
   max-height: calc(100dvh - 24px);
   overflow: hidden;
-  border: 0;
-  border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--surface-overlay) 97%, black);
-  box-shadow: var(--shadow-overlay);
+  padding: 0;
 }
 
 .component-catalog-dialog__body {

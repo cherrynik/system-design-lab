@@ -73,7 +73,7 @@ export function ArchitectureCommitsMenu({
 
   return (
     <div className="architecture-commits">
-      <Popover open={open} onOpenChange={onOpenChange} shadow="xl" closeOnEscape={false}>
+      <Popover open={open} onOpenChange={onOpenChange} closeOnEscape={false}>
         <PopoverTrigger>
           <Tooltip>
             <TooltipTrigger

@@ -188,13 +188,13 @@ describe('RequirementSidebar', () => {
     const items = screen.getAllByRole('menuitem');
     items[0]?.focus();
 
-    fireEvent.keyDown(menu, { key: 'ArrowDown' });
+    fireEvent.keyDown(items[0], { key: 'ArrowDown' });
     expect(document.activeElement).toBe(items[1]);
 
-    fireEvent.keyDown(menu, { key: 'End' });
+    fireEvent.keyDown(items[1], { key: 'End' });
     expect(document.activeElement).toBe(items[2]);
 
-    fireEvent.keyDown(menu, { key: 'Home' });
+    fireEvent.keyDown(items[2], { key: 'Home' });
     expect(document.activeElement).toBe(items[0]);
 
     fireEvent.keyDown(menu, { key: 'Escape' });
@@ -204,6 +204,15 @@ describe('RequirementSidebar', () => {
         screen.getByRole('button', { name: 'Open menu for Client' }),
       );
     });
+  });
+
+  it('closes the context menu when clicking outside the floating menu', () => {
+    const onMenuChange = vi.fn();
+    renderSidebar(makeProps({ menu: { id: client.id, x: 10, y: 20 }, onMenuChange }));
+
+    fireEvent.mouseDown(document.body);
+
+    expect(onMenuChange).toHaveBeenCalledWith(null);
   });
 
   it('switches reference solutions without rendering the component editor', () => {

@@ -13,6 +13,18 @@ export type {
   ArchitectureNodeConnectionState,
 } from './connections.types';
 
+const supportedDirections: Record<ArchitectureNodeKind, ArchitectureConnectionDirection[]> = {
+  client: ['outgoing'],
+  'load-balancer': ['incoming', 'outgoing'],
+  service: ['incoming', 'outgoing'],
+};
+
+export function getSupportedArchitectureConnectionDirections(
+  kind: ArchitectureNodeKind,
+): readonly ArchitectureConnectionDirection[] {
+  return supportedDirections[kind];
+}
+
 const requiredDirections: Record<ArchitectureNodeKind, ArchitectureConnectionDirection[]> = {
   client: ['outgoing'],
   'load-balancer': ['incoming', 'outgoing'],

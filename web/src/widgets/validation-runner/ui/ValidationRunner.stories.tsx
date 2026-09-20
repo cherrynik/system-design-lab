@@ -67,6 +67,9 @@ export const WithAttempts: Story = {
     status: warningAttempt.status,
     lines: warningAttempt.terminal,
     onSelectAttempt: fn(),
+    currentAttemptSelected: false,
+    onSelectCurrentAttempt: fn(),
+    onValidate: fn(),
   },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
@@ -77,7 +80,19 @@ export const WithAttempts: Story = {
     );
     await userEvent.click(canvas.getByRole('button', { name: 'View Attempt #1' }));
     await expect(args.onSelectAttempt).toHaveBeenCalledWith(1);
-    await expect(canvas.getByRole('tab', { name: 'Output' })).toHaveAttribute(
+    await expect(canvas.getByRole('tab', { name: 'Attempts' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await userEvent.click(canvas.getByRole('button', { name: 'View Current attempt' }));
+    await expect(args.onSelectCurrentAttempt).toHaveBeenCalledOnce();
+    await expect(canvas.getByRole('tab', { name: 'Attempts' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await userEvent.click(canvas.getByRole('button', { name: /^Validate/ }));
+    await expect(args.onValidate).toHaveBeenCalledOnce();
+    await expect(canvas.getByRole('tab', { name: 'Attempts' })).toHaveAttribute(
       'aria-selected',
       'true',
     );

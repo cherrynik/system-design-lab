@@ -3,10 +3,9 @@ import {
   getArrowTerminalsInArrowSpace,
   type Editor,
   type TLArrowShape,
+  type TLArrowBindingProps,
 } from 'tldraw';
 import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture';
-import { edgeAnchor } from './anchors';
-import { getArchitecturePortBinding } from './getArchitecturePortBinding';
 import { recordId } from './shapeIds';
 import { syncArchitectureArrowProtocol } from './syncArchitectureArrowProtocol';
 import { ARCHITECTURE_CARD_TYPE } from '../model/constants';
@@ -29,6 +28,15 @@ function readBend(arrow: TLArrowShape) {
   return { along: arrow.props.labelPosition, normal: arrow.props.bend };
 }
 
+function readAttachment(props: TLArrowBindingProps) {
+  return {
+    normalizedAnchor: { ...props.normalizedAnchor },
+    isPrecise: props.isPrecise,
+    isExact: props.isExact,
+    snap: props.snap,
+  };
+}
+
 function readArchitectureEdge(
   editor: Editor,
   arrow: TLArrowShape,
@@ -39,8 +47,7 @@ function readArchitectureEdge(
   const terminals = getArrowTerminalsInArrowSpace(editor, arrow, bindings);
   const transform = editor.getShapePageTransform(arrow);
   const edgeId = recordId(arrow.id);
-  const port = bindings.start ? undefined : getArchitecturePortBinding(editor, arrow.id);
-  const startBinding = bindings.start ?? port;
+  const startBinding = bindings.start;
   const startCard = startBinding ? cardById.get(startBinding.toId) : undefined;
   const endCard = bindings.end ? cardById.get(bindings.end.toId) : undefined;
   const sourceId = startCard?.props.nodeId ?? `anchor-${edgeId}-start`;
@@ -54,15 +61,6 @@ function readArchitectureEdge(
     nodes.push(createAnchorNode(targetId, point));
   }
   const { protocol, protocolMode } = syncArchitectureArrowProtocol(editor, arrow, startCard);
-  let sourceAnchor = bindings.start?.props.isPrecise
-    ? edgeAnchor(bindings.start.props.normalizedAnchor)
-    : undefined;
-  if (port) {
-    sourceAnchor = port.props.anchor;
-    // Hydration adds a visual gap without changing the saved document or creating an undo step.
-    if (port.props.originalAnchor !== undefined)
-      sourceAnchor = port.props.originalAnchor ?? undefined;
-  }
   return {
     id: edgeId,
     source: sourceId,
@@ -74,10 +72,8 @@ function readArchitectureEdge(
       protocol,
       protocolMode,
       bend: readBend(arrow),
-      sourceAnchor,
-      targetAnchor: bindings.end?.props.isPrecise
-        ? edgeAnchor(bindings.end.props.normalizedAnchor)
-        : undefined,
+      sourceAttachment: bindings.start ? readAttachment(bindings.start.props) : undefined,
+      targetAttachment: bindings.end ? readAttachment(bindings.end.props) : undefined,
     },
   };
 }

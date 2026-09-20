@@ -1,3 +1,4 @@
+export { ARCHITECTURE_CARD_WIDTH, ARCHITECTURE_CARD_HEIGHT } from './model/cardDimensions';
 export {
   architectureCategoryIcons,
   architectureMeta,
@@ -43,6 +44,7 @@ export {
 } from './model/persistence';
 export type {
   ArchitectureEdge,
+  ArchitectureAttachment,
   ArchitectureNode,
   ArchitectureNodeData,
   ArchitectureNodeKind,

@@ -10,6 +10,7 @@ const meta = {
     attempts: validationAttempts,
     selectedAttemptId: 2,
     onSelectAttempt: () => undefined,
+    onSelectCurrentAttempt: () => undefined,
   },
   render: (args) => (
     <div style={{ width: 'min(840px, 100%)', height: 240 }}>
@@ -23,3 +24,6 @@ type Story = StoryObj<typeof meta>;
 
 export const History: Story = {};
 export const Empty: Story = { args: { attempts: [], selectedAttemptId: null } };
+export const CurrentCanvas: Story = {
+  args: { currentAttemptSelected: true, selectedAttemptId: 2 },
+};

@@ -1,0 +1,97 @@
+.platform-floating-surface {
+  padding: var(--floating-padding);
+  color: var(--text-default);
+  border: 0;
+  border-radius: var(--floating-radius);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-float);
+  font-family: var(--font-ui);
+  font-size: var(--text-control);
+}
+
+.platform-floating-anchor {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.platform-menu-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  color: var(--menu-item-color, var(--text-soft));
+  text-align: left;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: var(--text-control);
+  font-weight: 400;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.platform-menu-row:is(:hover, :focus-visible, [data-hovered], [data-menu-active]) {
+  color: var(--menu-item-color, var(--text-strong));
+  outline: 0;
+  background: var(--menu-item-hover, var(--surface-active));
+}
+
+.platform-menu-row[data-destructive='true'] {
+  color: var(--danger);
+}
+
+.platform-menu-row:disabled,
+.platform-menu-row[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.platform-menu-row__label {
+  min-width: 0;
+  flex: 1;
+}
+
+.platform-menu-row__section {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  margin: 0;
+  color: inherit;
+}
+
+.platform-menu-icon,
+.platform-menu-row__section > svg {
+  display: block;
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+.platform-menu-label {
+  padding: 7px 8px 5px;
+  color: var(--text-muted);
+  font-size: var(--text-meta);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.platform-menu-divider {
+  margin: 5px 8px;
+  border-color: var(--line-subtle);
+}
+
+.platform-menu-row[data-destructive='true']:is(
+    :hover,
+    :focus-visible,
+    [data-hovered],
+    [data-menu-active]
+  ) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 16%, var(--surface-deep));
+}

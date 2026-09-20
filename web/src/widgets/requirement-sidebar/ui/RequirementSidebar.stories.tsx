@@ -1,7 +1,7 @@
 import { createRef } from 'react';
 import { Monitor } from 'lucide-react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import {
   createReferenceSolutionSnapshot,
   getArchitectureNodeConnectionStates,
@@ -140,6 +140,17 @@ export const Header: Story = {
       onViewChange={noopValue}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole('button', { name: 'Collapse requirements' });
+    const toggleBounds = toggle.getBoundingClientRect();
+    const center = toggleBounds.top + toggleBounds.height / 2;
+    for (const tab of canvas.getAllByRole('tab')) {
+      const bounds = tab.getBoundingClientRect();
+      await expect(bounds.top + bounds.height / 2).toBe(center);
+      await expect(getComputedStyle(tab).fontSize).toBe('12px');
+    }
+  },
 };
 
 export const Document: Story = { render: () => <RequirementDocument /> };
@@ -247,8 +258,88 @@ export const ContextMenu: Story = {
       onDeleteNode={noopValue}
     />
   ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const menu = await page.findByRole('menu', { name: 'Component actions' });
+    const focus = page.getByRole('menuitem', { name: 'Focus on canvas' });
+    const inspect = page.getByRole('menuitem', { name: 'Inspect component' });
+    const remove = page.getByRole('menuitem', { name: 'Delete component' });
+
+    await waitFor(() => expect(focus).toHaveFocus());
+    await userEvent.keyboard('{ArrowDown}');
+    await expect(inspect).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    await expect(remove).toHaveFocus();
+
+    await expect(getComputedStyle(menu).borderTopWidth).toBe('0px');
+    await expect(getComputedStyle(menu).borderRadius).toBe('8px');
+    await expect(getComputedStyle(menu).backgroundColor).toBe('rgb(16, 29, 48)');
+    await expect(getComputedStyle(focus).fontSize).toBe('12px');
+    await expect(getComputedStyle(focus).minHeight).toBe('32px');
+    await expect(getComputedStyle(remove).color).toBe('rgb(255, 125, 143)');
+    await expect(getComputedStyle(remove.querySelector('svg')!).color).toBe('rgb(255, 125, 143)');
+  },
+};
+
+export const ContextMenuAtViewportEdge: Story = {
+  render: () => (
+    <ComponentContextMenu
+      menu={{ id: 'balancer', x: window.innerWidth - 4, y: window.innerHeight - 4 }}
+      contextMenuRef={storyContextMenuRef}
+      onMenuChange={noop}
+      onFocusNode={noopValue}
+      onInspectNode={noopValue}
+      onDeleteNode={noopValue}
+    />
+  ),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const menu = await page.findByRole('menu', { name: 'Component actions' });
+    await waitFor(() => {
+      const bounds = menu.getBoundingClientRect();
+      expect(bounds.x).toBeGreaterThanOrEqual(12);
+      expect(bounds.y).toBeGreaterThanOrEqual(12);
+      expect(bounds.right).toBeLessThanOrEqual(window.innerWidth - 12);
+      expect(bounds.bottom).toBeLessThan(window.innerHeight);
+    });
+  },
 };
 
 export const CanvasRequirements: Story = {
   render: () => <RequirementsView {...sidebarProps} />,
+};
+
+export const NarrowSidebar: Story = {
+  render: (args) => (
+    <div style={{ width: 240, container: 'workspace-sidebar / inline-size' }}>
+      <RequirementSidebar {...args} contextMenuRef={storyContextMenuRef} />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const panel = canvasElement.querySelector('.requirements-panel')!;
+    await expect(panel.scrollWidth).toBeLessThanOrEqual(panel.clientWidth);
+    const componentsTitle = panel.querySelector('.components-section-header .panel-id')!;
+    await expect(componentsTitle.scrollWidth).toBeLessThanOrEqual(componentsTitle.clientWidth);
+    await expect(getComputedStyle(canvas.getByRole('tab', { name: 'Layers' })).fontSize).toBe(
+      '0px',
+    );
+    for (const selector of ['.requirements-panel__heading', '.components-section-header']) {
+      const header = panel.querySelector(selector)!;
+      const bounds = header.getBoundingClientRect();
+      for (const control of header.children) {
+        const rect = control.getBoundingClientRect();
+        await expect(rect.left).toBeGreaterThanOrEqual(bounds.left);
+        await expect(rect.right).toBeLessThanOrEqual(bounds.right);
+      }
+    }
+  },
+};
+
+export const ComfortableSidebar: Story = {
+  render: (args) => (
+    <div style={{ width: 390, container: 'workspace-sidebar / inline-size' }}>
+      <RequirementSidebar {...args} contextMenuRef={storyContextMenuRef} />
+    </div>
+  ),
 };

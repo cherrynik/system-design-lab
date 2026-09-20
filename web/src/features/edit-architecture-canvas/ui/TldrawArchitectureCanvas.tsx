@@ -10,15 +10,12 @@ import { useArchitectureCanvasTool } from '../hooks/useArchitectureCanvasTool';
 import { useArchitectureCardDoubleClick } from '../hooks/useArchitectureCardDoubleClick';
 import { useArchitectureShapeGuard } from '../hooks/useArchitectureShapeGuard';
 import { useBrowserZoomGuard } from '../hooks/useBrowserZoomGuard';
+import { useArchitectureArrowLabelCommit } from '../hooks/useArchitectureArrowLabelCommit';
 import { setArchitectureArrowStyles } from '../lib/arrowStyles';
 import { normalizeArchitectureCanvasProps } from '../lib/normalizeArchitectureCanvasProps';
 import { ArchitectureCanvasActionsContext } from '../model/ArchitectureCanvasActionsContext';
 import type { TldrawArchitectureCanvasProps } from '../model/architectureCanvas.types';
-import {
-  architectureBindingUtils,
-  architectureShapeUtils,
-  architectureTldrawComponents,
-} from './tldrawConfig';
+import { architectureShapeUtils, architectureTldrawComponents } from './tldrawConfig';
 
 export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -34,7 +31,10 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
     props.edges,
     props.validationStates,
   );
-  useArchitectureCanvasCamera(editor, props.cameraId ?? documentId);
+  useArchitectureCanvasCamera(editor, props.cameraId ?? documentId, {
+    documentId,
+    autoFitOnDocumentChange: props.autoFitOnDocumentChange,
+  });
   // Hydrate the document before locking a reference solution. Tldraw rejects
   // programmatic shape creation once the editor instance is read-only.
   const toolRef = useArchitectureCanvasTool(editor, runtime.mode, runtime.tool);
@@ -47,6 +47,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
       onNodesChange: runtime.storeCallbacks.onNodesChange,
       onEdgesChange: runtime.storeCallbacks.onEdgesChange,
       onToolChange: runtime.storeCallbacks.onToolChange,
+      onConnectionDraft: runtime.storeCallbacks.onConnectionDraft,
     }),
     [
       editor,
@@ -54,6 +55,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
       runtime.storeCallbacks.onEdgesChange,
       runtime.storeCallbacks.onNodesChange,
       runtime.storeCallbacks.onToolChange,
+      runtime.storeCallbacks.onConnectionDraft,
       toolRef,
       actionsRuntime.pendingHotspotStartRef,
     ],
@@ -61,6 +63,7 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
   useArchitectureCanvasStoreSync(storeSyncOptions, reconciliation.lastRenderedEdges);
   useArchitectureShapeGuard(editor, runtime.mode, reconciliation.isReconciling);
   useBrowserZoomGuard();
+  useArchitectureArrowLabelCommit(editor);
   const handleCardDoubleClick = useArchitectureCardDoubleClick(editor, runtime.mode);
 
   return (
@@ -74,7 +77,6 @@ export function TldrawArchitectureCanvas(props: TldrawArchitectureCanvasProps) {
           hideUi
           components={architectureTldrawComponents}
           shapeUtils={architectureShapeUtils}
-          bindingUtils={architectureBindingUtils}
           onMount={(nextEditor) => {
             nextEditor.user.updateUserPreferences({
               colorScheme: 'dark',

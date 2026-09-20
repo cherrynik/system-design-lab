@@ -40,7 +40,7 @@ export function ComponentRegistryDialog({
         xOffset="8px"
         classNames={{
           body: 'component-catalog-dialog__body',
-          content: 'component-catalog-dialog',
+          content: 'component-catalog-dialog platform-floating-surface',
         }}
         size="min(1180px, calc(100vw - 48px))"
         showCloseButton={false}

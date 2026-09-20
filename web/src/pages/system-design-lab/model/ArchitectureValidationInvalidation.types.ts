@@ -9,4 +9,5 @@ export type ArchitectureValidationDocument = {
 
 export type ArchitectureValidationInvalidationOptions = ArchitectureValidationDocument & {
   invalidateValidation: () => void;
+  preserveCanvasValidation?: boolean;
 };

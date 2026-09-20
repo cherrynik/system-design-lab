@@ -40,7 +40,7 @@
 
 .canvas-toolbar {
   position: absolute;
-  top: 12px;
+  top: var(--workspace-top-controls-inset);
   left: 50%;
   padding: 3px;
   transform: translateX(-50%);
@@ -88,7 +88,7 @@
 
 .solution-canvas-header {
   position: absolute;
-  top: 12px;
+  top: var(--workspace-top-control-offset);
   right: 12px;
   max-width: calc(100% - 24px);
   padding: 3px;

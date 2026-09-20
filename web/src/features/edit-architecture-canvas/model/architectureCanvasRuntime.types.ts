@@ -1,6 +1,7 @@
 import type { MutableRefObject } from 'react';
 import type { Editor } from 'tldraw';
 import type { ArchitectureEdge, ArchitectureNode } from '@/entities/architecture';
+import type { ArchitectureConnectionDraft } from './architectureConnectionDraft.types';
 import type {
   ArchitectureCardShape,
   ArchitectureCanvasActions,
@@ -18,6 +19,7 @@ export type ArchitectureCanvasCallbacks = {
   onNodesChange: (nodes: ArchitectureNode[]) => void;
   onEdgesChange: (edges: ArchitectureEdge[]) => void;
   onToolChange: (tool: ArchitectureCanvasTool) => void;
+  onConnectionDraft?: (draft: ArchitectureConnectionDraft) => void;
 };
 
 export type ArchitectureCanvasActionCallbacks = {

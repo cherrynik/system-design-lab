@@ -1,11 +1,11 @@
 import type { Editor, TLShape } from 'tldraw';
 import type {
   ArchitectureEdge,
-  EdgeAnchor,
   ArchitectureNode,
   ArchitectureNodeKind,
   ArchitectureNodeValidationState,
 } from '@/entities/architecture';
+import type { ArchitectureConnectionDraft } from './architectureConnectionDraft.types';
 declare module 'tldraw' {
   interface TLGlobalShapePropsMap {
     'architecture-card': {
@@ -29,7 +29,6 @@ export type HotspotSide = 'top' | 'right' | 'bottom' | 'left';
 
 export type PendingHotspotStart = {
   shapeId: ArchitectureCardShape['id'];
-  anchor: EdgeAnchor;
   existingArrowIds: Set<string>;
 };
 
@@ -38,6 +37,7 @@ type SharedCanvasProps = {
   edges: ArchitectureEdge[];
   documentId?: string;
   cameraId?: string;
+  autoFitOnDocumentChange?: boolean;
   validationStates?: Map<string, ArchitectureNodeValidationState>;
   onMountEditor?: (editor: Editor) => void;
 };
@@ -52,6 +52,7 @@ export type InteractiveArchitectureCanvasProps = SharedCanvasProps & {
   onCloseInspector?: () => void;
   onUpdateVariant?: (nodeId: string, variantId: string) => void;
   onNodeRenamed?: (nodeId: string, label: string) => void;
+  onConnectionDraft?: (draft: ArchitectureConnectionDraft) => void;
 };
 
 export type ReadonlyArchitectureCanvasProps = SharedCanvasProps & {

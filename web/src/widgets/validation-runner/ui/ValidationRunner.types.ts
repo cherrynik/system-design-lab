@@ -12,9 +12,14 @@ export type ValidationRunnerProps = {
   outputRef: RefObject<HTMLDivElement | null>;
   onClear: () => void;
   onValidate: () => void;
+  liveChecks?: boolean;
+  liveIssueCount?: number;
+  onLiveChecksChange?: (enabled: boolean) => void;
   attempts?: readonly ValidationAttempt[];
   selectedAttemptId?: number | null;
   onSelectAttempt?: (id: number) => void;
+  currentAttemptSelected?: boolean;
+  onSelectCurrentAttempt?: () => void;
 };
 
 export type ValidationRunnerHeaderProps = Pick<

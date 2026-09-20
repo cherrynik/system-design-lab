@@ -1,0 +1,2 @@
+export const ARCHITECTURE_CARD_WIDTH = 220;
+export const ARCHITECTURE_CARD_HEIGHT = 86;

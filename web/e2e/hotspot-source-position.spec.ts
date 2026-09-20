@@ -45,6 +45,8 @@ async function openCanvas(page: Page, connected = false) {
   await page.goto('/');
   await expect(page.locator('.tldraw-architecture-card')).toHaveCount(2);
   await page.getByRole('button', { name: 'Fit canvas', exact: true }).click();
+  // Native tldraw blocks shape hits until the camera settles after animated Fit.
+  await expect(page.locator('.tl-hit-test-blocker')).toBeHidden();
 }
 
 async function renderedTail(page: Page) {
@@ -62,124 +64,178 @@ async function persistedEdge(page: Page) {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).edges[0], autosaveKey);
 }
 
-async function relativeTail(page: Page) {
-  const card = await page.getByRole('group', { name: 'Source, Request Source' }).boundingBox();
-  const point = await renderedTail(page);
-  const zoom = card!.width / 220;
-  return { x: (point.x - card!.x) / zoom, y: (point.y - card!.y) / zoom };
-}
-
-for (const side of ['right', 'bottom'] as const) {
-  test(`${side} hotspot keeps its tail at the grab point through drop, movement and reload`, async ({
-    page,
-  }) => {
-    await openCanvas(page);
-    await page.keyboard.press('3');
-    const hotspot = page.getByRole('button', { name: `Create connection from ${side} of Source` });
-    await expect(hotspot).toBeVisible();
-    const bounds = await hotspot.boundingBox();
-    const origin = { x: bounds!.x + bounds!.width / 2, y: bounds!.y + bounds!.height / 2 };
-    const target = await page.getByRole('group', { name: 'Target, Request Handler' }).boundingBox();
-    let end = { x: target!.x + target!.width / 2, y: target!.y + target!.height / 2 };
-    if (side === 'bottom') end = { x: origin.x + 80, y: origin.y + 80 };
-    await page.mouse.move(origin.x, origin.y);
-    await page.mouse.down();
-    await page.mouse.move(end.x, end.y, { steps: 12 });
-    await expect(page.locator('[data-shape-type="arrow"] .tl-rich-text').first()).toHaveText(
-      'HTTPS',
-    );
-    const preview = await renderedTail(page);
-    expect(Math.hypot(preview.x - origin.x, preview.y - origin.y)).toBeLessThan(1);
-    await page.mouse.up();
-    await expect.poll(async () => (await persistedEdge(page))?.source).toBe('client');
-    await expect
-      .poll(async () => {
-        const tail = await renderedTail(page);
-        return Math.hypot(tail.x - preview.x, tail.y - preview.y);
-      })
-      .toBeLessThan(1);
-    const stored = await persistedEdge(page);
-    expect(stored.data.protocolMode).toBe('auto');
-    expect(stored.label).toBe('HTTPS');
-    expect(stored.data.sourceAnchor.side).toBe(side);
-    expect(stored.data.sourceAnchor.gap).toBeGreaterThan(8);
-    expect(stored.data.sourceAnchor.gap).toBeLessThan(12);
-    if (side === 'right') {
-      expect(stored.target).toBe('service');
-      expect(stored.label).toBe('HTTPS');
-    }
-
-    const history = page.getByRole('navigation', { name: 'Canvas history' });
-    await history.getByRole('button', { name: 'Undo', exact: true }).click();
-    await expect(page.locator('[data-shape-type="arrow"]')).toHaveCount(0);
-    await history.getByRole('button', { name: 'Redo', exact: true }).click();
-    await expect(page.locator('[data-shape-type="arrow"]')).toHaveCount(1);
-    await expect.poll(async () => (await persistedEdge(page))?.source).toBe('client');
-    const initialRelative = await relativeTail(page);
-    await page.keyboard.press('2');
-    const card = await page.getByRole('group', { name: 'Source, Request Source' }).boundingBox();
-    await page.mouse.move(card!.x + card!.width / 2, card!.y + card!.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(card!.x + card!.width / 2 + 50, card!.y + card!.height / 2 - 25, {
-      steps: 8,
+async function renderedPath(page: Page) {
+  const body = page.locator('[data-shape-type="arrow"] g[stroke-linecap="round"] > g path').first();
+  await expect(body).toBeAttached();
+  return body.evaluate((element) => {
+    const path = element as SVGPathElement;
+    const length = path.getTotalLength();
+    return Array.from({ length: 21 }, (_, index) => {
+      const point = path.getPointAtLength((length * index) / 20);
+      const screen = new DOMPoint(point.x, point.y).matrixTransform(path.getScreenCTM()!);
+      return { x: screen.x, y: screen.y };
     });
-    await page.mouse.up();
-    await expect
-      .poll(async () => {
-        const tail = await relativeTail(page);
-        return Math.hypot(tail.x - initialRelative.x, tail.y - initialRelative.y);
-      })
-      .toBeLessThan(1);
-    await expect.poll(async () => (await persistedEdge(page))?.source).toBe('client');
-    await page.reload();
-    await expect(page.locator('.tldraw-architecture-card')).toHaveCount(2);
-    await expect
-      .poll(async () => {
-        const tail = await relativeTail(page);
-        return Math.hypot(tail.x - initialRelative.x, tail.y - initialRelative.y);
-      })
-      .toBeLessThan(1);
-    await expect(page.locator('[data-shape-type="arrow"]')).toHaveCount(1);
   });
 }
 
-test('reattached tails keep a gap and derive the protocol before release', async ({ page }) => {
-  await openCanvas(page);
-  await page.keyboard.press('3');
-  const source = page.getByRole('group', { name: 'Source, Request Source' });
-  const card = (await source.boundingBox())!;
-  const bounds = (await page.locator('.tldraw-engine').boundingBox())!;
-  const start = { x: card.x + card.width + 75, y: card.y + card.height + 60 };
-  const end = { x: Math.min(start.x + 160, bounds.x + bounds.width - 50), y: start.y - 20 };
-  await page.mouse.move(start.x, start.y);
+async function drag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
+  await page.mouse.move(from.x, from.y);
   await page.mouse.down();
-  await page.mouse.move(end.x, end.y, { steps: 8 });
+  await page.mouse.move(to.x, to.y, { steps: 12 });
   await page.mouse.up();
-  await expect.poll(async () => (await persistedEdge(page))?.label).toBe('');
-  const arrow = page.locator('[data-shape-type="arrow"]');
-  await expect(arrow).toHaveCount(1);
-  await page.mouse.click((start.x + end.x) / 2, (start.y + end.y) / 2);
-  await page.mouse.move(start.x, start.y);
+}
+
+async function selectArrow(page: Page) {
+  const points = await renderedPath(page);
+  await page.mouse.click(points[1].x, points[1].y);
+}
+
+async function expectLabelMatchesArrowStroke(page: Page) {
+  const label = page.locator('[data-shape-type="arrow"] .tl-rich-text').first();
+  const body = page.locator('[data-shape-type="arrow"] g[stroke-linecap="round"] > g path').first();
+  await expect(label).toHaveText('HTTPS');
+  await expect(body).toBeVisible();
+  const stroke = await body.evaluate((element) => getComputedStyle(element).stroke);
+  expect(stroke).not.toBe('none');
+  await expect(label).toHaveCSS('color', stroke);
+  return stroke;
+}
+
+test('native source routing follows a reversed arrow without crossing its own card', async ({
+  page,
+}) => {
+  await openCanvas(page);
+  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
+  let previousX = Number.NaN;
+  await expect
+    .poll(
+      async () => {
+        const current = (await page
+          .getByRole('group', { name: 'Source, Request Source' })
+          .boundingBox())!;
+        const change = Math.abs(current.x - previousX);
+        previousX = current.x;
+        return Number.isFinite(change) && change < 0.1;
+      },
+      { intervals: [100] },
+    )
+    .toBe(true);
+  await page.keyboard.press('3');
+  const source = (await page.getByRole('group', { name: 'Source, Request Source' }).boundingBox())!;
+  const hotspot = (await page
+    .getByRole('button', { name: 'Create connection from right of Source' })
+    .boundingBox())!;
+  const left = { x: source.x - 90, y: source.y + source.height / 2 };
+  await page.mouse.move(hotspot.x + hotspot.width / 2, hotspot.y + hotspot.height / 2);
   await page.mouse.down();
-  await page.mouse.move(card.x + card.width - 24, card.y + card.height * 0.7, { steps: 15 });
-  await expect(arrow.locator('.tl-rich-text').first()).toHaveText('HTTPS');
+  await page.mouse.move(left.x, left.y, { steps: 16 });
+  await expect(page.locator('[data-shape-type="arrow"] .tl-rich-text').first()).toHaveText('HTTPS');
   await page.mouse.up();
   await expect.poll(async () => (await persistedEdge(page))?.source).toBe('client');
-  const attached = await persistedEdge(page);
-  expect(attached.data.sourceAnchor.gap).toBe(11);
-  const relative = await relativeTail(page);
-  const distances = [
-    Math.abs(relative.x),
-    Math.abs(relative.x - 220),
-    Math.abs(relative.y),
-    Math.abs(relative.y - 86),
-  ];
-  expect(Math.min(...distances)).toBeGreaterThan(9);
+  await expect
+    .poll(async () => Math.max(...(await renderedPath(page)).map((point) => point.x)))
+    .toBeLessThan(source.x + 2);
+  expect((await persistedEdge(page)).data.sourceAttachment).toMatchObject({
+    isPrecise: false,
+    normalizedAnchor: { x: 0.5, y: 0.5 },
+  });
+  expect((await persistedEdge(page)).data.sourceAnchor).toBeUndefined();
+  await page.keyboard.press('Escape');
+  await selectArrow(page);
+  const right = { x: source.x + source.width + 140, y: left.y };
+  await drag(page, left, right);
+  await expect
+    .poll(async () => (await renderedTail(page)).x)
+    .toBeGreaterThan(source.x + source.width - 2);
+  await expect
+    .poll(async () => {
+      const points = await renderedPath(page);
+      return points[points.length - 1].x;
+    })
+    .toBeCloseTo(right.x, 0);
+  await drag(page, right, left);
+  await expect
+    .poll(async () => Math.max(...(await renderedPath(page)).map((point) => point.x)))
+    .toBeLessThan(source.x + 2);
   await page.reload();
-  await expect(arrow).toHaveCount(1);
-  const restored = await relativeTail(page);
-  expect(Math.hypot(restored.x - relative.x, restored.y - relative.y)).toBeLessThan(1);
-  await expect(arrow.locator('.tl-rich-text').first()).toHaveText('HTTPS');
+  const restored = (await page
+    .getByRole('group', { name: 'Source, Request Source' })
+    .boundingBox())!;
+  await expect
+    .poll(async () => Math.max(...(await renderedPath(page)).map((point) => point.x)))
+    .toBeLessThan(restored.x + 2);
+});
+
+test('native endpoints detach, follow moved cards and preserve free-drop positions on reload', async ({
+  page,
+}) => {
+  await openCanvas(page);
+  await page.keyboard.press('3');
+  const sourceHotspot = page.getByRole('button', {
+    name: 'Create connection from right of Source',
+  });
+  await sourceHotspot.hover();
+  const hotspot = (await sourceHotspot.boundingBox())!;
+  const target = (await page
+    .getByRole('group', { name: 'Target, Request Handler' })
+    .boundingBox())!;
+  await drag(
+    page,
+    { x: hotspot.x + hotspot.width / 2, y: hotspot.y + hotspot.height / 2 },
+    { x: target.x + target.width / 2, y: target.y + target.height / 2 },
+  );
+  await expect.poll(async () => (await persistedEdge(page))?.target).toBe('service');
+  const connected = await persistedEdge(page);
+  expect(connected.label).toBe('HTTPS');
+  await selectArrow(page);
+  const anchor = connected.data.targetAttachment;
+  let normalizedPoint = { x: 0.5, y: 0.5 };
+  if (anchor.isPrecise) normalizedPoint = anchor.normalizedAnchor;
+  const endHandle = {
+    x: target.x + normalizedPoint.x * target.width,
+    y: target.y + normalizedPoint.y * target.height,
+  };
+  const freeEnd = { x: target.x + target.width / 2, y: target.y + target.height + 100 };
+  await drag(page, endHandle, freeEnd);
+  await expect
+    .poll(async () => (await persistedEdge(page))?.target.startsWith('anchor-'))
+    .toBe(true);
+  expect((await persistedEdge(page)).label).toBe('HTTPS');
+  const expectedFreePosition = await page.evaluate((key) => {
+    const snapshot = JSON.parse(localStorage.getItem(key)!);
+    return snapshot.nodes.find((node: { id: string }) => node.id === snapshot.edges[0].target)
+      .position;
+  }, autosaveKey);
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('2');
+  const source = (await page.getByRole('group', { name: 'Source, Request Source' }).boundingBox())!;
+  const center = { x: source.x + source.width / 2, y: source.y + source.height / 2 };
+  await drag(page, center, { x: center.x + 45, y: center.y + 20 });
+  await expect.poll(async () => (await persistedEdge(page))?.source).toBe('client');
+  await page.reload();
+  await expect(page.locator('[data-shape-type="arrow"]')).toHaveCount(1);
+  const restoredFreePosition = await page.evaluate((key) => {
+    const snapshot = JSON.parse(localStorage.getItem(key)!);
+    return snapshot.nodes.find((node: { id: string }) => node.id === snapshot.edges[0].target)
+      .position;
+  }, autosaveKey);
+  expect(restoredFreePosition.x).toBeCloseTo(expectedFreePosition.x, 3);
+  expect(restoredFreePosition.y).toBeCloseTo(expectedFreePosition.y, 3);
+  await selectArrow(page);
+  const movedSource = (await page
+    .getByRole('group', { name: 'Source, Request Source' })
+    .boundingBox())!;
+  const sourceHandle = {
+    x: movedSource.x + movedSource.width / 2,
+    y: movedSource.y + movedSource.height / 2,
+  };
+  await drag(page, sourceHandle, { x: sourceHandle.x, y: movedSource.y + movedSource.height + 70 });
+  await expect
+    .poll(async () => (await persistedEdge(page))?.source.startsWith('anchor-'))
+    .toBe(true);
+  await expect.poll(async () => (await persistedEdge(page))?.label).toBe('');
+  await expect(page.locator('[data-shape-type="arrow"]')).toHaveCount(1);
 });
 
 test('manual protocol text and intentionally blank labels survive edits and reload', async ({
@@ -188,6 +244,7 @@ test('manual protocol text and intentionally blank labels survive edits and relo
   await openCanvas(page);
   await page.keyboard.press('3');
   const hotspot = page.getByRole('button', { name: 'Create connection from bottom of Source' });
+  await hotspot.hover();
   const bounds = (await hotspot.boundingBox())!;
   const origin = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
   await page.mouse.move(origin.x, origin.y);
@@ -196,11 +253,13 @@ test('manual protocol text and intentionally blank labels survive edits and relo
   await page.mouse.up();
   const label = page.locator('[data-shape-type="arrow"] .tl-rich-text').first();
   await expect(label).toHaveText('HTTPS');
+  await page.keyboard.press('Escape');
   await label.dblclick();
   const textEditor = page.locator('[contenteditable="true"]');
   await expect(textEditor).toBeVisible();
   await textEditor.fill('gRPC');
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Enter');
+  await expect(textEditor).toHaveCount(0);
   await expect.poll(async () => (await persistedEdge(page))?.label).toBe('gRPC');
   await expect.poll(async () => (await persistedEdge(page))?.data.protocolMode).toBe('manual');
   await page.reload();
@@ -208,7 +267,7 @@ test('manual protocol text and intentionally blank labels survive edits and relo
   await label.dblclick();
   await expect(textEditor).toBeVisible();
   await textEditor.fill('');
-  await page.keyboard.press('Escape');
+  await page.keyboard.press('Enter');
   await expect.poll(async () => (await persistedEdge(page))?.label).toBe('');
   await page.reload();
   await expect(page.locator('[data-shape-type="arrow"]')).toHaveCount(1);
@@ -216,48 +275,38 @@ test('manual protocol text and intentionally blank labels survive edits and relo
   await expect(label).toHaveCount(0);
 });
 
-test('hydrates the same source gap in own and solution canvases without a synthetic undo step', async ({
-  page,
-}) => {
-  await openCanvas(page, true);
-  const relative = await relativeTail(page);
-  expect(
-    Math.min(
-      Math.abs(relative.x),
-      Math.abs(relative.x - 220),
-      Math.abs(relative.y),
-      Math.abs(relative.y - 86),
-    ),
-  ).toBeGreaterThan(9);
-  const sourceBounds = (await page
-    .getByRole('group', { name: 'Source, Request Source' })
-    .boundingBox())!;
-  await page.mouse.click(
-    sourceBounds.x + sourceBounds.width / 2,
-    sourceBounds.y + sourceBounds.height / 2,
-  );
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Canvas history' })
-      .getByRole('button', { name: 'Undo', exact: true }),
-  ).toBeDisabled();
-  expect((await persistedEdge(page)).data.sourceAnchor).toBeUndefined();
-  await page.getByRole('tab', { name: 'Solutions', exact: true }).click();
-  await expect(page.locator('[data-shape-type="arrow"]')).toHaveCount(1);
-  const card = (await page
-    .getByRole('group', { name: 'Web Browser, Request Source' })
-    .boundingBox())!;
-  const tail = await renderedTail(page);
-  const zoom = card.width / 220;
-  const x = (tail.x - card.x) / zoom;
-  const y = (tail.y - card.y) / zoom;
-  expect(Math.min(Math.abs(x), Math.abs(x - 220), Math.abs(y), Math.abs(y - 86))).toBeGreaterThan(
-    9,
-  );
-  await page.getByRole('button', { name: 'My Canvas', exact: true }).click();
-  await expect(
-    page
-      .getByRole('navigation', { name: 'Canvas history' })
-      .getByRole('button', { name: 'Undo', exact: true }),
-  ).toBeDisabled();
-});
+for (const gesture of ['hotspot', 'native Connect tool'] as const) {
+  test(`${gesture} keeps the protocol label the arrow color while drawing, after drop and reload`, async ({
+    page,
+  }, testInfo) => {
+    await openCanvas(page);
+    await page.keyboard.press('3');
+    const card = page.getByRole('group', { name: 'Source, Request Source' });
+    const hotspot = page.getByRole('button', {
+      name: 'Create connection from bottom of Source',
+    });
+    let start = card;
+    if (gesture === 'hotspot') {
+      start = hotspot;
+      await start.hover();
+    }
+    const bounds = (await start.boundingBox())!;
+    const cardBounds = (await card.boundingBox())!;
+    const origin = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    await page.mouse.move(origin.x, origin.y);
+    await page.mouse.down();
+    await page.mouse.move(origin.x + 150, cardBounds.y + cardBounds.height + 85, { steps: 12 });
+    const drawingColor = await expectLabelMatchesArrowStroke(page);
+    await page.mouse.up();
+    const droppedColor = await expectLabelMatchesArrowStroke(page);
+    expect(droppedColor).toBe(drawingColor);
+    await expect.poll(async () => (await persistedEdge(page))?.label).toBe('HTTPS');
+    await page.reload();
+    const reloadedColor = await expectLabelMatchesArrowStroke(page);
+    expect(reloadedColor).toBe(drawingColor);
+    await testInfo.attach('protocol-colors', {
+      body: JSON.stringify({ gesture, drawingColor, droppedColor, reloadedColor }),
+      contentType: 'application/json',
+    });
+  });
+}
